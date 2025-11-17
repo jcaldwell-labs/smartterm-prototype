@@ -1,7 +1,7 @@
 # Implementation Decision
 
 **Decision Point**: 2025-11-17
-**Status**: PENDING
+**Status**: DECIDED
 
 ---
 
@@ -49,55 +49,74 @@ See `NEXT-STEPS.md` for complete analysis of all options.
 
 ## Decision Made
 
-**Date**: _____________________
+**Date**: 2025-11-17
 
-**Chosen Path**: [ ] A  [ ] B  [ ] C  [ ] B→A  [ ] A+B
+**Chosen Path**: [X] B→A (Ship First, Refactor Later)
 
 **Rationale**:
-<!-- Why did you choose this path? What factors were most important? -->
+Path B→A chosen to validate library need with real usage before investing 50+ hours in speculative design. The POC proves the concept works technically, but we don't yet know what features adventure engine actually needs. By shipping the game first using POC code, we can:
 
+1. Get adventure engine working THIS WEEK (8-10 hours) vs next month (50+ hours)
+2. Focus on game content (worlds, quests, narrative) over infrastructure
+3. Gather real-world requirements from actual usage
+4. Build the library later with informed design (if needed at all)
+5. Maintain momentum from today's productive session
+
+This approach mirrors the terminal-stars handoff: ship MVP, iterate, improve. Portfolio value is higher with a playable game featuring unique content than with generic infrastructure. If library becomes necessary after building 2-3 terminal apps, we'll have validated the need and know exactly what to build.
 
 **Key Factors**:
-<!-- Check all that apply -->
-- [ ] Time to ship adventure engine
-- [ ] Code quality / portfolio value
-- [ ] Learning goals
-- [ ] Number of future terminal projects planned
-- [ ] Current motivation / energy
-- [ ] Other priorities competing for time
+- [X] Time to ship adventure engine (fast results preferred)
+- [X] Number of future terminal projects planned (1-2, not 4+, doesn't justify library investment yet)
+- [X] Current motivation / energy (high momentum, capitalize on productive flow)
+- [X] Other priorities competing for time (terminal-stars, other jcaldwell-labs projects)
+- [X] Portfolio value (unique game content > commodity infrastructure)
 
 **Timeline Commitment**:
-<!-- When will you work on this? How much time per week? -->
-
+- Week 1 (Nov 17-24): Adventure engine MVP - 8-10 hours
+  - Extract POC to simple library (2-3 hours)
+  - Build core engine (parser, world system, basic commands) (5-7 hours)
+- Week 2-3 (Nov 25-Dec 8): Content creation - 8-10 hours
+  - Create 2-3 adventure worlds with rich narrative
+  - Test gameplay and gather feedback
+- Evaluation Point (Dec 8): Assess if library is needed
+  - Is POC code limiting development? → Consider Path A
+  - Is POC sufficient? → Continue with content focus
+  - Building more terminal apps? → Library justified
 
 **Success Criteria**:
-<!-- How will you know this was the right choice? -->
-- [ ]
-- [ ]
-- [ ]
+- [X] Adventure engine v1.0 shipped and playable within 1 week
+- [X] 2-3 worlds created with rich narrative and engaging gameplay
+- [X] Clear understanding of what UI features are actually needed (vs speculated)
+- [X] Decision point reached: build library or keep POC (informed by real usage)
+- [X] No regret about skipping 50-hour library investment upfront
 
 **Risks Accepted**:
-<!-- What trade-offs are you making? -->
--
--
+- POC code quality not production-grade (acceptable for MVP, can refactor later)
+- Potential refactor cost if library becomes needed (but with validated requirements, not speculation)
+- No reusable library immediately available (but may not need one for 1-2 projects)
+- Technical debt in smartterm integration (manageable, isolated to lib/ directory)
 
 ---
 
 ## Implementation Tracking
 
-**Start Date**: _____________________
+**Start Date**: 2025-11-17
 
 **Milestones**:
-- [ ] Milestone 1: _____________________ (Target: ________)
-- [ ] Milestone 2: _____________________ (Target: ________)
-- [ ] Milestone 3: _____________________ (Target: ________)
+- [ ] Milestone 1: Extract POC to smartterm_simple library (Target: Nov 17-18, 2-3 hours)
+- [ ] Milestone 2: Adventure engine MVP with basic commands (Target: Nov 19-21, 5-7 hours)
+- [ ] Milestone 3: First playable world with narrative (Target: Nov 22-24, 3-4 hours)
+- [ ] Milestone 4: 2-3 additional worlds, gameplay testing (Target: Nov 25-Dec 1, 5-6 hours)
+- [ ] Milestone 5: Evaluation - library needed? (Target: Dec 8)
 
 **Actual Progress**:
 <!-- Update as you go -->
+- 2025-11-17: Decision made, documented, and committed
 
 
 **Pivots / Changes**:
 <!-- Did you change course? Why? -->
+None yet - will document if requirements change during development
 
 
 ---
@@ -128,8 +147,32 @@ See `NEXT-STEPS.md` for complete analysis of all options.
 
 ## Next Decision Point
 
-**If Path B or B→A**: When to build full library?
-**If Path A**: Which project to use library in first?
-**If Path C**: Which alternative to proceed with?
+**Target Date**: 2025-12-08 (after 3 weeks of adventure engine development)
 
-<!-- Document the next fork in the road -->
+**Decision**: Should we build the full libsmartterm library?
+
+**Evaluation Criteria**:
+1. Is POC code limiting adventure engine development?
+   - Missing features we need?
+   - Code quality blocking progress?
+   - Refactoring becoming painful?
+
+2. Are we building additional terminal projects?
+   - If yes → Library justified (reuse across projects)
+   - If no → Keep POC (one project doesn't justify library)
+
+3. Has real usage revealed better requirements?
+   - What features actually matter?
+   - What planning assumptions were wrong?
+   - What should library API look like?
+
+**Possible Outcomes**:
+- **Build Library (Path A)**: If building 2+ more terminal apps or POC is limiting
+- **Keep POC**: If it's sufficient and no other terminal projects planned
+- **Pivot**: If different approach emerges from usage experience
+
+**How to Decide**:
+- Review pain points documented during development
+- Count terminal projects in pipeline
+- Estimate refactor cost vs build-from-scratch cost
+- Check motivation and available time
