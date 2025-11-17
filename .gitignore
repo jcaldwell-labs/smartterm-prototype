@@ -1,5 +1,6 @@
 # Compiled binaries
 smartterm_poc
+example
 *.o
 *.a
 *.so

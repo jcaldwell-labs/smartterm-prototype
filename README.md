@@ -1,11 +1,187 @@
-# SmartTerm Proof of Concept
+# SmartTerm Simple Library
 
-**Purpose**: Validate the SmartTerm concept with minimal code
-**Status**: Prototype (single file, ~250 lines)
+**Purpose**: Minimal terminal UI library for building interactive command-line applications
+**Status**: Extracted from POC, ready for use (Path B implementation)
+**Version**: 0.1.0
 
 ---
 
-## What This Demonstrates
+## Overview
+
+SmartTerm Simple is a lightweight C library that provides:
+- **Scrolling output buffer** - Clean history without prompt duplication
+- **Context-aware coloring** - Color code output based on context (commands, comments, etc.)
+- **Status bar** - Fixed status display separate from output
+- **Readline integration** - Full editing, history, and input features
+
+This library was extracted from the SmartTerm POC and is ready to use in real applications.
+
+---
+
+## Quick Start
+
+### Build and Run
+
+```bash
+make              # Build library and example
+make run          # Run the example program
+make run-poc      # Run the original POC
+make clean        # Clean all build artifacts
+```
+
+### Prerequisites
+
+```bash
+# Debian/Ubuntu
+sudo apt-get install libncurses-dev libreadline-dev
+
+# macOS
+brew install ncurses readline
+```
+
+---
+
+## Library API
+
+### Initialization
+
+```c
+#include "smartterm_simple.h"
+
+int main() {
+    // Initialize the library
+    if (smartterm_init() != 0) {
+        fprintf(stderr, "Failed to initialize\n");
+        return 1;
+    }
+
+    // ... your application code ...
+
+    // Cleanup when done
+    smartterm_cleanup();
+    return 0;
+}
+```
+
+### Adding Output
+
+```c
+// Add lines with different contexts
+smartterm_add_output("Normal message", SMARTTERM_CTX_NORMAL);
+smartterm_add_output("System command", SMARTTERM_CTX_COMMAND);   // Yellow
+smartterm_add_output("Comment text", SMARTTERM_CTX_COMMENT);     // Green
+smartterm_add_output("Special action", SMARTTERM_CTX_SPECIAL);   // Cyan
+smartterm_add_output("Search query", SMARTTERM_CTX_SEARCH);      // Magenta
+```
+
+### Reading Input
+
+```c
+// Read a line from the user
+char *input = smartterm_readline("> ");
+if (input) {
+    // Process input...
+    free(input);  // Don't forget to free!
+}
+```
+
+### Detecting Context
+
+```c
+// Detect context from user input
+smartterm_context_t ctx = smartterm_detect_context("!command");
+// Returns SMARTTERM_CTX_COMMAND
+
+// Strip context prefix
+const char *text = smartterm_strip_context("!command");
+// Returns "command" (without the !)
+```
+
+### Status Bar
+
+```c
+// Update status bar (left and right sides)
+smartterm_set_status("App Name", "v1.0.0");
+smartterm_set_status("Ready", "Lines: 42");
+```
+
+### Other Functions
+
+```c
+// Clear all output
+smartterm_clear_output();
+```
+
+---
+
+## Context Types
+
+The library supports five context types for color-coded output:
+
+| Context | Prefix | Color | Use Case |
+|---------|--------|-------|----------|
+| `SMARTTERM_CTX_NORMAL` | (none) | White | Regular output |
+| `SMARTTERM_CTX_COMMAND` | `!` | Yellow | System commands |
+| `SMARTTERM_CTX_COMMENT` | `#` | Green | Comments/notes |
+| `SMARTTERM_CTX_SPECIAL` | `@` | Cyan | Special actions |
+| `SMARTTERM_CTX_SEARCH` | `/` | Magenta | Search queries |
+
+---
+
+## Example Program
+
+See `example.c` for a complete demonstration. The example shows:
+- Basic initialization and cleanup
+- Adding output with different contexts
+- Reading user input with readline
+- Context detection and processing
+- Status bar updates
+- Command handling
+
+---
+
+## Project Structure
+
+```
+smartterm-prototype/
+├── smartterm_simple.h      # Public API header
+├── smartterm_simple.c      # Implementation
+├── example.c               # Example program
+├── smartterm_poc.c         # Original POC (reference)
+├── Makefile                # Build system
+├── README.md               # This file
+├── DECISION.md             # Implementation decision log
+├── NEXT-STEPS.md           # Opportunity cost analysis
+└── SESSION-SUMMARY.md      # Development session notes
+```
+
+---
+
+## Using the Library in Your Project
+
+### Option 1: Static Linking
+
+```bash
+# Build the library
+make library
+
+# Compile your program
+gcc -o myapp myapp.c -L. -lsmartterm_simple -lncurses -lreadline
+```
+
+### Option 2: Copy Source Files
+
+```bash
+# Copy the library files to your project
+cp smartterm_simple.{h,c} /path/to/your/project/
+
+# Include in your build
+gcc -o myapp myapp.c smartterm_simple.c -lncurses -lreadline
+```
+
+---
+
+## What This Library Demonstrates
 
 ✅ **Scrolling Output Buffer**
 - History scrolls up (oldest lines drop off)
@@ -37,118 +213,57 @@
 
 ---
 
-## Building
+## Testing
 
-### Prerequisites
+### Running the Tests
+
 ```bash
-# Debian/Ubuntu
-sudo apt-get install libncurses-dev libreadline-dev
-
-# macOS
-brew install ncurses readline
+make test     # Show testing instructions
+make run      # Run the example program
 ```
 
-### Compile & Run
-```bash
-make        # Build
-make run    # Build and run
-make clean  # Clean up
-```
+### Manual Testing
 
-Or manually:
-```bash
-gcc -o smartterm_poc smartterm_poc.c -lncurses -lreadline
-./smartterm_poc
-```
+1. **Basic Output**
+   ```
+   > hello world
+   Echo [NORMAL]: hello world
+   ```
+   Verify: Clean output without prompt duplication
 
----
+2. **Context Detection**
+   ```
+   > !system command
+   Echo [COMMAND]: system command
+   > #this is a comment
+   Echo [COMMENT]: this is a comment
+   > @special action
+   Echo [SPECIAL]: special action
+   > /search query
+   Echo [SEARCH]: search query
+   ```
+   Verify: Different colors for each context
 
-## Testing the POC
+3. **Commands**
+   ```
+   > help
+   > clear
+   > quit
+   ```
+   Verify: Commands work as expected
 
-### Test 1: Basic Output
-```
-> hello
-Echo [NORMAL]: hello
-> world
-Echo [NORMAL]: world
-```
+4. **History & Editing**
+   - **Up/Down arrows**: Navigate history
+   - **Ctrl+A**: Jump to beginning of line
+   - **Ctrl+E**: Jump to end of line
+   - **Ctrl+K**: Delete to end of line
+   - **Ctrl+U**: Delete entire line
 
-**Verify**: No prompt duplication, clean history
+   Verify: All readline features work
 
-### Test 2: Context Detection
-```
-> !system command
-Echo [CMD]: system command
-> # this is a comment
-Echo [COMMENT]: this is a comment
-> @ special action
-Echo [SPECIAL]: special action
-```
-
-**Verify**: Colors change based on context
-
-### Test 3: Commands
-```
-> help
-Available commands:
-  help    - Show this help
-  clear   - Clear screen
-  quit    - Exit program
-  ...
-```
-
-**Verify**: Output scrolls properly
-
-### Test 4: History & Editing
-- Press **Up Arrow**: Previous command
-- Press **Down Arrow**: Next command
-- **Ctrl+A**: Beginning of line
-- **Ctrl+E**: End of line
-- **Ctrl+K**: Kill to end of line
-- **Ctrl+U**: Kill entire line
-
-**Verify**: Readline features work
-
-### Test 5: Multi-line Input
-```
-> this is a very long line that exceeds the terminal width and should wrap properly without breaking
-```
-
-**Verify**: Long lines wrap correctly
-
-### Test 6: Scrolling
-Enter many commands to fill screen:
-```
-> line 1
-> line 2
-> line 3
-... (continue until screen fills)
-```
-
-**Verify**: Old lines scroll off top, new lines appear at bottom
-
----
-
-## What's Missing (Intentionally)
-
-This is a POC, not a full library. Missing features:
-
-❌ **Not Implemented**:
-- Tab completion (readline supports it, not wired up)
-- Actual multi-line expanding input (readline is single-line)
-- Persistent history file
-- Configurable themes
-- Custom key bindings
-- Full API surface
-- Error handling
-- Memory safety checks
-- Documentation beyond this file
-
-✅ **Core Concept Proven**:
-- Output buffer without prompt duplication ✅
-- Context-aware coloring ✅
-- Status bar ✅
-- ncurses + readline integration ✅
+5. **Scrolling**
+   - Enter many lines until screen fills
+   - Verify: Old lines scroll off, recent lines visible
 
 ---
 
@@ -156,99 +271,84 @@ This is a POC, not a full library. Missing features:
 
 ```
 ┌──────────────────────────────────┐
-│     Output Window (scrolling)    │  ← OutputBuffer, no prompt duplication
+│     Output Window (scrolling)    │  ← Output buffer, no prompt duplication
 │  Line 1                          │
 │  Line 2                          │
 │  ...                             │
-│  Line N                          │
+│  Line N (most recent)            │
 ├──────────────────────────────────┤
-│  Status Bar (info)               │  ← Status info, counts, mode
+│  Status Bar (fixed)              │  ← Status: App info, counts, state
 ├──────────────────────────────────┤
-│  (readline input area)           │  ← Input handled by readline
-│  > _                             │     (appears below window)
+│  (readline input area)           │  ← Input: readline handles editing
+│  > _                             │
 └──────────────────────────────────┘
 ```
 
-### Key Design Decisions
+### Design Decisions
 
-**1. Output Buffer Separate from Display**
-- Store lines in array (no ncurses dependency)
-- Render buffer to window on demand
-- Allows scrollback, search, export
+**Output Buffer**
+- Stored separately from ncurses windows
+- Rendered on demand for flexibility
+- Supports up to 1000 lines (configurable)
 
-**2. readline Suspends ncurses**
-- ncurses paused during input
-- readline handles editing
-- ncurses resumes for display
+**Context System**
+- Prefix character indicates context (!, #, @, /)
+- Stored with each line for rendering
+- Easy to extend to new contexts
 
-**3. Context as Prefix**
-- Store context marker with each line
-- Render with appropriate color
-- Easy to extend to more contexts
+**Terminal Integration**
+- ncurses for display (output + status)
+- readline for input (editing + history)
+- Suspend/resume pattern for cooperation
 
-**4. Status Bar as Separate Window**
-- Fixed position
-- Always visible
-- Easy to update independently
-
----
-
-## Code Stats
-
-- **Lines**: ~250 LOC
-- **Dependencies**: ncurses, readline
-- **Time to Write**: ~30-45 minutes
-- **Complexity**: Low (single file)
+**Status Bar**
+- Separate ncurses window
+- Fixed at bottom (above input)
+- Displays app name, version, stats, etc.
 
 ---
 
-## Learnings from POC
+## Limitations & Future Work
 
-### What Works Well ✅
+### Current Limitations
 
-1. **ncurses + readline integration**: Clean suspend/resume
-2. **Output buffer design**: Prevents prompt duplication
-3. **Context coloring**: Easy to parse and display
-4. **Status bar**: Good separation of concerns
-5. **Code simplicity**: Proves concept without over-engineering
+⚠️ **Known Issues**:
+- Readline owns full terminal (slight flicker on input)
+- Single-line input only (readline limitation)
+- Fixed color scheme (no themes yet)
+- Basic memory management (no overflow protection)
 
-### What Needs Improvement ⚠️
+### Future Enhancements (Phase 2)
 
-1. **Multi-line input**: readline is single-line, need custom handling
-2. **Input area sizing**: readline uses full terminal, conflicts with layout
-3. **Suspend/resume**: Flickers slightly on each input
-4. **Color coordination**: Hardcoded colors, should be theme-based
-5. **Memory management**: No bounds checking, could overflow
+If validated by real usage, Phase 2 could add:
+- Multi-line expanding input area
+- Custom themes and color schemes
+- Tab completion support
+- Scrollback navigation
+- Export/save output buffer
+- Better error handling
+- Comprehensive documentation
+- Test suite
 
-### Surprising Discoveries 💡
-
-1. **readline owns the terminal**: Hard to constrain to bottom region
-2. **Multi-line is complex**: May need custom input handler, not readline
-3. **Suspend/resume works**: But not ideal UX (flickers)
-4. **Context detection is easy**: Simple prefix check works well
-5. **Buffer management straightforward**: Array of strings is simple and effective
+See `NEXT-STEPS.md` for the full roadmap.
 
 ---
 
-## Opportunity Costs Analysis
+## Development History
 
-See `NEXT-STEPS.md` for detailed analysis of paths forward.
+This library follows **Path B→A** (Ship First, Refactor Later):
+- ✅ **Phase 1** (Current): Extract POC to minimal library
+- ⏳ **Phase 2** (Future): Build full library based on learnings
+
+For detailed decision rationale, see `DECISION.md`.
+For opportunity cost analysis, see `NEXT-STEPS.md`.
+For session notes, see `SESSION-SUMMARY.md`.
 
 ---
 
-## Conclusion
+## Original POC
 
-**POC Status**: ✅ SUCCESS
+The original proof-of-concept is preserved as `smartterm_poc.c`.
+Run it with: `make run-poc`
 
-**Concept Validated**:
-- Output buffer works as designed
-- Context awareness is simple and effective
-- ncurses + readline can coexist
-- Status bar is useful
-
-**Ready for Next Decision**:
-- Path A: Continue to full library
-- Path B: Use as-is for adventure engine
-- Path C: Pivot to different approach
-
-See `NEXT-STEPS.md` for opportunity cost analysis and recommendations.
+The POC validates the core concepts before extraction to a reusable library.

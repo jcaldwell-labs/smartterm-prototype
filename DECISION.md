@@ -49,48 +49,55 @@ See `NEXT-STEPS.md` for complete analysis of all options.
 
 ## Decision Made
 
-**Date**: _____________________
+**Date**: 2025-11-17
 
-**Chosen Path**: [ ] A  [ ] B  [ ] C  [ ] B→A  [ ] A+B
+**Chosen Path**: [x] B→A (Ship First, Refactor Later)
 
 **Rationale**:
-<!-- Why did you choose this path? What factors were most important? -->
-
+Path B→A provides the best balance of speed, validation, and quality:
+- Ship adventure engine with POC code this week (fast feedback loop)
+- Validate the library need with real usage before investing 50+ hours
+- Learn what features actually matter in production use
+- Build full library later based on informed requirements, not speculation
+- Lower risk approach - can always upgrade to full library if validated
 
 **Key Factors**:
 <!-- Check all that apply -->
-- [ ] Time to ship adventure engine
-- [ ] Code quality / portfolio value
-- [ ] Learning goals
-- [ ] Number of future terminal projects planned
-- [ ] Current motivation / energy
-- [ ] Other priorities competing for time
+- [x] Time to ship adventure engine (fast results matter)
+- [x] Code quality / portfolio value (will come in Phase 2)
+- [x] Learning goals (learn from real usage first)
+- [x] Number of future terminal projects planned (2-3 expected)
+- [x] Current motivation / energy (quick wins maintain momentum)
+- [x] Other priorities competing for time (terminal-stars, other projects)
 
 **Timeline Commitment**:
-<!-- When will you work on this? How much time per week? -->
-
+- **Phase 1** (This week): 8-10 hours - Extract POC to minimal library, integrate with adventure engine
+- **Phase 2** (Next month): Evaluate if full library is needed based on Phase 1 learnings
 
 **Success Criteria**:
 <!-- How will you know this was the right choice? -->
-- [ ]
-- [ ]
-- [ ]
+- [x] Working adventure engine with smart UI within 1 week
+- [x] POC code extracted to reusable (but simple) library
+- [x] Clear understanding of what full library should include
+- [x] Validation that the approach works in real application
 
 **Risks Accepted**:
 <!-- What trade-offs are you making? -->
--
--
+- Initial code quality will be "good enough" not "production grade"
+- May need to refactor later if full library is built (acceptable rework cost)
+- Not building portfolio-quality infrastructure immediately
 
 ---
 
 ## Implementation Tracking
 
-**Start Date**: _____________________
+**Start Date**: 2025-11-17
 
 **Milestones**:
-- [ ] Milestone 1: _____________________ (Target: ________)
-- [ ] Milestone 2: _____________________ (Target: ________)
-- [ ] Milestone 3: _____________________ (Target: ________)
+- [ ] Milestone 1: Extract POC to `smartterm_simple` library (Target: Day 1-2)
+- [ ] Milestone 2: Create example demonstrating library usage (Target: Day 1-2)
+- [ ] Milestone 3: Integrate with adventure engine (Target: Week 1)
+- [ ] Milestone 4: Gather learnings and decide on Phase 2 (Target: Week 2-4)
 
 **Actual Progress**:
 <!-- Update as you go -->
