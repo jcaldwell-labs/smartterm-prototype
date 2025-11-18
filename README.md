@@ -1,9 +1,234 @@
-# SmartTerm Proof of Concept
+# SmartTerm Library
 
-**Purpose**: Validate the SmartTerm concept with minimal code
-**Status**: Prototype (single file, ~250 lines)
+**A production-ready C library for terminal UIs with scrolling output, readline input, and rich features**
+
+**Status**: Production Library v1.0.0 + Original POC
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ---
+
+## Overview
+
+SmartTerm provides a clean API for building terminal applications with:
+
+- 📜 **Scrolling Output Buffer** - No prompt duplication, clean history
+- ⌨️ **Readline Integration** - Command history, line editing, tab completion
+- 🎨 **Context-Aware Coloring** - Semantic coloring for different message types
+- 📊 **Status Bar** - Fixed status display with customizable content
+- 🔍 **Search & Navigation** - Search buffer, scrollback with PgUp/PgDn
+- 💾 **Export** - Save output to text, ANSI, Markdown, or HTML
+- 🧵 **Thread-Safe** - Write from multiple threads safely
+- 🎭 **Themeable** - Built-in and custom color themes
+
+---
+
+## Quick Start
+
+### Installation
+
+```bash
+# Install dependencies (Ubuntu/Debian)
+sudo apt-get install libncurses-dev libreadline-dev
+
+# Or macOS
+brew install ncurses readline
+
+# Build library
+make -f Makefile.lib lib
+
+# Build examples
+make -f Makefile.lib examples
+
+# Run examples
+./build/bin/repl          # Calculator REPL
+./build/bin/chat_client   # IRC-style chat
+./build/bin/log_viewer    # Log monitoring
+```
+
+### Hello World
+
+```c
+#include <smartterm.h>
+
+int main(void) {
+    smartterm_ctx *ctx = smartterm_init(NULL);
+
+    smartterm_write(ctx, "Hello, SmartTerm!", CTX_INFO);
+    smartterm_status_set(ctx, "My App", "Ready");
+
+    char *input = smartterm_read_line(ctx, "> ");
+    smartterm_write_fmt(ctx, CTX_SUCCESS, "You said: %s", input);
+
+    free(input);
+    smartterm_cleanup(ctx);
+    return 0;
+}
+```
+
+Compile with:
+```bash
+gcc hello.c -Iinclude -Lbuild -lsmartterm -lncurses -lreadline -lpthread -o hello
+```
+
+---
+
+## Features
+
+### Core Functionality
+
+**Output Management**
+- Thread-safe output buffer (configurable size)
+- Context-aware message coloring
+- Automatic scrolling or manual control
+- Line metadata (timestamps, tags, context)
+
+**Input Handling**
+- Readline integration (history, editing, completion)
+- Custom prompt strings
+- Tab completion framework
+- Multi-line input support (basic)
+
+**Visual Features**
+- Status bar with left/right alignment
+- Configurable themes
+- Scrollback navigation (PgUp/PgDn)
+- Search with highlighting
+
+**Data Management**
+- Export to multiple formats (plain, ANSI, Markdown, HTML)
+- Search buffer (plain text or regex)
+- Access to raw buffer data
+- Line-by-line retrieval
+
+**Advanced**
+- Custom key handlers
+- Terminal resize handling
+- Signal-safe writes
+- Configurable behavior
+
+---
+
+## Documentation
+
+- 📖 **[API Reference](docs/SMARTTERM-API.md)** - Complete API documentation
+- 🏗️ **[Architecture](docs/ARCHITECTURE.md)** - Design decisions and internals
+- 💡 **[Examples](examples/)** - Working example applications
+- 📝 **[Decision History](DECISION.md)** - Development path decisions
+- 🔄 **[Next Steps](NEXT-STEPS.md)** - Opportunity cost analysis
+
+---
+
+## Project Structure
+
+```
+smartterm-prototype/
+├── include/
+│   └── smartterm.h          # Public API header
+├── lib/smartterm/           # Library implementation
+│   ├── smartterm_core.c
+│   ├── smartterm_output.c
+│   ├── smartterm_input.c
+│   ├── smartterm_render.c
+│   ├── smartterm_theme.c
+│   ├── smartterm_status.c
+│   ├── smartterm_scroll.c
+│   ├── smartterm_search.c
+│   ├── smartterm_export.c
+│   ├── smartterm_keyhandler.c
+│   └── smartterm_internal.h
+├── examples/                # Example applications
+│   ├── repl.c              # Calculator REPL
+│   ├── chat_client.c       # IRC-style chat
+│   └── log_viewer.c        # Log monitoring
+├── docs/                    # Documentation
+│   ├── SMARTTERM-API.md    # API reference
+│   └── ARCHITECTURE.md     # Architecture docs
+├── smartterm_poc.c          # Original POC (250 LOC)
+├── Makefile                 # POC build
+└── Makefile.lib             # Library build
+```
+
+---
+
+## Examples
+
+### Calculator REPL
+
+```bash
+./build/bin/repl
+```
+
+Features: Expression evaluation, history, export
+
+### Chat Client
+
+```bash
+./build/bin/chat_client
+```
+
+Features: Simulated messages, IRC-style interface, thread-safe output
+
+### Log Viewer
+
+```bash
+./build/bin/log_viewer
+```
+
+Features: Real-time log generation, search, pause/resume, export
+
+---
+
+## API Highlights
+
+### Initialization
+
+```c
+smartterm_config_t config = smartterm_default_config();
+config.max_lines = 5000;
+config.history_enabled = true;
+config.prompt = "$ ";
+
+smartterm_ctx *ctx = smartterm_init(&config);
+```
+
+### Output
+
+```c
+smartterm_write(ctx, "Normal message", CTX_NORMAL);
+smartterm_write(ctx, "Error occurred!", CTX_ERROR);
+smartterm_write_fmt(ctx, CTX_SUCCESS, "Count: %d", count);
+```
+
+### Input
+
+```c
+char *input = smartterm_read_line(ctx, "Enter command: ");
+// Use input
+free(input);
+```
+
+### Search
+
+```c
+smartterm_search_result_t *results;
+int count;
+smartterm_search(ctx, "error", false, &results, &count);
+smartterm_free_search_results(results);
+```
+
+### Export
+
+```c
+smartterm_export(ctx, "output.txt", EXPORT_PLAIN, 0, -1, true);
+smartterm_export(ctx, "output.html", EXPORT_HTML, 0, -1, true);
+```
+
+See [API Reference](docs/SMARTTERM-API.md) for complete documentation.
+
+---
+
+## POC (Proof of Concept)
 
 ## What This Demonstrates
 
@@ -37,21 +262,13 @@
 
 ---
 
-## Building
+The original proof of concept (smartterm_poc.c, ~250 LOC) validated the core concepts:
 
-### Prerequisites
+### Building the POC
+
 ```bash
-# Debian/Ubuntu
-sudo apt-get install libncurses-dev libreadline-dev
-
-# macOS
-brew install ncurses readline
-```
-
-### Compile & Run
-```bash
-make        # Build
-make run    # Build and run
+make        # Build POC
+make run    # Build and run POC
 make clean  # Clean up
 ```
 
@@ -60,6 +277,14 @@ Or manually:
 gcc -o smartterm_poc smartterm_poc.c -lncurses -lreadline
 ./smartterm_poc
 ```
+
+### What the POC Demonstrates
+
+✅ Scrolling output without prompt duplication
+✅ Readline integration (history, editing)
+✅ Context-aware coloring
+✅ Status bar
+✅ ncurses + readline coexistence
 
 ---
 
@@ -236,19 +461,57 @@ See `NEXT-STEPS.md` for detailed analysis of paths forward.
 
 ---
 
-## Conclusion
+## Development History
 
-**POC Status**: ✅ SUCCESS
+### POC Phase (Complete)
+- ✅ Validated core concepts
+- ✅ Proved ncurses + readline integration
+- ✅ ~250 LOC, 1 hour investment
+- ✅ Decision framework created
 
-**Concept Validated**:
-- Output buffer works as designed
-- Context awareness is simple and effective
-- ncurses + readline can coexist
-- Status bar is useful
+### Library Phase (Complete)
+- ✅ Production-ready API designed
+- ✅ Thread-safe implementation
+- ✅ Comprehensive features (search, export, themes)
+- ✅ Example applications
+- ✅ Full documentation
 
-**Ready for Next Decision**:
-- Path A: Continue to full library
-- Path B: Use as-is for adventure engine
-- Path C: Pivot to different approach
+See [DECISION.md](DECISION.md) for development path analysis and [NEXT-STEPS.md](NEXT-STEPS.md) for opportunity costs.
 
-See `NEXT-STEPS.md` for opportunity cost analysis and recommendations.
+---
+
+## Contributing
+
+Contributions welcome! This is a jcaldwell-labs project.
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests/examples if applicable
+5. Submit a pull request
+
+---
+
+## License
+
+MIT License - See LICENSE file for details
+
+---
+
+## Credits
+
+**Original POC**: smartterm-prototype proof of concept (2025-11-17)
+**Library Design**: Extracted and enhanced for production use
+**Inspired by**: readline, rlwrap, rlfe, Haskell Brick
+
+---
+
+## Status
+
+- **POC**: ✅ Complete and validated
+- **Library**: ✅ Production-ready v1.0.0
+- **Documentation**: ✅ Comprehensive
+- **Examples**: ✅ Three working applications
+- **Next**: Ready for use in projects
+
+For questions or issues, see the [API documentation](docs/SMARTTERM-API.md) or create an issue.
