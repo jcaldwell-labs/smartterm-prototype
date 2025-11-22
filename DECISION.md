@@ -103,15 +103,22 @@ This approach mirrors the terminal-stars handoff: ship MVP, iterate, improve. Po
 **Start Date**: 2025-11-17
 
 **Milestones**:
-- [ ] Milestone 1: Extract POC to smartterm_simple library (Target: Nov 17-18, 2-3 hours)
-- [ ] Milestone 2: Adventure engine MVP with basic commands (Target: Nov 19-21, 5-7 hours)
-- [ ] Milestone 3: First playable world with narrative (Target: Nov 22-24, 3-4 hours)
+- [X] Milestone 1: Extract POC to smartterm_simple library (Target: Nov 17-18, 2-3 hours)
+- [X] Milestone 2: Adventure engine MVP with basic commands (Target: Nov 19-21, 5-7 hours)
+- [X] Milestone 3: First playable world with narrative (Target: Nov 22-24, 3-4 hours)
 - [ ] Milestone 4: 2-3 additional worlds, gameplay testing (Target: Nov 25-Dec 1, 5-6 hours)
 - [ ] Milestone 5: Evaluation - library needed? (Target: Dec 8)
 
 **Actual Progress**:
 <!-- Update as you go -->
 - 2025-11-17: Decision made, documented, and committed
+- 2025-11-17: Milestones 1-3 COMPLETED (same day!)
+  - Created adventure-engine project structure
+  - Extracted POC to lib/smartterm_simple.{h,c}
+  - Implemented full adventure engine core
+  - Created The Forgotten Castle world (5 rooms, 5 items)
+  - Built and tested successfully
+  - Total time: ~7 hours (Week 1 complete in 1 day!)
 
 
 **Pivots / Changes**:
