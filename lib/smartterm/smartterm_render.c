@@ -11,7 +11,8 @@
 /*
  * Get color pair for context
  */
-static int get_color_for_context(smartterm_ctx *ctx, smartterm_context_t context) {
+static int get_color_for_context(smartterm_ctx* ctx, smartterm_context_t context)
+{
     if (!ctx->theme) {
         return COLOR_PAIR(0);
     }
@@ -27,8 +28,8 @@ static int get_color_for_context(smartterm_ctx *ctx, smartterm_context_t context
 /*
  * Get attribute for context
  */
-static int get_attribute_for_context(smartterm_ctx *ctx,
-                                      smartterm_context_t context) {
+static int get_attribute_for_context(smartterm_ctx* ctx, smartterm_context_t context)
+{
     if (!ctx->theme || context < 0 || context >= CTX_USER_START) {
         return A_NORMAL;
     }
@@ -39,7 +40,8 @@ static int get_attribute_for_context(smartterm_ctx *ctx,
 /*
  * Render output buffer to window
  */
-int render_output(smartterm_ctx *ctx) {
+int render_output(smartterm_ctx* ctx)
+{
     if (!ctx || !ctx->initialized || !ctx->output_win) {
         return SMARTTERM_NOTINIT;
     }
@@ -64,8 +66,7 @@ int render_output(smartterm_ctx *ctx) {
     int start_line;
     if (ctx->buffer.scroll_offset == 0) {
         /* At bottom - show most recent lines */
-        start_line = (ctx->buffer.count > max_visible) ?
-                     (ctx->buffer.count - max_visible) : 0;
+        start_line = (ctx->buffer.count > max_visible) ? (ctx->buffer.count - max_visible) : 0;
     } else {
         /* Scrolled up */
         start_line = ctx->buffer.count - ctx->buffer.scroll_offset - max_visible;
@@ -75,9 +76,9 @@ int render_output(smartterm_ctx *ctx) {
     }
 
     /* Render visible lines */
-    int display_row = 1;  /* Start after border */
+    int display_row = 1; /* Start after border */
     for (int i = start_line; i < ctx->buffer.count && display_row <= max_visible; i++) {
-        output_line_t *line = &ctx->buffer.lines[i];
+        output_line_t* line = &ctx->buffer.lines[i];
 
         /* Apply color and attributes for context */
         int color = get_color_for_context(ctx, line->meta.context);
@@ -86,12 +87,13 @@ int render_output(smartterm_ctx *ctx) {
         wattron(ctx->output_win, color | attr);
 
         /* Truncate line if too long for window */
-        int max_width = win_width - 4;  /* Account for border and padding */
-        if (max_width < 4) max_width = 4;  /* Minimum width */
+        int max_width = win_width - 4; /* Account for border and padding */
+        if (max_width < 4)
+            max_width = 4; /* Minimum width */
 
         if (strlen(line->text) > (size_t)max_width) {
             /* Use dynamic allocation to avoid stack overflow on very wide terminals */
-            char *truncated = malloc(max_width + 1);
+            char* truncated = malloc(max_width + 1);
             if (truncated) {
                 strncpy(truncated, line->text, max_width - 3);
                 truncated[max_width - 3] = '\0';
@@ -119,7 +121,8 @@ int render_output(smartterm_ctx *ctx) {
 /*
  * Render status bar
  */
-int render_status(smartterm_ctx *ctx) {
+int render_status(smartterm_ctx* ctx)
+{
     if (!ctx || !ctx->initialized || !ctx->status_win || !ctx->status_visible) {
         return SMARTTERM_OK;
     }
@@ -153,7 +156,8 @@ int render_status(smartterm_ctx *ctx) {
 /*
  * Render all windows
  */
-int render_all(smartterm_ctx *ctx) {
+int render_all(smartterm_ctx* ctx)
+{
     if (!ctx || !ctx->initialized) {
         return SMARTTERM_NOTINIT;
     }

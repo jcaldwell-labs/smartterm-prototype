@@ -11,18 +11,18 @@
  * Run: ./smartterm_poc
  */
 
+#include <ncurses.h>
+#include <readline/history.h>
+#include <readline/readline.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <ncurses.h>
-#include <readline/readline.h>
-#include <readline/history.h>
 
 #define MAX_OUTPUT_LINES 1000
 
 // Output buffer to prevent prompt duplication
 typedef struct {
-    char **lines;
+    char** lines;
     int count;
     int capacity;
     int scroll_offset;
@@ -31,20 +31,21 @@ typedef struct {
 // Context types
 typedef enum {
     CTX_NORMAL,
-    CTX_COMMAND,    // !
-    CTX_COMMENT,    // #
-    CTX_SPECIAL,    // @
-    CTX_SEARCH      // /
+    CTX_COMMAND, // !
+    CTX_COMMENT, // #
+    CTX_SPECIAL, // @
+    CTX_SEARCH   // /
 } ContextType;
 
 // Global state
 static OutputBuffer output;
-static WINDOW *output_win;
-static WINDOW *status_win;
+static WINDOW* output_win;
+static WINDOW* status_win;
 static int screen_height, screen_width;
 
 // Initialize output buffer
-void init_output_buffer() {
+void init_output_buffer()
+{
     output.capacity = MAX_OUTPUT_LINES;
     output.lines = malloc(sizeof(char*) * output.capacity);
     output.count = 0;
@@ -52,7 +53,8 @@ void init_output_buffer() {
 }
 
 // Add line to output buffer (no prompt duplication)
-void add_output_line(const char *text, ContextType ctx) {
+void add_output_line(const char* text, ContextType ctx)
+{
     if (output.count >= output.capacity) {
         // Drop oldest line
         free(output.lines[0]);
@@ -61,10 +63,11 @@ void add_output_line(const char *text, ContextType ctx) {
     }
 
     // Store with context prefix for coloring
-    char prefix = (ctx == CTX_COMMAND) ? '!' :
-                  (ctx == CTX_COMMENT) ? '#' :
-                  (ctx == CTX_SPECIAL) ? '@' :
-                  (ctx == CTX_SEARCH)  ? '/' : ' ';
+    char prefix = (ctx == CTX_COMMAND)   ? '!'
+                  : (ctx == CTX_COMMENT) ? '#'
+                  : (ctx == CTX_SPECIAL) ? '@'
+                  : (ctx == CTX_SEARCH)  ? '/'
+                                         : ' ';
 
     size_t len = strlen(text) + 3;
     output.lines[output.count] = malloc(len);
@@ -73,34 +76,43 @@ void add_output_line(const char *text, ContextType ctx) {
 }
 
 // Detect context from input
-ContextType detect_context(const char *input) {
-    if (input[0] == '!') return CTX_COMMAND;
-    if (input[0] == '#') return CTX_COMMENT;
-    if (input[0] == '@') return CTX_SPECIAL;
-    if (input[0] == '/') return CTX_SEARCH;
+ContextType detect_context(const char* input)
+{
+    if (input[0] == '!')
+        return CTX_COMMAND;
+    if (input[0] == '#')
+        return CTX_COMMENT;
+    if (input[0] == '@')
+        return CTX_SPECIAL;
+    if (input[0] == '/')
+        return CTX_SEARCH;
     return CTX_NORMAL;
 }
 
 // Render output buffer to window
-void render_output() {
+void render_output()
+{
     werase(output_win);
     box(output_win, 0, 0);
 
     int max_display_lines = screen_height - 5; // Leave room for status and input
-    int start_line = (output.count > max_display_lines) ?
-                     (output.count - max_display_lines) : 0;
+    int start_line = (output.count > max_display_lines) ? (output.count - max_display_lines) : 0;
 
     // Display lines from bottom up (most recent at bottom)
     for (int i = 0; i < output.count - start_line; i++) {
         int line_idx = start_line + i;
-        char *line = output.lines[line_idx];
+        char* line = output.lines[line_idx];
 
         // Color based on context prefix
         int color = COLOR_PAIR(1); // default
-        if (line[0] == '!') color = COLOR_PAIR(2); // command (yellow)
-        else if (line[0] == '#') color = COLOR_PAIR(3); // comment (green)
-        else if (line[0] == '@') color = COLOR_PAIR(4); // special (cyan)
-        else if (line[0] == '/') color = COLOR_PAIR(5); // search (magenta)
+        if (line[0] == '!')
+            color = COLOR_PAIR(2); // command (yellow)
+        else if (line[0] == '#')
+            color = COLOR_PAIR(3); // comment (green)
+        else if (line[0] == '@')
+            color = COLOR_PAIR(4); // special (cyan)
+        else if (line[0] == '/')
+            color = COLOR_PAIR(5); // search (magenta)
 
         wattron(output_win, color);
         mvwprintw(output_win, i + 1, 2, "%s", line + 2); // Skip prefix
@@ -111,7 +123,8 @@ void render_output() {
 }
 
 // Render status bar
-void render_status(const char *left, const char *right) {
+void render_status(const char* left, const char* right)
+{
     werase(status_win);
 
     wattron(status_win, A_REVERSE);
@@ -124,7 +137,8 @@ void render_status(const char *left, const char *right) {
 }
 
 // Initialize ncurses
-void init_ui() {
+void init_ui()
+{
     initscr();
     cbreak();
     noecho();
@@ -152,20 +166,22 @@ void init_ui() {
 }
 
 // Cleanup ncurses
-void cleanup_ui() {
+void cleanup_ui()
+{
     delwin(output_win);
     delwin(status_win);
     endwin();
 }
 
 // Custom readline wrapper for ncurses compatibility
-char* readline_with_ncurses(const char *prompt) {
+char* readline_with_ncurses(const char* prompt)
+{
     // Temporarily suspend ncurses for readline
     def_prog_mode();
     endwin();
 
     // Use readline (handles multi-line via continuation)
-    char *input = readline(prompt);
+    char* input = readline(prompt);
 
     // Resume ncurses
     reset_prog_mode();
@@ -174,7 +190,8 @@ char* readline_with_ncurses(const char *prompt) {
     return input;
 }
 
-int main() {
+int main()
+{
     init_output_buffer();
     init_ui();
 
@@ -191,7 +208,7 @@ int main() {
 
     while (running) {
         // Read input with readline (handles expanding input, history, editing)
-        char *input = readline_with_ncurses("> ");
+        char* input = readline_with_ncurses("> ");
 
         if (!input) {
             running = 0;
@@ -209,7 +226,7 @@ int main() {
 
         // Detect context
         ContextType ctx = detect_context(input);
-        const char *text = (ctx != CTX_NORMAL) ? input + 1 : input; // Skip prefix
+        const char* text = (ctx != CTX_NORMAL) ? input + 1 : input; // Skip prefix
 
         // Handle commands
         if (strcmp(input, "quit") == 0 || strcmp(input, "exit") == 0) {
@@ -232,11 +249,12 @@ int main() {
             // Echo input with context
             char echo_buf[512];
             snprintf(echo_buf, sizeof(echo_buf), "Echo [%s]: %s",
-                    ctx == CTX_COMMAND ? "CMD" :
-                    ctx == CTX_COMMENT ? "COMMENT" :
-                    ctx == CTX_SPECIAL ? "SPECIAL" :
-                    ctx == CTX_SEARCH ? "SEARCH" : "NORMAL",
-                    text);
+                     ctx == CTX_COMMAND   ? "CMD"
+                     : ctx == CTX_COMMENT ? "COMMENT"
+                     : ctx == CTX_SPECIAL ? "SPECIAL"
+                     : ctx == CTX_SEARCH  ? "SEARCH"
+                                          : "NORMAL",
+                     text);
             add_output_line(echo_buf, ctx);
         }
 

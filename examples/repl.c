@@ -4,14 +4,15 @@
  * Demonstrates a simple calculator REPL using SmartTerm.
  */
 
+#include <math.h>
 #include <smartterm.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <math.h>
 
 /* Simple expression evaluator */
-static double evaluate(const char *expr) {
+static double evaluate(const char* expr)
+{
     /* Simple calculator: supports +, -, *, /, and parentheses */
     /* For demo purposes, just use sscanf for simple operations */
     double a, b;
@@ -19,11 +20,16 @@ static double evaluate(const char *expr) {
 
     if (sscanf(expr, "%lf %c %lf", &a, &op, &b) == 3) {
         switch (op) {
-            case '+': return a + b;
-            case '-': return a - b;
-            case '*': return a * b;
-            case '/': return (b != 0) ? a / b : NAN;
-            default: return NAN;
+        case '+':
+            return a + b;
+        case '-':
+            return a - b;
+        case '*':
+            return a * b;
+        case '/':
+            return (b != 0) ? a / b : NAN;
+        default:
+            return NAN;
         }
     }
 
@@ -36,14 +42,13 @@ static double evaluate(const char *expr) {
 }
 
 /* Tab completion for REPL commands */
-static char** repl_completer(const char *text, int start, int end, void *data) {
+static char** repl_completer(const char* text, int start, int end, void* data)
+{
     (void)start;
     (void)end;
     (void)data;
 
-    static const char *commands[] = {
-        "help", "quit", "exit", "clear", "history", "export", NULL
-    };
+    static const char* commands[] = {"help", "quit", "exit", "clear", "history", "export", NULL};
 
     /* Count matches */
     int match_count = 0;
@@ -58,7 +63,7 @@ static char** repl_completer(const char *text, int start, int end, void *data) {
     }
 
     /* Allocate result array */
-    char **matches = calloc(match_count + 1, sizeof(char*));
+    char** matches = calloc(match_count + 1, sizeof(char*));
     int match_idx = 0;
 
     for (int i = 0; commands[i]; i++) {
@@ -70,13 +75,14 @@ static char** repl_completer(const char *text, int start, int end, void *data) {
     return matches;
 }
 
-int main(void) {
+int main(void)
+{
     /* Initialize SmartTerm */
     smartterm_config_t config = smartterm_default_config();
     config.history_enabled = true;
     config.prompt = "calc> ";
 
-    smartterm_ctx *ctx = smartterm_init(&config);
+    smartterm_ctx* ctx = smartterm_init(&config);
     if (!ctx) {
         fprintf(stderr, "Failed to initialize SmartTerm\n");
         return 1;
@@ -98,7 +104,7 @@ int main(void) {
     bool running = true;
 
     while (running) {
-        char *input = smartterm_read_line(ctx, NULL);
+        char* input = smartterm_read_line(ctx, NULL);
 
         if (!input) {
             /* EOF or error */
@@ -128,11 +134,9 @@ int main(void) {
         } else if (strcmp(input, "clear") == 0) {
             smartterm_clear(ctx);
         } else if (strcmp(input, "history") == 0) {
-            smartterm_write_fmt(ctx, CTX_INFO,
-                               "Total expressions evaluated: %d", expr_count);
+            smartterm_write_fmt(ctx, CTX_INFO, "Total expressions evaluated: %d", expr_count);
         } else if (strcmp(input, "export") == 0) {
-            int result = smartterm_export(ctx, "repl_output.txt",
-                                         EXPORT_PLAIN, 0, -1, true);
+            int result = smartterm_export(ctx, "repl_output.txt", EXPORT_PLAIN, 0, -1, true);
             if (result == SMARTTERM_OK) {
                 smartterm_write(ctx, "Exported to repl_output.txt", CTX_SUCCESS);
             } else {
@@ -143,11 +147,9 @@ int main(void) {
             double result = evaluate(input);
 
             if (isnan(result)) {
-                smartterm_write_fmt(ctx, CTX_ERROR,
-                                   "Error: Invalid expression: %s", input);
+                smartterm_write_fmt(ctx, CTX_ERROR, "Error: Invalid expression: %s", input);
             } else {
-                smartterm_write_fmt(ctx, CTX_SUCCESS,
-                                   "= %.6g", result);
+                smartterm_write_fmt(ctx, CTX_SUCCESS, "= %.6g", result);
                 expr_count++;
             }
         }

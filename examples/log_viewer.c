@@ -5,66 +5,44 @@
  * Simulates a log viewer with different log levels.
  */
 
+#include <pthread.h>
+#include <signal.h>
 #include <smartterm.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include <pthread.h>
 #include <unistd.h>
-#include <signal.h>
 
 /* Global context for worker thread */
-static smartterm_ctx *g_ctx = NULL;
+static smartterm_ctx* g_ctx = NULL;
 static bool g_running = true;
 static bool g_paused = false;
 
 /* Log levels */
-typedef enum {
-    LOG_DEBUG,
-    LOG_INFO,
-    LOG_WARNING,
-    LOG_ERROR
-} log_level_t;
+typedef enum { LOG_DEBUG, LOG_INFO, LOG_WARNING, LOG_ERROR } log_level_t;
 
 /* Generate simulated log entry */
-static void generate_log(smartterm_ctx *ctx) {
-    const char *components[] = {
-        "WebServer", "Database", "Auth", "API", "Cache", "Queue"
-    };
+static void generate_log(smartterm_ctx* ctx)
+{
+    const char* components[] = {"WebServer", "Database", "Auth", "API", "Cache", "Queue"};
 
-    const char *debug_msgs[] = {
-        "Processing request",
-        "Cache hit",
-        "Query executed",
-        "Connection pool status: OK"
-    };
+    const char* debug_msgs[] = {"Processing request", "Cache hit", "Query executed",
+                                "Connection pool status: OK"};
 
-    const char *info_msgs[] = {
-        "Request completed successfully",
-        "User logged in",
-        "Background job started",
-        "Configuration reloaded"
-    };
+    const char* info_msgs[] = {"Request completed successfully", "User logged in",
+                               "Background job started", "Configuration reloaded"};
 
-    const char *warning_msgs[] = {
-        "Slow query detected",
-        "High memory usage",
-        "Rate limit approaching",
-        "Deprecated API called"
-    };
+    const char* warning_msgs[] = {"Slow query detected", "High memory usage",
+                                  "Rate limit approaching", "Deprecated API called"};
 
-    const char *error_msgs[] = {
-        "Connection timeout",
-        "Invalid request parameter",
-        "Authentication failed",
-        "Database error"
-    };
+    const char* error_msgs[] = {"Connection timeout", "Invalid request parameter",
+                                "Authentication failed", "Database error"};
 
     /* Random log level (weighted toward info) */
     int level_rand = rand() % 100;
     log_level_t level;
-    const char *message;
+    const char* message;
 
     if (level_rand < 20) {
         level = LOG_DEBUG;
@@ -80,55 +58,57 @@ static void generate_log(smartterm_ctx *ctx) {
         message = error_msgs[rand() % 4];
     }
 
-    const char *component = components[rand() % 6];
+    const char* component = components[rand() % 6];
 
     /* Format log entry */
     time_t now = time(NULL);
-    struct tm *tm_info = localtime(&now);
+    struct tm* tm_info = localtime(&now);
     char time_str[20];
     strftime(time_str, sizeof(time_str), "%Y-%m-%d %H:%M:%S", tm_info);
 
     char buffer[256];
-    const char *level_str;
+    const char* level_str;
     smartterm_context_t ctx_type;
 
     switch (level) {
-        case LOG_DEBUG:
-            level_str = "DEBUG";
-            ctx_type = CTX_DEBUG;
-            break;
-        case LOG_INFO:
-            level_str = "INFO ";
-            ctx_type = CTX_INFO;
-            break;
-        case LOG_WARNING:
-            level_str = "WARN ";
-            ctx_type = CTX_WARNING;
-            break;
-        case LOG_ERROR:
-            level_str = "ERROR";
-            ctx_type = CTX_ERROR;
-            break;
-        default:
-            level_str = "UNKNOWN";
-            ctx_type = CTX_NORMAL;
+    case LOG_DEBUG:
+        level_str = "DEBUG";
+        ctx_type = CTX_DEBUG;
+        break;
+    case LOG_INFO:
+        level_str = "INFO ";
+        ctx_type = CTX_INFO;
+        break;
+    case LOG_WARNING:
+        level_str = "WARN ";
+        ctx_type = CTX_WARNING;
+        break;
+    case LOG_ERROR:
+        level_str = "ERROR";
+        ctx_type = CTX_ERROR;
+        break;
+    default:
+        level_str = "UNKNOWN";
+        ctx_type = CTX_NORMAL;
     }
 
-    snprintf(buffer, sizeof(buffer), "[%s] [%s] [%s] %s",
-             time_str, level_str, component, message);
+    snprintf(buffer, sizeof(buffer), "[%s] [%s] [%s] %s", time_str, level_str, component, message);
 
     smartterm_write(ctx, buffer, ctx_type);
 }
 
 /* Log generator thread */
-static void* log_generator(void *arg) {
+static void* log_generator(void* arg)
+{
     (void)arg;
 
     while (g_running) {
-        usleep(100000 + (rand() % 400000));  /* 100-500ms delay */
+        usleep(100000 + (rand() % 400000)); /* 100-500ms delay */
 
-        if (!g_running) break;
-        if (g_paused) continue;
+        if (!g_running)
+            break;
+        if (g_paused)
+            continue;
 
         generate_log(g_ctx);
     }
@@ -137,22 +117,24 @@ static void* log_generator(void *arg) {
 }
 
 /* Signal handler for Ctrl+C */
-static void signal_handler(int sig) {
+static void signal_handler(int sig)
+{
     (void)sig;
     g_running = false;
 }
 
-int main(void) {
+int main(void)
+{
     srand(time(NULL));
     signal(SIGINT, signal_handler);
 
     /* Initialize SmartTerm */
     smartterm_config_t config = smartterm_default_config();
-    config.history_enabled = false;  /* No history for log viewer */
+    config.history_enabled = false; /* No history for log viewer */
     config.prompt = "cmd> ";
-    config.max_lines = 5000;  /* More lines for logs */
+    config.max_lines = 5000; /* More lines for logs */
 
-    smartterm_ctx *ctx = smartterm_init(&config);
+    smartterm_ctx* ctx = smartterm_init(&config);
     if (!ctx) {
         fprintf(stderr, "Failed to initialize SmartTerm\n");
         return 1;
@@ -163,8 +145,7 @@ int main(void) {
     /* Welcome messages */
     smartterm_write(ctx, "=== SmartTerm Log Viewer ===", CTX_INFO);
     smartterm_write(ctx, "Monitoring application logs...", CTX_SUCCESS);
-    smartterm_write(ctx, "Commands: /pause, /resume, /clear, /export, /search, /quit",
-                   CTX_COMMENT);
+    smartterm_write(ctx, "Commands: /pause, /resume, /clear, /export, /search, /quit", CTX_COMMENT);
     smartterm_write(ctx, "", CTX_NORMAL);
 
     /* Set status bar */
@@ -180,7 +161,7 @@ int main(void) {
     while (g_running) {
         /* Non-blocking input check would go here
          * For simplicity, we'll just process on enter */
-        char *input = smartterm_read_line(ctx, NULL);
+        char* input = smartterm_read_line(ctx, NULL);
 
         if (!input) {
             break;
@@ -208,28 +189,24 @@ int main(void) {
             smartterm_write(ctx, "--- Logs cleared ---", CTX_COMMENT);
             total_logs = 0;
         } else if (strcmp(input, "/export") == 0) {
-            int result = smartterm_export(ctx, "logs_export.txt",
-                                         EXPORT_PLAIN, 0, -1, true);
+            int result = smartterm_export(ctx, "logs_export.txt", EXPORT_PLAIN, 0, -1, true);
             if (result == SMARTTERM_OK) {
                 smartterm_write(ctx, "Logs exported to logs_export.txt", CTX_SUCCESS);
             } else {
                 smartterm_write(ctx, "Failed to export logs", CTX_ERROR);
             }
         } else if (strncmp(input, "/search ", 8) == 0) {
-            const char *pattern = input + 8;
-            smartterm_search_result_t *results;
+            const char* pattern = input + 8;
+            smartterm_search_result_t* results;
             int count;
 
             int ret = smartterm_search(ctx, pattern, false, &results, &count);
             if (ret == SMARTTERM_OK) {
-                smartterm_write_fmt(ctx, CTX_SUCCESS,
-                                   "Found %d matches for: %s", count, pattern);
-                smartterm_write(ctx, "Use /next and /prev to navigate",
-                               CTX_COMMENT);
+                smartterm_write_fmt(ctx, CTX_SUCCESS, "Found %d matches for: %s", count, pattern);
+                smartterm_write(ctx, "Use /next and /prev to navigate", CTX_COMMENT);
                 smartterm_free_search_results(results);
             } else {
-                smartterm_write_fmt(ctx, CTX_ERROR,
-                                   "Search failed for: %s", pattern);
+                smartterm_write_fmt(ctx, CTX_ERROR, "Search failed for: %s", pattern);
             }
         } else if (strcmp(input, "/next") == 0) {
             if (smartterm_search_next(ctx) != SMARTTERM_OK) {

@@ -15,8 +15,8 @@
 #ifndef SMARTTERM_H
 #define SMARTTERM_H
 
-#include <stddef.h>
 #include <stdbool.h>
+#include <stddef.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -36,73 +36,73 @@ typedef struct smartterm_theme smartterm_theme;
 
 /* Context types for output coloring */
 typedef enum {
-    CTX_NORMAL = 0,     /* Default text */
-    CTX_ERROR,          /* Error messages (red) */
-    CTX_WARNING,        /* Warnings (yellow) */
-    CTX_SUCCESS,        /* Success messages (green) */
-    CTX_INFO,           /* Info messages (cyan) */
-    CTX_DEBUG,          /* Debug messages (magenta) */
-    CTX_COMMAND,        /* Command input echo (yellow) */
-    CTX_COMMENT,        /* Comments (green) */
-    CTX_SPECIAL,        /* Special actions (cyan) */
-    CTX_SEARCH,         /* Search context (magenta) */
+    CTX_NORMAL = 0,      /* Default text */
+    CTX_ERROR,           /* Error messages (red) */
+    CTX_WARNING,         /* Warnings (yellow) */
+    CTX_SUCCESS,         /* Success messages (green) */
+    CTX_INFO,            /* Info messages (cyan) */
+    CTX_DEBUG,           /* Debug messages (magenta) */
+    CTX_COMMAND,         /* Command input echo (yellow) */
+    CTX_COMMENT,         /* Comments (green) */
+    CTX_SPECIAL,         /* Special actions (cyan) */
+    CTX_SEARCH,          /* Search context (magenta) */
     CTX_USER_START = 100 /* User-defined contexts start here */
 } smartterm_context_t;
 
 /* Return codes */
 typedef enum {
-    SMARTTERM_OK = 0,          /* Success */
-    SMARTTERM_ERROR = -1,      /* Generic error */
-    SMARTTERM_NOMEM = -2,      /* Out of memory */
-    SMARTTERM_INVALID = -3,    /* Invalid argument */
-    SMARTTERM_NOTINIT = -4,    /* Not initialized */
-    SMARTTERM_IOERROR = -5     /* I/O error */
+    SMARTTERM_OK = 0,       /* Success */
+    SMARTTERM_ERROR = -1,   /* Generic error */
+    SMARTTERM_NOMEM = -2,   /* Out of memory */
+    SMARTTERM_INVALID = -3, /* Invalid argument */
+    SMARTTERM_NOTINIT = -4, /* Not initialized */
+    SMARTTERM_IOERROR = -5  /* I/O error */
 } smartterm_error_t;
 
 /* Configuration options */
 typedef struct {
-    int max_lines;              /* Maximum output lines (default: 1000) */
-    int output_height;          /* Output window height (0 = auto) */
-    bool status_bar_enabled;    /* Show status bar (default: true) */
-    const char *prompt;         /* Default prompt (default: "> ") */
-    bool history_enabled;       /* Enable readline history (default: true) */
-    const char *history_file;   /* History file path (NULL = no file) */
-    int history_size;           /* Max history entries (default: 1000) */
-    smartterm_theme *theme;     /* Theme (NULL = default) */
-    bool multiline_enabled;     /* Enable multi-line input (default: false) */
-    bool thread_safe;           /* Enable thread safety (default: true) */
+    int max_lines;            /* Maximum output lines (default: 1000) */
+    int output_height;        /* Output window height (0 = auto) */
+    bool status_bar_enabled;  /* Show status bar (default: true) */
+    const char* prompt;       /* Default prompt (default: "> ") */
+    bool history_enabled;     /* Enable readline history (default: true) */
+    const char* history_file; /* History file path (NULL = no file) */
+    int history_size;         /* Max history entries (default: 1000) */
+    smartterm_theme* theme;   /* Theme (NULL = default) */
+    bool multiline_enabled;   /* Enable multi-line input (default: false) */
+    bool thread_safe;         /* Enable thread safety (default: true) */
 } smartterm_config_t;
 
 /* Output line metadata */
 typedef struct {
-    smartterm_context_t context;  /* Context type */
-    long timestamp;               /* Unix timestamp */
-    const char *tag;              /* Optional tag */
+    smartterm_context_t context; /* Context type */
+    long timestamp;              /* Unix timestamp */
+    const char* tag;             /* Optional tag */
 } smartterm_line_meta_t;
 
 /* Search results */
 typedef struct {
-    int line_index;             /* Line number in buffer */
-    int column;                 /* Column where match starts */
-    int length;                 /* Length of match */
+    int line_index; /* Line number in buffer */
+    int column;     /* Column where match starts */
+    int length;     /* Length of match */
 } smartterm_search_result_t;
 
 /* Theme symbols */
 typedef enum {
-    SYM_PROMPT,                 /* Input prompt */
-    SYM_MULTILINE_PROMPT,       /* Multi-line prompt continuation */
-    SYM_STATUS_SEP,             /* Status bar separator */
-    SYM_SCROLL_INDICATOR,       /* Scrollback indicator */
-    SYM_SEARCH_MATCH,           /* Search match marker */
-    SYM_COUNT                   /* Total number of symbols (keep last) */
+    SYM_PROMPT,           /* Input prompt */
+    SYM_MULTILINE_PROMPT, /* Multi-line prompt continuation */
+    SYM_STATUS_SEP,       /* Status bar separator */
+    SYM_SCROLL_INDICATOR, /* Scrollback indicator */
+    SYM_SEARCH_MATCH,     /* Search match marker */
+    SYM_COUNT             /* Total number of symbols (keep last) */
 } smartterm_symbol_t;
 
 /* Export formats */
 typedef enum {
-    EXPORT_PLAIN,               /* Plain text */
-    EXPORT_ANSI,                /* With ANSI color codes */
-    EXPORT_MARKDOWN,            /* Markdown format */
-    EXPORT_HTML                 /* HTML format */
+    EXPORT_PLAIN,    /* Plain text */
+    EXPORT_ANSI,     /* With ANSI color codes */
+    EXPORT_MARKDOWN, /* Markdown format */
+    EXPORT_HTML      /* HTML format */
 } smartterm_export_format_t;
 
 /*
@@ -120,7 +120,7 @@ typedef enum {
  * Note: Must be called before any other smartterm functions.
  *       Call smartterm_cleanup() when done.
  */
-smartterm_ctx* smartterm_init(const smartterm_config_t *config);
+smartterm_ctx* smartterm_init(const smartterm_config_t* config);
 
 /*
  * Cleanup and free SmartTerm resources.
@@ -130,7 +130,7 @@ smartterm_ctx* smartterm_init(const smartterm_config_t *config);
  * Note: Safe to call multiple times.
  *       Restores terminal to original state.
  */
-void smartterm_cleanup(smartterm_ctx *ctx);
+void smartterm_cleanup(smartterm_ctx* ctx);
 
 /*
  * Get default configuration.
@@ -155,8 +155,7 @@ smartterm_config_t smartterm_default_config(void);
  *
  * Note: Thread-safe. Automatically triggers render.
  */
-int smartterm_write(smartterm_ctx *ctx, const char *text,
-                    smartterm_context_t context);
+int smartterm_write(smartterm_ctx* ctx, const char* text, smartterm_context_t context);
 
 /*
  * Write formatted output (printf-style).
@@ -167,8 +166,7 @@ int smartterm_write(smartterm_ctx *ctx, const char *text,
  * ...: Variable arguments
  * Returns: SMARTTERM_OK on success, error code on failure
  */
-int smartterm_write_fmt(smartterm_ctx *ctx, smartterm_context_t context,
-                        const char *format, ...);
+int smartterm_write_fmt(smartterm_ctx* ctx, smartterm_context_t context, const char* format, ...);
 
 /*
  * Write with metadata.
@@ -178,8 +176,7 @@ int smartterm_write_fmt(smartterm_ctx *ctx, smartterm_context_t context,
  * meta: Metadata for line
  * Returns: SMARTTERM_OK on success, error code on failure
  */
-int smartterm_write_meta(smartterm_ctx *ctx, const char *text,
-                         const smartterm_line_meta_t *meta);
+int smartterm_write_meta(smartterm_ctx* ctx, const char* text, const smartterm_line_meta_t* meta);
 
 /*
  * Clear output buffer.
@@ -187,7 +184,7 @@ int smartterm_write_meta(smartterm_ctx *ctx, const char *text,
  * ctx: Context handle
  * Returns: SMARTTERM_OK on success, error code on failure
  */
-int smartterm_clear(smartterm_ctx *ctx);
+int smartterm_clear(smartterm_ctx* ctx);
 
 /*
  * Force re-render of display.
@@ -198,7 +195,7 @@ int smartterm_clear(smartterm_ctx *ctx);
  * Note: Usually not needed (auto-renders on write).
  *       Useful after terminal resize.
  */
-int smartterm_render(smartterm_ctx *ctx);
+int smartterm_render(smartterm_ctx* ctx);
 
 /*
  * ============================================================================
@@ -217,7 +214,7 @@ int smartterm_render(smartterm_ctx *ctx);
  *       Not thread-safe (call from main thread only).
  *       Adds to history if enabled.
  */
-char* smartterm_read_line(smartterm_ctx *ctx, const char *prompt);
+char* smartterm_read_line(smartterm_ctx* ctx, const char* prompt);
 
 /*
  * Read multi-line input from user.
@@ -230,7 +227,7 @@ char* smartterm_read_line(smartterm_ctx *ctx, const char *prompt);
  *       Submit with double-newline or Ctrl+D.
  *       Requires multiline_enabled in config.
  */
-char* smartterm_read_multiline(smartterm_ctx *ctx, const char *prompt);
+char* smartterm_read_multiline(smartterm_ctx* ctx, const char* prompt);
 
 /*
  * Set default prompt.
@@ -239,7 +236,7 @@ char* smartterm_read_multiline(smartterm_ctx *ctx, const char *prompt);
  * prompt: New prompt string
  * Returns: SMARTTERM_OK on success, error code on failure
  */
-int smartterm_set_prompt(smartterm_ctx *ctx, const char *prompt);
+int smartterm_set_prompt(smartterm_ctx* ctx, const char* prompt);
 
 /*
  * ============================================================================
@@ -255,8 +252,7 @@ int smartterm_set_prompt(smartterm_ctx *ctx, const char *prompt);
  * right: Right-aligned text (NULL = no change)
  * Returns: SMARTTERM_OK on success, error code on failure
  */
-int smartterm_status_set(smartterm_ctx *ctx, const char *left,
-                         const char *right);
+int smartterm_status_set(smartterm_ctx* ctx, const char* left, const char* right);
 
 /*
  * Update status bar with formatted text.
@@ -267,8 +263,7 @@ int smartterm_status_set(smartterm_ctx *ctx, const char *left,
  * ...: Variable arguments
  * Returns: SMARTTERM_OK on success, error code on failure
  */
-int smartterm_status_update(smartterm_ctx *ctx, const char *left_fmt,
-                            const char *right_fmt, ...);
+int smartterm_status_update(smartterm_ctx* ctx, const char* left_fmt, const char* right_fmt, ...);
 
 /*
  * Show/hide status bar.
@@ -277,7 +272,7 @@ int smartterm_status_update(smartterm_ctx *ctx, const char *left_fmt,
  * visible: true to show, false to hide
  * Returns: SMARTTERM_OK on success, error code on failure
  */
-int smartterm_status_set_visible(smartterm_ctx *ctx, bool visible);
+int smartterm_status_set_visible(smartterm_ctx* ctx, bool visible);
 
 /*
  * ============================================================================
@@ -294,7 +289,7 @@ int smartterm_status_set_visible(smartterm_ctx *ctx, bool visible);
  *
  * Note: Automatically updates scroll indicator in status bar.
  */
-int smartterm_scroll(smartterm_ctx *ctx, int lines);
+int smartterm_scroll(smartterm_ctx* ctx, int lines);
 
 /*
  * Scroll to top of buffer.
@@ -302,7 +297,7 @@ int smartterm_scroll(smartterm_ctx *ctx, int lines);
  * ctx: Context handle
  * Returns: SMARTTERM_OK on success, error code on failure
  */
-int smartterm_scroll_top(smartterm_ctx *ctx);
+int smartterm_scroll_top(smartterm_ctx* ctx);
 
 /*
  * Scroll to bottom of buffer (most recent).
@@ -310,7 +305,7 @@ int smartterm_scroll_top(smartterm_ctx *ctx);
  * ctx: Context handle
  * Returns: SMARTTERM_OK on success, error code on failure
  */
-int smartterm_scroll_bottom(smartterm_ctx *ctx);
+int smartterm_scroll_bottom(smartterm_ctx* ctx);
 
 /*
  * Get current scroll position.
@@ -318,7 +313,7 @@ int smartterm_scroll_bottom(smartterm_ctx *ctx);
  * ctx: Context handle
  * Returns: Line index of top visible line
  */
-int smartterm_get_scroll_pos(smartterm_ctx *ctx);
+int smartterm_get_scroll_pos(smartterm_ctx* ctx);
 
 /*
  * Enable/disable auto-scroll on new output.
@@ -327,7 +322,7 @@ int smartterm_get_scroll_pos(smartterm_ctx *ctx);
  * enabled: true to auto-scroll, false to stay at current position
  * Returns: SMARTTERM_OK on success, error code on failure
  */
-int smartterm_set_auto_scroll(smartterm_ctx *ctx, bool enabled);
+int smartterm_set_auto_scroll(smartterm_ctx* ctx, bool enabled);
 
 /*
  * ============================================================================
@@ -347,15 +342,15 @@ int smartterm_set_auto_scroll(smartterm_ctx *ctx, bool enabled);
  *
  * Note: Caller must free results array with smartterm_free_search_results().
  */
-int smartterm_search(smartterm_ctx *ctx, const char *pattern, bool use_regex,
-                     smartterm_search_result_t **results, int *count);
+int smartterm_search(smartterm_ctx* ctx, const char* pattern, bool use_regex,
+                     smartterm_search_result_t** results, int* count);
 
 /*
  * Free search results.
  *
  * results: Results array from smartterm_search()
  */
-void smartterm_free_search_results(smartterm_search_result_t *results);
+void smartterm_free_search_results(smartterm_search_result_t* results);
 
 /*
  * Jump to next search match.
@@ -363,7 +358,7 @@ void smartterm_free_search_results(smartterm_search_result_t *results);
  * ctx: Context handle
  * Returns: SMARTTERM_OK on success, error code if no more matches
  */
-int smartterm_search_next(smartterm_ctx *ctx);
+int smartterm_search_next(smartterm_ctx* ctx);
 
 /*
  * Jump to previous search match.
@@ -371,7 +366,7 @@ int smartterm_search_next(smartterm_ctx *ctx);
  * ctx: Context handle
  * Returns: SMARTTERM_OK on success, error code if no more matches
  */
-int smartterm_search_prev(smartterm_ctx *ctx);
+int smartterm_search_prev(smartterm_ctx* ctx);
 
 /*
  * Clear search highlights.
@@ -379,7 +374,7 @@ int smartterm_search_prev(smartterm_ctx *ctx);
  * ctx: Context handle
  * Returns: SMARTTERM_OK on success, error code on failure
  */
-int smartterm_search_clear(smartterm_ctx *ctx);
+int smartterm_search_clear(smartterm_ctx* ctx);
 
 /*
  * ============================================================================
@@ -398,9 +393,8 @@ int smartterm_search_clear(smartterm_ctx *ctx);
  * include_meta: Include metadata (timestamps, context)
  * Returns: SMARTTERM_OK on success, error code on failure
  */
-int smartterm_export(smartterm_ctx *ctx, const char *filename,
-                     smartterm_export_format_t format, int start_line,
-                     int end_line, bool include_meta);
+int smartterm_export(smartterm_ctx* ctx, const char* filename, smartterm_export_format_t format,
+                     int start_line, int end_line, bool include_meta);
 
 /*
  * Export to string.
@@ -414,9 +408,8 @@ int smartterm_export(smartterm_ctx *ctx, const char *filename,
  *
  * Note: Caller must free() returned string.
  */
-char* smartterm_export_string(smartterm_ctx *ctx,
-                              smartterm_export_format_t format,
-                              int start_line, int end_line, bool include_meta);
+char* smartterm_export_string(smartterm_ctx* ctx, smartterm_export_format_t format, int start_line,
+                              int end_line, bool include_meta);
 
 /*
  * ============================================================================
@@ -433,8 +426,7 @@ char* smartterm_export_string(smartterm_ctx *ctx,
  * data: User data passed to smartterm_set_completer()
  * Returns: NULL-terminated array of completion candidates (caller frees)
  */
-typedef char** (*smartterm_completer_fn)(const char *text, int start,
-                                         int end, void *data);
+typedef char** (*smartterm_completer_fn)(const char* text, int start, int end, void* data);
 
 /*
  * Set tab completion callback.
@@ -444,8 +436,7 @@ typedef char** (*smartterm_completer_fn)(const char *text, int start,
  * data: User data passed to callback
  * Returns: SMARTTERM_OK on success, error code on failure
  */
-int smartterm_set_completer(smartterm_ctx *ctx, smartterm_completer_fn completer,
-                            void *data);
+int smartterm_set_completer(smartterm_ctx* ctx, smartterm_completer_fn completer, void* data);
 
 /*
  * ============================================================================
@@ -459,14 +450,14 @@ int smartterm_set_completer(smartterm_ctx *ctx, smartterm_completer_fn completer
  * name: Theme name
  * Returns: Theme handle, or NULL on failure
  */
-smartterm_theme* smartterm_theme_create(const char *name);
+smartterm_theme* smartterm_theme_create(const char* name);
 
 /*
  * Free theme.
  *
  * theme: Theme handle
  */
-void smartterm_theme_free(smartterm_theme *theme);
+void smartterm_theme_free(smartterm_theme* theme);
 
 /*
  * Set color for context.
@@ -477,9 +468,7 @@ void smartterm_theme_free(smartterm_theme *theme);
  * bg: Background color (0-255)
  * Returns: SMARTTERM_OK on success, error code on failure
  */
-int smartterm_theme_set_color(smartterm_theme *theme,
-                              smartterm_context_t context,
-                              int fg, int bg);
+int smartterm_theme_set_color(smartterm_theme* theme, smartterm_context_t context, int fg, int bg);
 
 /*
  * Set symbol.
@@ -489,9 +478,8 @@ int smartterm_theme_set_color(smartterm_theme *theme,
  * value: Symbol string
  * Returns: SMARTTERM_OK on success, error code on failure
  */
-int smartterm_theme_set_symbol(smartterm_theme *theme,
-                               smartterm_symbol_t symbol,
-                               const char *value);
+int smartterm_theme_set_symbol(smartterm_theme* theme, smartterm_symbol_t symbol,
+                               const char* value);
 
 /*
  * Set text attribute for context.
@@ -501,8 +489,7 @@ int smartterm_theme_set_symbol(smartterm_theme *theme,
  * attribute: ncurses attribute (A_BOLD, A_DIM, etc.)
  * Returns: SMARTTERM_OK on success, error code on failure
  */
-int smartterm_theme_set_attribute(smartterm_theme *theme,
-                                  smartterm_context_t context,
+int smartterm_theme_set_attribute(smartterm_theme* theme, smartterm_context_t context,
                                   int attribute);
 
 /*
@@ -513,7 +500,7 @@ int smartterm_theme_set_attribute(smartterm_theme *theme,
  *
  * Note: Do not free built-in themes.
  */
-const smartterm_theme* smartterm_theme_get_builtin(const char *name);
+const smartterm_theme* smartterm_theme_get_builtin(const char* name);
 
 /*
  * Set active theme.
@@ -522,7 +509,7 @@ const smartterm_theme* smartterm_theme_get_builtin(const char *name);
  * theme: Theme handle (NULL = default)
  * Returns: SMARTTERM_OK on success, error code on failure
  */
-int smartterm_set_theme(smartterm_ctx *ctx, const smartterm_theme *theme);
+int smartterm_set_theme(smartterm_ctx* ctx, const smartterm_theme* theme);
 
 /*
  * ============================================================================
@@ -537,8 +524,7 @@ int smartterm_set_theme(smartterm_ctx *ctx, const smartterm_theme *theme);
  * key: Key code (from ncurses)
  * data: User data passed to smartterm_register_key_handler()
  */
-typedef void (*smartterm_key_handler_fn)(smartterm_ctx *ctx, int key,
-                                         void *data);
+typedef void (*smartterm_key_handler_fn)(smartterm_ctx* ctx, int key, void* data);
 
 /*
  * Register key handler.
@@ -549,9 +535,8 @@ typedef void (*smartterm_key_handler_fn)(smartterm_ctx *ctx, int key,
  * data: User data passed to callback
  * Returns: SMARTTERM_OK on success, error code on failure
  */
-int smartterm_register_key_handler(smartterm_ctx *ctx, int key,
-                                   smartterm_key_handler_fn handler,
-                                   void *data);
+int smartterm_register_key_handler(smartterm_ctx* ctx, int key, smartterm_key_handler_fn handler,
+                                   void* data);
 
 /*
  * Unregister key handler.
@@ -560,7 +545,7 @@ int smartterm_register_key_handler(smartterm_ctx *ctx, int key,
  * key: Key code
  * Returns: SMARTTERM_OK on success, error code on failure
  */
-int smartterm_unregister_key_handler(smartterm_ctx *ctx, int key);
+int smartterm_unregister_key_handler(smartterm_ctx* ctx, int key);
 
 /*
  * ============================================================================
@@ -582,7 +567,7 @@ const char* smartterm_error_string(int code);
  * ctx: Context handle
  * Returns: Last error code
  */
-int smartterm_get_last_error(smartterm_ctx *ctx);
+int smartterm_get_last_error(smartterm_ctx* ctx);
 
 /*
  * ============================================================================
@@ -603,7 +588,7 @@ const char* smartterm_version(void);
  * ctx: Context handle
  * Returns: Number of lines in buffer
  */
-int smartterm_get_line_count(smartterm_ctx *ctx);
+int smartterm_get_line_count(smartterm_ctx* ctx);
 
 /*
  * Get line from buffer.
@@ -615,7 +600,7 @@ int smartterm_get_line_count(smartterm_ctx *ctx);
  * Note: Returned string is valid until next write/clear operation.
  *       Do not free.
  */
-const char* smartterm_get_line(smartterm_ctx *ctx, int index);
+const char* smartterm_get_line(smartterm_ctx* ctx, int index);
 
 /*
  * Get line metadata.
@@ -625,8 +610,7 @@ const char* smartterm_get_line(smartterm_ctx *ctx, int index);
  * meta: Output metadata structure
  * Returns: SMARTTERM_OK on success, error code if invalid index
  */
-int smartterm_get_line_meta(smartterm_ctx *ctx, int index,
-                            smartterm_line_meta_t *meta);
+int smartterm_get_line_meta(smartterm_ctx* ctx, int index, smartterm_line_meta_t* meta);
 
 /*
  * Get terminal size.
@@ -636,7 +620,7 @@ int smartterm_get_line_meta(smartterm_ctx *ctx, int index,
  * cols: Output columns
  * Returns: SMARTTERM_OK on success, error code on failure
  */
-int smartterm_get_terminal_size(smartterm_ctx *ctx, int *rows, int *cols);
+int smartterm_get_terminal_size(smartterm_ctx* ctx, int* rows, int* cols);
 
 /*
  * Handle terminal resize.
@@ -646,7 +630,7 @@ int smartterm_get_terminal_size(smartterm_ctx *ctx, int *rows, int *cols);
  *
  * Note: Usually called from SIGWINCH handler.
  */
-int smartterm_handle_resize(smartterm_ctx *ctx);
+int smartterm_handle_resize(smartterm_ctx* ctx);
 
 #ifdef __cplusplus
 }

@@ -5,21 +5,21 @@
  */
 
 #include "smartterm_internal.h"
+#include <regex.h>
 #include <stdlib.h>
 #include <string.h>
-#include <regex.h>
 
 /*
  * Search in output buffer (plain text)
  */
-static int search_plain(smartterm_ctx *ctx, const char *pattern,
-                        smartterm_search_result_t **results, int *count) {
+static int search_plain(smartterm_ctx* ctx, const char* pattern,
+                        smartterm_search_result_t** results, int* count)
+{
     pthread_mutex_lock(&ctx->buffer.mutex);
 
     int match_count = 0;
     int match_capacity = 10;
-    smartterm_search_result_t *matches = calloc(match_capacity,
-                                                 sizeof(smartterm_search_result_t));
+    smartterm_search_result_t* matches = calloc(match_capacity, sizeof(smartterm_search_result_t));
 
     if (!matches) {
         pthread_mutex_unlock(&ctx->buffer.mutex);
@@ -28,15 +28,15 @@ static int search_plain(smartterm_ctx *ctx, const char *pattern,
 
     /* Search each line */
     for (int i = 0; i < ctx->buffer.count; i++) {
-        const char *line = ctx->buffer.lines[i].text;
-        const char *pos = line;
+        const char* line = ctx->buffer.lines[i].text;
+        const char* pos = line;
 
         /* Find all occurrences in this line */
         while ((pos = strstr(pos, pattern)) != NULL) {
             /* Expand array if needed */
             if (match_count >= match_capacity) {
                 match_capacity *= 2;
-                smartterm_search_result_t *new_matches =
+                smartterm_search_result_t* new_matches =
                     realloc(matches, match_capacity * sizeof(smartterm_search_result_t));
                 if (!new_matches) {
                     free(matches);
@@ -67,8 +67,9 @@ static int search_plain(smartterm_ctx *ctx, const char *pattern,
 /*
  * Search in output buffer (regex)
  */
-static int search_regex(smartterm_ctx *ctx, const char *pattern,
-                        smartterm_search_result_t **results, int *count) {
+static int search_regex(smartterm_ctx* ctx, const char* pattern,
+                        smartterm_search_result_t** results, int* count)
+{
     regex_t regex;
     int ret = regcomp(&regex, pattern, REG_EXTENDED);
     if (ret != 0) {
@@ -79,8 +80,7 @@ static int search_regex(smartterm_ctx *ctx, const char *pattern,
 
     int match_count = 0;
     int match_capacity = 10;
-    smartterm_search_result_t *matches = calloc(match_capacity,
-                                                 sizeof(smartterm_search_result_t));
+    smartterm_search_result_t* matches = calloc(match_capacity, sizeof(smartterm_search_result_t));
 
     if (!matches) {
         pthread_mutex_unlock(&ctx->buffer.mutex);
@@ -90,8 +90,8 @@ static int search_regex(smartterm_ctx *ctx, const char *pattern,
 
     /* Search each line */
     for (int i = 0; i < ctx->buffer.count; i++) {
-        const char *line = ctx->buffer.lines[i].text;
-        const char *search_pos = line;
+        const char* line = ctx->buffer.lines[i].text;
+        const char* search_pos = line;
         regmatch_t match;
 
         /* Find all matches in this line (not just first) */
@@ -99,7 +99,7 @@ static int search_regex(smartterm_ctx *ctx, const char *pattern,
             /* Expand array if needed */
             if (match_count >= match_capacity) {
                 match_capacity *= 2;
-                smartterm_search_result_t *new_matches =
+                smartterm_search_result_t* new_matches =
                     realloc(matches, match_capacity * sizeof(smartterm_search_result_t));
                 if (!new_matches) {
                     free(matches);
@@ -118,7 +118,8 @@ static int search_regex(smartterm_ctx *ctx, const char *pattern,
 
             /* Move past this match to find next one */
             search_pos += match.rm_eo;
-            if (*search_pos == '\0') break;  /* End of line */
+            if (*search_pos == '\0')
+                break; /* End of line */
         }
     }
 
@@ -134,8 +135,9 @@ static int search_regex(smartterm_ctx *ctx, const char *pattern,
 /*
  * Search in output buffer
  */
-int smartterm_search(smartterm_ctx *ctx, const char *pattern, bool use_regex,
-                     smartterm_search_result_t **results, int *count) {
+int smartterm_search(smartterm_ctx* ctx, const char* pattern, bool use_regex,
+                     smartterm_search_result_t** results, int* count)
+{
     if (!ctx || !ctx->initialized || !pattern || !results || !count) {
         return SMARTTERM_INVALID;
     }
@@ -167,14 +169,16 @@ int smartterm_search(smartterm_ctx *ctx, const char *pattern, bool use_regex,
 /*
  * Free search results
  */
-void smartterm_free_search_results(smartterm_search_result_t *results) {
+void smartterm_free_search_results(smartterm_search_result_t* results)
+{
     free(results);
 }
 
 /*
  * Jump to next search match
  */
-int smartterm_search_next(smartterm_ctx *ctx) {
+int smartterm_search_next(smartterm_ctx* ctx)
+{
     if (!ctx || !ctx->initialized) {
         return SMARTTERM_NOTINIT;
     }
@@ -184,8 +188,7 @@ int smartterm_search_next(smartterm_ctx *ctx) {
     }
 
     /* Move to next match */
-    ctx->search.current_result = (ctx->search.current_result + 1) %
-                                  ctx->search.result_count;
+    ctx->search.current_result = (ctx->search.current_result + 1) % ctx->search.result_count;
 
     /* Scroll to show the match */
     int line = ctx->search.results[ctx->search.current_result].line_index;
@@ -200,7 +203,8 @@ int smartterm_search_next(smartterm_ctx *ctx) {
 /*
  * Jump to previous search match
  */
-int smartterm_search_prev(smartterm_ctx *ctx) {
+int smartterm_search_prev(smartterm_ctx* ctx)
+{
     if (!ctx || !ctx->initialized) {
         return SMARTTERM_NOTINIT;
     }
@@ -228,7 +232,8 @@ int smartterm_search_prev(smartterm_ctx *ctx) {
 /*
  * Clear search highlights
  */
-int smartterm_search_clear(smartterm_ctx *ctx) {
+int smartterm_search_clear(smartterm_ctx* ctx)
+{
     if (!ctx || !ctx->initialized) {
         return SMARTTERM_NOTINIT;
     }

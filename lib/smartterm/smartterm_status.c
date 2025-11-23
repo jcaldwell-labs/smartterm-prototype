@@ -12,8 +12,8 @@
 /*
  * Set status bar text
  */
-int smartterm_status_set(smartterm_ctx *ctx, const char *left,
-                         const char *right) {
+int smartterm_status_set(smartterm_ctx* ctx, const char* left, const char* right)
+{
     if (!ctx || !ctx->initialized) {
         return SMARTTERM_NOTINIT;
     }
@@ -38,8 +38,8 @@ int smartterm_status_set(smartterm_ctx *ctx, const char *left,
  * should be a format string (non-NULL). The variadic arguments apply to whichever
  * one is non-NULL. To update both sides with formatting, call this function twice.
  */
-int smartterm_status_update(smartterm_ctx *ctx, const char *left_fmt,
-                            const char *right_fmt, ...) {
+int smartterm_status_update(smartterm_ctx* ctx, const char* left_fmt, const char* right_fmt, ...)
+{
     if (!ctx || !ctx->initialized) {
         return SMARTTERM_NOTINIT;
     }
@@ -70,7 +70,8 @@ int smartterm_status_update(smartterm_ctx *ctx, const char *left_fmt,
 /*
  * Show/hide status bar
  */
-int smartterm_status_set_visible(smartterm_ctx *ctx, bool visible) {
+int smartterm_status_set_visible(smartterm_ctx* ctx, bool visible)
+{
     if (!ctx || !ctx->initialized) {
         return SMARTTERM_NOTINIT;
     }
