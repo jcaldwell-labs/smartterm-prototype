@@ -5,15 +5,16 @@
  */
 
 #include "smartterm_internal.h"
-#include <stdlib.h>
-#include <string.h>
 #include <stdarg.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 /*
  * Initialize output buffer
  */
-int output_buffer_init(output_buffer_t *buf, int capacity, bool thread_safe) {
+int output_buffer_init(output_buffer_t* buf, int capacity, bool thread_safe)
+{
     buf->lines = calloc(capacity, sizeof(output_line_t));
     if (!buf->lines) {
         return SMARTTERM_NOMEM;
@@ -37,7 +38,8 @@ int output_buffer_init(output_buffer_t *buf, int capacity, bool thread_safe) {
 /*
  * Cleanup output buffer
  */
-void output_buffer_cleanup(output_buffer_t *buf) {
+void output_buffer_cleanup(output_buffer_t* buf)
+{
     if (!buf || !buf->lines) {
         return;
     }
@@ -55,8 +57,8 @@ void output_buffer_cleanup(output_buffer_t *buf) {
 /*
  * Add line to output buffer
  */
-int output_buffer_add(output_buffer_t *buf, const char *text,
-                      const smartterm_line_meta_t *meta) {
+int output_buffer_add(output_buffer_t* buf, const char* text, const smartterm_line_meta_t* meta)
+{
     if (!buf || !text) {
         return SMARTTERM_INVALID;
     }
@@ -69,8 +71,7 @@ int output_buffer_add(output_buffer_t *buf, const char *text,
         free((void*)buf->lines[0].meta.tag);
 
         /* Shift all lines down */
-        memmove(&buf->lines[0], &buf->lines[1],
-                sizeof(output_line_t) * (buf->capacity - 1));
+        memmove(&buf->lines[0], &buf->lines[1], sizeof(output_line_t) * (buf->capacity - 1));
         buf->count--;
 
         /* Adjust scroll offset */
@@ -120,7 +121,8 @@ int output_buffer_add(output_buffer_t *buf, const char *text,
 /*
  * Clear output buffer
  */
-void output_buffer_clear(output_buffer_t *buf) {
+void output_buffer_clear(output_buffer_t* buf)
+{
     if (!buf) {
         return;
     }
@@ -141,13 +143,14 @@ void output_buffer_clear(output_buffer_t *buf) {
 /*
  * Get line from buffer
  */
-const char* output_buffer_get_line(output_buffer_t *buf, int index) {
+const char* output_buffer_get_line(output_buffer_t* buf, int index)
+{
     if (!buf || index < 0 || index >= buf->count) {
         return NULL;
     }
 
     pthread_mutex_lock(&buf->mutex);
-    const char *text = buf->lines[index].text;
+    const char* text = buf->lines[index].text;
     pthread_mutex_unlock(&buf->mutex);
 
     return text;
@@ -156,8 +159,8 @@ const char* output_buffer_get_line(output_buffer_t *buf, int index) {
 /*
  * Get line metadata
  */
-int output_buffer_get_line_meta(output_buffer_t *buf, int index,
-                                smartterm_line_meta_t *meta) {
+int output_buffer_get_line_meta(output_buffer_t* buf, int index, smartterm_line_meta_t* meta)
+{
     if (!buf || !meta || index < 0 || index >= buf->count) {
         return SMARTTERM_INVALID;
     }
@@ -172,17 +175,13 @@ int output_buffer_get_line_meta(output_buffer_t *buf, int index,
 /*
  * Write line to output
  */
-int smartterm_write(smartterm_ctx *ctx, const char *text,
-                    smartterm_context_t context) {
+int smartterm_write(smartterm_ctx* ctx, const char* text, smartterm_context_t context)
+{
     if (!ctx || !ctx->initialized || !text) {
         return SMARTTERM_INVALID;
     }
 
-    smartterm_line_meta_t meta = {
-        .context = context,
-        .timestamp = get_timestamp(),
-        .tag = NULL
-    };
+    smartterm_line_meta_t meta = {.context = context, .timestamp = get_timestamp(), .tag = NULL};
 
     int result = output_buffer_add(&ctx->buffer, text, &meta);
     if (result == SMARTTERM_OK) {
@@ -196,8 +195,8 @@ int smartterm_write(smartterm_ctx *ctx, const char *text,
 /*
  * Write formatted output
  */
-int smartterm_write_fmt(smartterm_ctx *ctx, smartterm_context_t context,
-                        const char *format, ...) {
+int smartterm_write_fmt(smartterm_ctx* ctx, smartterm_context_t context, const char* format, ...)
+{
     if (!ctx || !ctx->initialized || !format) {
         return SMARTTERM_INVALID;
     }
@@ -214,8 +213,8 @@ int smartterm_write_fmt(smartterm_ctx *ctx, smartterm_context_t context,
 /*
  * Write with metadata
  */
-int smartterm_write_meta(smartterm_ctx *ctx, const char *text,
-                         const smartterm_line_meta_t *meta) {
+int smartterm_write_meta(smartterm_ctx* ctx, const char* text, const smartterm_line_meta_t* meta)
+{
     if (!ctx || !ctx->initialized || !text || !meta) {
         return SMARTTERM_INVALID;
     }

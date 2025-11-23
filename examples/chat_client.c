@@ -5,56 +5,55 @@
  * Simulates a chat client with multiple message types.
  */
 
+#include <pthread.h>
 #include <smartterm.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include <pthread.h>
 #include <unistd.h>
 
 /* Global context for worker thread */
-static smartterm_ctx *g_ctx = NULL;
+static smartterm_ctx* g_ctx = NULL;
 static bool g_running = true;
 
 /* Simulate incoming messages */
-static void* message_simulator(void *arg) {
+static void* message_simulator(void* arg)
+{
     (void)arg;
 
-    const char *users[] = {"Alice", "Bob", "Charlie", "Dave"};
-    const char *messages[] = {
-        "Hey everyone!",
-        "How's it going?",
-        "Anyone want to grab lunch?",
-        "Check out this new feature!",
-        "Meeting in 5 minutes",
-        "Great work on the project!",
-        "lol",
-        "brb",
-        "ttyl"
-    };
+    const char* users[] = {"Alice", "Bob", "Charlie", "Dave"};
+    const char* messages[] = {"Hey everyone!",
+                              "How's it going?",
+                              "Anyone want to grab lunch?",
+                              "Check out this new feature!",
+                              "Meeting in 5 minutes",
+                              "Great work on the project!",
+                              "lol",
+                              "brb",
+                              "ttyl"};
 
     int num_users = sizeof(users) / sizeof(users[0]);
     int num_messages = sizeof(messages) / sizeof(messages[0]);
 
     while (g_running) {
-        sleep(5 + (rand() % 10));  /* Random delay 5-15 seconds */
+        sleep(5 + (rand() % 10)); /* Random delay 5-15 seconds */
 
-        if (!g_running) break;
+        if (!g_running)
+            break;
 
         /* Random user and message */
-        const char *user = users[rand() % num_users];
-        const char *message = messages[rand() % num_messages];
+        const char* user = users[rand() % num_users];
+        const char* message = messages[rand() % num_messages];
 
         /* Write simulated message (thread-safe) */
         char buffer[256];
         time_t now = time(NULL);
-        struct tm *tm_info = localtime(&now);
+        struct tm* tm_info = localtime(&now);
         char time_str[10];
         strftime(time_str, sizeof(time_str), "%H:%M:%S", tm_info);
 
-        snprintf(buffer, sizeof(buffer), "[%s] <%s> %s",
-                 time_str, user, message);
+        snprintf(buffer, sizeof(buffer), "[%s] <%s> %s", time_str, user, message);
 
         smartterm_write(g_ctx, buffer, CTX_INFO);
     }
@@ -63,11 +62,12 @@ static void* message_simulator(void *arg) {
 }
 
 /* Process chat command */
-static void process_command(smartterm_ctx *ctx, const char *input) {
+static void process_command(smartterm_ctx* ctx, const char* input)
+{
     if (input[0] != '/') {
         /* Regular message */
         time_t now = time(NULL);
-        struct tm *tm_info = localtime(&now);
+        struct tm* tm_info = localtime(&now);
         char time_str[10];
         strftime(time_str, sizeof(time_str), "%H:%M:%S", tm_info);
 
@@ -98,8 +98,7 @@ static void process_command(smartterm_ctx *ctx, const char *input) {
         smartterm_clear(ctx);
         smartterm_write(ctx, "--- Chat cleared ---", CTX_COMMENT);
     } else if (strcmp(input, "/export") == 0) {
-        int result = smartterm_export(ctx, "chat_log.txt",
-                                     EXPORT_PLAIN, 0, -1, true);
+        int result = smartterm_export(ctx, "chat_log.txt", EXPORT_PLAIN, 0, -1, true);
         if (result == SMARTTERM_OK) {
             smartterm_write(ctx, "Chat log exported to chat_log.txt", CTX_SUCCESS);
         } else {
@@ -114,7 +113,8 @@ static void process_command(smartterm_ctx *ctx, const char *input) {
     }
 }
 
-int main(void) {
+int main(void)
+{
     srand(time(NULL));
 
     /* Initialize SmartTerm */
@@ -122,7 +122,7 @@ int main(void) {
     config.history_enabled = true;
     config.prompt = "> ";
 
-    smartterm_ctx *ctx = smartterm_init(&config);
+    smartterm_ctx* ctx = smartterm_init(&config);
     if (!ctx) {
         fprintf(stderr, "Failed to initialize SmartTerm\n");
         return 1;
@@ -147,7 +147,7 @@ int main(void) {
     int message_count = 0;
 
     while (g_running) {
-        char *input = smartterm_read_line(ctx, NULL);
+        char* input = smartterm_read_line(ctx, NULL);
 
         if (!input) {
             /* EOF */
