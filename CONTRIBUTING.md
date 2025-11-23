@@ -111,7 +111,7 @@ SmartTerm follows these conventions:
 **Formatting:**
 - 4-space indentation (no tabs)
 - 100 character line limit
-- K&R brace style (braces on same line for functions)
+- Opening braces on new line for functions, same line for control structures
 - Use clang-format with provided `.clang-format` config
 
 **Code Organization:**
@@ -247,7 +247,7 @@ Fixes #42
 2. **Run checks:**
    ```bash
    # Format code
-   make format
+   make -f Makefile.lib format
 
    # Build library
    make -f Makefile.lib lib

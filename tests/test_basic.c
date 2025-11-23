@@ -38,7 +38,6 @@ int main(void)
     } else {
         TEST_ASSERT_NOT_NULL(ctx, "Initialize with NULL config");
         smartterm_cleanup(ctx);
-        tests_passed++;
     }
 
     /* Test 3: Custom configuration */

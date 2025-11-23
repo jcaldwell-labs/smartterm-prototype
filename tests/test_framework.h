@@ -10,9 +10,9 @@
 #include <string.h>
 
 /* Test counters */
-static int tests_run = 0;
-static int tests_passed = 0;
-static int tests_failed = 0;
+extern int tests_run;
+extern int tests_passed;
+extern int tests_failed;
 
 /* Test macros */
 #define TEST_ASSERT(condition, message)                                                            \
@@ -44,7 +44,12 @@ static int tests_failed = 0;
 #define TEST_ASSERT_STR_EQUAL(expected, actual, message)                                           \
     do {                                                                                           \
         tests_run++;                                                                               \
-        if (strcmp((expected), (actual)) == 0) {                                                   \
+        if ((expected) == NULL || (actual) == NULL) {                                              \
+            tests_failed++;                                                                        \
+            printf("  ✗ %s (NULL pointer: expected=%p, actual=%p)\n", message,                    \
+                   (void*)(expected), (void*)(actual));                                           \
+            printf("    Failed at %s:%d\n", __FILE__, __LINE__);                                   \
+        } else if (strcmp((expected), (actual)) == 0) {                                            \
             tests_passed++;                                                                        \
             printf("  ✓ %s\n", message);                                                           \
         } else {                                                                                   \

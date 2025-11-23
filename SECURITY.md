@@ -40,7 +40,7 @@ A comprehensive security audit identified **17 security issues** across the Smar
 **Location:** `lib/smartterm/smartterm_export.c` (multiple locations)
 **Impact:** Crash if `localtime()` returns NULL for invalid timestamps
 **Status:** Documented for fix
-**Mitigation:** Add NULL checks before calling `strftime()`
+**Mitigation:** Add NULL checks for `localtime()` return value before calling `strftime()`
 
 ## High Priority Issues
 
@@ -139,7 +139,7 @@ Contributors should follow these practices:
 
 1. **Never use unsafe functions:** `sprintf()`, `strcpy()`, `strcat()`, `gets()`
 2. **Always check return values:** `malloc()`, `calloc()`, `strdup()`, pthread functions
-3. **Use safe alternatives:** `snprintf()`, `strncpy()`, `strlcpy()` (when available)
+3. **Use safe alternatives:** `snprintf()`, `strncpy()` (with manual null-termination), or `strlcpy()` (BSD systems only)
 4. **Validate inputs:** Check pointers for NULL, bounds for integers, sizes for buffers
 5. **Test edge cases:** Zero-length buffers, NULL pointers, maximum sizes
 6. **Review for races:** Consider multi-threaded scenarios for all shared state

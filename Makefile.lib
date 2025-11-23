@@ -72,8 +72,8 @@ $(POC_TARGET): smartterm_poc.c | $(BUILD_DIR)
 # Build tests
 tests: $(TEST_BINS)
 
-$(TEST_BIN_DIR)/%: $(TEST_DIR)/%.c $(LIB_TARGET) | $(TEST_BIN_DIR)
-	$(CC) $(CFLAGS) $< -L$(BUILD_DIR) -lsmartterm $(LDFLAGS) -o $@
+$(TEST_BIN_DIR)/%: $(TEST_DIR)/%.c $(TEST_DIR)/framework.c $(LIB_TARGET) | $(TEST_BIN_DIR)
+	$(CC) $(CFLAGS) $< $(TEST_DIR)/framework.c -L$(BUILD_DIR) -lsmartterm $(LDFLAGS) -o $@
 	@echo "Built test: $@"
 
 # Run tests
@@ -99,7 +99,7 @@ install: $(LIB_TARGET)
 # Format code
 format:
 	@echo "Formatting code..."
-	find . -type f \( -name "*.c" -o -name "*.h" \) ! -path "./.git/*" -exec clang-format -i {} \;
+	find . -type f \( -name "*.c" -o -name "*.h" \) ! -path "./.git/*" ! -path "./build/*" -exec clang-format -i {} \;
 	@echo "Formatting complete"
 
 # Clean build artifacts

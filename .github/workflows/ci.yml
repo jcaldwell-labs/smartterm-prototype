@@ -47,7 +47,7 @@ jobs:
 
     - name: Memory leak check (basic test)
       run: |
-        valgrind --leak-check=full --error-exitcode=1 --quiet ./build/test/test_basic || echo "Skipped (no terminal)"
+        valgrind --leak-check=full --error-exitcode=1 --quiet ./build/test/test_basic
 
   build-macos:
     runs-on: macos-latest
