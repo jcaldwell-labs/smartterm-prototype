@@ -48,6 +48,9 @@ jobs:
         make -f Makefile.lib clean
         make -f Makefile.lib CFLAGS="-Wall -Wextra -Werror -O2 -Iinclude" lib
 
+    - name: Rebuild tests for valgrind
+      run: make -f Makefile.lib tests
+
     - name: Memory leak check (basic test)
       run: |
         valgrind --leak-check=full --error-exitcode=1 --quiet ./build/test/test_basic
