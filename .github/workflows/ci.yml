@@ -37,6 +37,8 @@ jobs:
 
     - name: Run tests
       run: make -f Makefile.lib test
+      env:
+        TERM: xterm
 
     - name: Check for compiler warnings
       run: |
@@ -69,3 +71,5 @@ jobs:
 
     - name: Run tests
       run: make -f Makefile.lib test
+      env:
+        TERM: xterm
