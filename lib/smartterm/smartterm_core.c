@@ -5,9 +5,9 @@
  */
 
 #include "smartterm_internal.h"
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdio.h>
 
 /* Library version */
 #define SMARTTERM_VERSION "1.0.0"
@@ -15,26 +15,26 @@
 /*
  * Get default configuration
  */
-smartterm_config_t smartterm_default_config(void) {
-    smartterm_config_t config = {
-        .max_lines = 1000,
-        .output_height = 0,  /* Auto */
-        .status_bar_enabled = true,
-        .prompt = "> ",
-        .history_enabled = true,
-        .history_file = NULL,
-        .history_size = 1000,
-        .theme = NULL,  /* Default theme */
-        .multiline_enabled = false,
-        .thread_safe = true
-    };
+smartterm_config_t smartterm_default_config(void)
+{
+    smartterm_config_t config = {.max_lines = 1000,
+                                 .output_height = 0, /* Auto */
+                                 .status_bar_enabled = true,
+                                 .prompt = "> ",
+                                 .history_enabled = true,
+                                 .history_file = NULL,
+                                 .history_size = 1000,
+                                 .theme = NULL, /* Default theme */
+                                 .multiline_enabled = false,
+                                 .thread_safe = true};
     return config;
 }
 
 /*
  * Initialize ncurses
  */
-static int init_ncurses(smartterm_ctx *ctx) {
+static int init_ncurses(smartterm_ctx* ctx)
+{
     initscr();
     cbreak();
     noecho();
@@ -51,11 +51,10 @@ static int init_ncurses(smartterm_ctx *ctx) {
 
     /* Calculate window heights */
     int status_height = ctx->config.status_bar_enabled ? 1 : 0;
-    int input_height = 2;  /* Space for readline */
+    int input_height = 2; /* Space for readline */
     int output_height = ctx->term_rows - status_height - input_height;
 
-    if (ctx->config.output_height > 0 &&
-        ctx->config.output_height < output_height) {
+    if (ctx->config.output_height > 0 && ctx->config.output_height < output_height) {
         output_height = ctx->config.output_height;
     }
 
@@ -85,8 +84,9 @@ static int init_ncurses(smartterm_ctx *ctx) {
 /*
  * Initialize SmartTerm
  */
-smartterm_ctx* smartterm_init(const smartterm_config_t *config) {
-    smartterm_ctx *ctx = calloc(1, sizeof(smartterm_ctx));
+smartterm_ctx* smartterm_init(const smartterm_config_t* config)
+{
+    smartterm_ctx* ctx = calloc(1, sizeof(smartterm_ctx));
     if (!ctx) {
         return NULL;
     }
@@ -99,8 +99,8 @@ smartterm_ctx* smartterm_init(const smartterm_config_t *config) {
     }
 
     /* Initialize output buffer */
-    if (output_buffer_init(&ctx->buffer, ctx->config.max_lines,
-                          ctx->config.thread_safe) != SMARTTERM_OK) {
+    if (output_buffer_init(&ctx->buffer, ctx->config.max_lines, ctx->config.thread_safe) !=
+        SMARTTERM_OK) {
         free(ctx);
         return NULL;
     }
@@ -143,8 +143,7 @@ smartterm_ctx* smartterm_init(const smartterm_config_t *config) {
 
     /* Initialize key handlers */
     ctx->key_handler_capacity = 10;
-    ctx->key_handlers = calloc(ctx->key_handler_capacity,
-                               sizeof(key_handler_entry_t));
+    ctx->key_handlers = calloc(ctx->key_handler_capacity, sizeof(key_handler_entry_t));
     ctx->key_handler_count = 0;
 
     ctx->initialized = true;
@@ -159,7 +158,8 @@ smartterm_ctx* smartterm_init(const smartterm_config_t *config) {
 /*
  * Cleanup SmartTerm
  */
-void smartterm_cleanup(smartterm_ctx *ctx) {
+void smartterm_cleanup(smartterm_ctx* ctx)
+{
     if (!ctx) {
         return;
     }
@@ -202,7 +202,8 @@ void smartterm_cleanup(smartterm_ctx *ctx) {
 /*
  * Clear output buffer
  */
-int smartterm_clear(smartterm_ctx *ctx) {
+int smartterm_clear(smartterm_ctx* ctx)
+{
     if (!ctx || !ctx->initialized) {
         return SMARTTERM_NOTINIT;
     }
@@ -214,7 +215,8 @@ int smartterm_clear(smartterm_ctx *ctx) {
 /*
  * Force re-render
  */
-int smartterm_render(smartterm_ctx *ctx) {
+int smartterm_render(smartterm_ctx* ctx)
+{
     if (!ctx || !ctx->initialized) {
         return SMARTTERM_NOTINIT;
     }
@@ -225,36 +227,39 @@ int smartterm_render(smartterm_ctx *ctx) {
 /*
  * Get library version
  */
-const char* smartterm_version(void) {
+const char* smartterm_version(void)
+{
     return SMARTTERM_VERSION;
 }
 
 /*
  * Get error string
  */
-const char* smartterm_error_string(int code) {
+const char* smartterm_error_string(int code)
+{
     switch (code) {
-        case SMARTTERM_OK:
-            return "Success";
-        case SMARTTERM_ERROR:
-            return "Generic error";
-        case SMARTTERM_NOMEM:
-            return "Out of memory";
-        case SMARTTERM_INVALID:
-            return "Invalid argument";
-        case SMARTTERM_NOTINIT:
-            return "Not initialized";
-        case SMARTTERM_IOERROR:
-            return "I/O error";
-        default:
-            return "Unknown error";
+    case SMARTTERM_OK:
+        return "Success";
+    case SMARTTERM_ERROR:
+        return "Generic error";
+    case SMARTTERM_NOMEM:
+        return "Out of memory";
+    case SMARTTERM_INVALID:
+        return "Invalid argument";
+    case SMARTTERM_NOTINIT:
+        return "Not initialized";
+    case SMARTTERM_IOERROR:
+        return "I/O error";
+    default:
+        return "Unknown error";
     }
 }
 
 /*
  * Get last error
  */
-int smartterm_get_last_error(smartterm_ctx *ctx) {
+int smartterm_get_last_error(smartterm_ctx* ctx)
+{
     if (!ctx) {
         return SMARTTERM_NOTINIT;
     }
@@ -264,7 +269,8 @@ int smartterm_get_last_error(smartterm_ctx *ctx) {
 /*
  * Get line count
  */
-int smartterm_get_line_count(smartterm_ctx *ctx) {
+int smartterm_get_line_count(smartterm_ctx* ctx)
+{
     if (!ctx || !ctx->initialized) {
         return 0;
     }
@@ -274,7 +280,8 @@ int smartterm_get_line_count(smartterm_ctx *ctx) {
 /*
  * Get line from buffer
  */
-const char* smartterm_get_line(smartterm_ctx *ctx, int index) {
+const char* smartterm_get_line(smartterm_ctx* ctx, int index)
+{
     if (!ctx || !ctx->initialized) {
         return NULL;
     }
@@ -284,8 +291,8 @@ const char* smartterm_get_line(smartterm_ctx *ctx, int index) {
 /*
  * Get line metadata
  */
-int smartterm_get_line_meta(smartterm_ctx *ctx, int index,
-                            smartterm_line_meta_t *meta) {
+int smartterm_get_line_meta(smartterm_ctx* ctx, int index, smartterm_line_meta_t* meta)
+{
     if (!ctx || !ctx->initialized || !meta) {
         return SMARTTERM_INVALID;
     }
@@ -295,7 +302,8 @@ int smartterm_get_line_meta(smartterm_ctx *ctx, int index,
 /*
  * Get terminal size
  */
-int smartterm_get_terminal_size(smartterm_ctx *ctx, int *rows, int *cols) {
+int smartterm_get_terminal_size(smartterm_ctx* ctx, int* rows, int* cols)
+{
     if (!ctx || !ctx->initialized || !rows || !cols) {
         return SMARTTERM_INVALID;
     }
@@ -307,7 +315,8 @@ int smartterm_get_terminal_size(smartterm_ctx *ctx, int *rows, int *cols) {
 /*
  * Handle terminal resize
  */
-int smartterm_handle_resize(smartterm_ctx *ctx) {
+int smartterm_handle_resize(smartterm_ctx* ctx)
+{
     if (!ctx || !ctx->initialized) {
         return SMARTTERM_NOTINIT;
     }
@@ -335,19 +344,21 @@ int smartterm_handle_resize(smartterm_ctx *ctx) {
 /*
  * Utility: Get current timestamp
  */
-long get_timestamp(void) {
+long get_timestamp(void)
+{
     return time(NULL);
 }
 
 /*
  * Utility: Safe string duplication
  */
-char* strdup_safe(const char *s) {
+char* strdup_safe(const char* s)
+{
     if (!s) {
         return NULL;
     }
     size_t len = strlen(s) + 1;
-    char *copy = malloc(len);
+    char* copy = malloc(len);
     if (copy) {
         memcpy(copy, s, len);
     }

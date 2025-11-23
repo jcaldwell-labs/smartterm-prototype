@@ -4,6 +4,7 @@
 
 **Status**: Production Library v1.0.0 + Original POC
 
+[![CI](https://github.com/jcaldwell-labs/smartterm-prototype/workflows/CI/badge.svg)](https://github.com/jcaldwell-labs/smartterm-prototype/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ---
@@ -484,11 +485,15 @@ See [DECISION.md](DECISION.md) for development path analysis and [NEXT-STEPS.md]
 
 Contributions welcome! This is a jcaldwell-labs project.
 
+See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
+
+Quick start:
 1. Fork the repository
 2. Create a feature branch
-3. Make your changes
-4. Add tests/examples if applicable
-5. Submit a pull request
+3. Make your changes with tests
+4. Format code: `make -f Makefile.lib format`
+5. Run tests: `make -f Makefile.lib test`
+6. Submit a pull request
 
 ---
 

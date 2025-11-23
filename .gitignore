@@ -5,6 +5,7 @@ smartterm_poc
 *.so
 
 # Build artifacts
+build/
 obj/
 bin/
 

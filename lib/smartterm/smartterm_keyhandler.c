@@ -10,9 +10,9 @@
 /*
  * Register key handler
  */
-int smartterm_register_key_handler(smartterm_ctx *ctx, int key,
-                                   smartterm_key_handler_fn handler,
-                                   void *data) {
+int smartterm_register_key_handler(smartterm_ctx* ctx, int key, smartterm_key_handler_fn handler,
+                                   void* data)
+{
     if (!ctx || !ctx->initialized || !handler) {
         return SMARTTERM_INVALID;
     }
@@ -20,8 +20,8 @@ int smartterm_register_key_handler(smartterm_ctx *ctx, int key,
     /* Check if we need to expand array */
     if (ctx->key_handler_count >= ctx->key_handler_capacity) {
         int new_capacity = ctx->key_handler_capacity * 2;
-        key_handler_entry_t *new_handlers = realloc(ctx->key_handlers,
-                                                     new_capacity * sizeof(key_handler_entry_t));
+        key_handler_entry_t* new_handlers =
+            realloc(ctx->key_handlers, new_capacity * sizeof(key_handler_entry_t));
         if (!new_handlers) {
             return SMARTTERM_NOMEM;
         }
@@ -50,7 +50,8 @@ int smartterm_register_key_handler(smartterm_ctx *ctx, int key,
 /*
  * Unregister key handler
  */
-int smartterm_unregister_key_handler(smartterm_ctx *ctx, int key) {
+int smartterm_unregister_key_handler(smartterm_ctx* ctx, int key)
+{
     if (!ctx || !ctx->initialized) {
         return SMARTTERM_NOTINIT;
     }
@@ -67,13 +68,14 @@ int smartterm_unregister_key_handler(smartterm_ctx *ctx, int key) {
         }
     }
 
-    return SMARTTERM_ERROR;  /* Key not found */
+    return SMARTTERM_ERROR; /* Key not found */
 }
 
 /*
  * Dispatch key event to registered handler (internal use)
  */
-int smartterm_dispatch_key(smartterm_ctx *ctx, int key) {
+int smartterm_dispatch_key(smartterm_ctx* ctx, int key)
+{
     if (!ctx || !ctx->initialized) {
         return SMARTTERM_NOTINIT;
     }
@@ -86,5 +88,5 @@ int smartterm_dispatch_key(smartterm_ctx *ctx, int key) {
         }
     }
 
-    return SMARTTERM_ERROR;  /* No handler */
+    return SMARTTERM_ERROR; /* No handler */
 }

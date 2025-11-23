@@ -5,24 +5,25 @@
  */
 
 #include "smartterm_internal.h"
+#include <readline/history.h>
+#include <readline/readline.h>
 #include <stdlib.h>
 #include <string.h>
-#include <readline/readline.h>
-#include <readline/history.h>
 
 /* Global completion state for readline callbacks */
-static smartterm_ctx *g_completion_ctx = NULL;
+static smartterm_ctx* g_completion_ctx = NULL;
 
 /*
  * Suspend ncurses for readline
  */
-int input_suspend_ncurses(smartterm_ctx *ctx) {
+int input_suspend_ncurses(smartterm_ctx* ctx)
+{
     if (!ctx || !ctx->ncurses_active) {
         return SMARTTERM_NOTINIT;
     }
 
-    def_prog_mode();  /* Save current mode */
-    endwin();         /* Suspend ncurses */
+    def_prog_mode(); /* Save current mode */
+    endwin();        /* Suspend ncurses */
 
     return SMARTTERM_OK;
 }
@@ -30,13 +31,14 @@ int input_suspend_ncurses(smartterm_ctx *ctx) {
 /*
  * Resume ncurses after readline
  */
-int input_resume_ncurses(smartterm_ctx *ctx) {
+int input_resume_ncurses(smartterm_ctx* ctx)
+{
     if (!ctx) {
         return SMARTTERM_NOTINIT;
     }
 
-    reset_prog_mode();  /* Restore saved mode */
-    refresh();          /* Refresh screen */
+    reset_prog_mode(); /* Restore saved mode */
+    refresh();         /* Refresh screen */
 
     /* Re-render windows */
     return render_all(ctx);
@@ -45,19 +47,21 @@ int input_resume_ncurses(smartterm_ctx *ctx) {
 /*
  * Readline completion wrapper
  */
-static char** readline_completion_wrapper(const char *text, int start, int end) {
+static char** readline_completion_wrapper(const char* text, int start, int end)
+{
     if (!g_completion_ctx || !g_completion_ctx->completion.completer) {
         return NULL;
     }
 
     return g_completion_ctx->completion.completer(text, start, end,
-                                                   g_completion_ctx->completion.user_data);
+                                                  g_completion_ctx->completion.user_data);
 }
 
 /*
  * Read single line of input
  */
-char* input_read_line(smartterm_ctx *ctx, const char *prompt) {
+char* input_read_line(smartterm_ctx* ctx, const char* prompt)
+{
     if (!ctx || !ctx->initialized) {
         return NULL;
     }
@@ -72,8 +76,8 @@ char* input_read_line(smartterm_ctx *ctx, const char *prompt) {
     input_suspend_ncurses(ctx);
 
     /* Use readline */
-    const char *actual_prompt = prompt ? prompt : ctx->prompt;
-    char *input = readline(actual_prompt);
+    const char* actual_prompt = prompt ? prompt : ctx->prompt;
+    char* input = readline(actual_prompt);
 
     /* Resume ncurses */
     input_resume_ncurses(ctx);
@@ -89,7 +93,8 @@ char* input_read_line(smartterm_ctx *ctx, const char *prompt) {
 /*
  * Read multi-line input (simplified version)
  */
-char* input_read_multiline(smartterm_ctx *ctx, const char *prompt) {
+char* input_read_multiline(smartterm_ctx* ctx, const char* prompt)
+{
     if (!ctx || !ctx->initialized) {
         return NULL;
     }
@@ -107,7 +112,8 @@ char* input_read_multiline(smartterm_ctx *ctx, const char *prompt) {
 /*
  * Read line - public API
  */
-char* smartterm_read_line(smartterm_ctx *ctx, const char *prompt) {
+char* smartterm_read_line(smartterm_ctx* ctx, const char* prompt)
+{
     if (!ctx || !ctx->initialized) {
         return NULL;
     }
@@ -118,7 +124,8 @@ char* smartterm_read_line(smartterm_ctx *ctx, const char *prompt) {
 /*
  * Read multi-line - public API
  */
-char* smartterm_read_multiline(smartterm_ctx *ctx, const char *prompt) {
+char* smartterm_read_multiline(smartterm_ctx* ctx, const char* prompt)
+{
     if (!ctx || !ctx->initialized) {
         return NULL;
     }
@@ -129,7 +136,8 @@ char* smartterm_read_multiline(smartterm_ctx *ctx, const char *prompt) {
 /*
  * Set prompt
  */
-int smartterm_set_prompt(smartterm_ctx *ctx, const char *prompt) {
+int smartterm_set_prompt(smartterm_ctx* ctx, const char* prompt)
+{
     if (!ctx || !ctx->initialized || !prompt) {
         return SMARTTERM_INVALID;
     }
@@ -143,8 +151,8 @@ int smartterm_set_prompt(smartterm_ctx *ctx, const char *prompt) {
 /*
  * Set tab completer
  */
-int smartterm_set_completer(smartterm_ctx *ctx, smartterm_completer_fn completer,
-                            void *data) {
+int smartterm_set_completer(smartterm_ctx* ctx, smartterm_completer_fn completer, void* data)
+{
     if (!ctx || !ctx->initialized) {
         return SMARTTERM_NOTINIT;
     }

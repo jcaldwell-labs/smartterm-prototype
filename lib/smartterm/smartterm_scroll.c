@@ -10,7 +10,8 @@
 /*
  * Scroll output buffer
  */
-int smartterm_scroll(smartterm_ctx *ctx, int lines) {
+int smartterm_scroll(smartterm_ctx* ctx, int lines)
+{
     if (!ctx || !ctx->initialized) {
         return SMARTTERM_NOTINIT;
     }
@@ -42,8 +43,7 @@ int smartterm_scroll(smartterm_ctx *ctx, int lines) {
     /* Update status bar with scroll indicator */
     if (ctx->buffer.scroll_offset > 0) {
         char status_right[MAX_STATUS_TEXT];
-        snprintf(status_right, MAX_STATUS_TEXT, "[SCROLL: -%d]",
-                 ctx->buffer.scroll_offset);
+        snprintf(status_right, MAX_STATUS_TEXT, "[SCROLL: -%d]", ctx->buffer.scroll_offset);
         smartterm_status_set(ctx, NULL, status_right);
     } else {
         smartterm_status_set(ctx, NULL, "");
@@ -55,7 +55,8 @@ int smartterm_scroll(smartterm_ctx *ctx, int lines) {
 /*
  * Scroll to top
  */
-int smartterm_scroll_top(smartterm_ctx *ctx) {
+int smartterm_scroll_top(smartterm_ctx* ctx)
+{
     if (!ctx || !ctx->initialized) {
         return SMARTTERM_NOTINIT;
     }
@@ -65,13 +66,14 @@ int smartterm_scroll_top(smartterm_ctx *ctx) {
     ctx->buffer.auto_scroll = false;
     pthread_mutex_unlock(&ctx->buffer.mutex);
 
-    return smartterm_scroll(ctx, 0);  /* Trigger render and status update */
+    return smartterm_scroll(ctx, 0); /* Trigger render and status update */
 }
 
 /*
  * Scroll to bottom
  */
-int smartterm_scroll_bottom(smartterm_ctx *ctx) {
+int smartterm_scroll_bottom(smartterm_ctx* ctx)
+{
     if (!ctx || !ctx->initialized) {
         return SMARTTERM_NOTINIT;
     }
@@ -90,7 +92,8 @@ int smartterm_scroll_bottom(smartterm_ctx *ctx) {
 /*
  * Get current scroll position
  */
-int smartterm_get_scroll_pos(smartterm_ctx *ctx) {
+int smartterm_get_scroll_pos(smartterm_ctx* ctx)
+{
     if (!ctx || !ctx->initialized) {
         return 0;
     }
@@ -105,7 +108,8 @@ int smartterm_get_scroll_pos(smartterm_ctx *ctx) {
 /*
  * Enable/disable auto-scroll
  */
-int smartterm_set_auto_scroll(smartterm_ctx *ctx, bool enabled) {
+int smartterm_set_auto_scroll(smartterm_ctx* ctx, bool enabled)
+{
     if (!ctx || !ctx->initialized) {
         return SMARTTERM_NOTINIT;
     }

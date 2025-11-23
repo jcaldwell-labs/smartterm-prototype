@@ -1,0 +1,81 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, claude/* ]
+  pull_request:
+    branches: [ main ]
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libncurses-dev libreadline-dev clang-format valgrind
+
+    - name: Check code formatting
+      run: |
+        find . -type f \( -name "*.c" -o -name "*.h" \) ! -path "./.git/*" -exec clang-format --dry-run --Werror {} \;
+
+    - name: Build library
+      run: make -f Makefile.lib lib
+
+    - name: Build examples
+      run: make -f Makefile.lib examples
+
+    - name: Build POC
+      run: make -f Makefile.lib poc
+
+    - name: Build tests
+      run: make -f Makefile.lib tests
+
+    - name: Run tests
+      run: make -f Makefile.lib test
+      env:
+        TERM: xterm
+
+    - name: Check for compiler warnings
+      run: |
+        make -f Makefile.lib clean
+        make -f Makefile.lib CFLAGS="-Wall -Wextra -Werror -O2 -Iinclude" lib
+
+    - name: Rebuild tests for valgrind
+      run: make -f Makefile.lib tests
+
+    - name: Memory leak check (basic test)
+      run: |
+        valgrind --leak-check=full --error-exitcode=1 --quiet ./build/test/test_basic
+
+  build-macos:
+    runs-on: macos-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Install dependencies
+      run: |
+        brew install ncurses readline
+
+    - name: Build library
+      run: make -f Makefile.lib lib
+
+    - name: Build examples
+      run: make -f Makefile.lib examples
+
+    - name: Build tests
+      run: make -f Makefile.lib tests
+
+    - name: Run tests
+      run: make -f Makefile.lib test
+      env:
+        TERM: xterm
