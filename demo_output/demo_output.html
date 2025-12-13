@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>SmartTerm Export</title>
+<style>
+body { background: #000; color: #fff; font-family: monospace; }
+.error { color: #f00; font-weight: bold; }
+.warning { color: #ff0; font-weight: bold; }
+.success { color: #0f0; font-weight: bold; }
+.info { color: #0ff; font-weight: bold; }
+.meta { color: #888; font-size: 0.9em; }
+</style>
+</head>
+<body>
+<pre>
+<span class="info">=== SmartTerm Headless Demo ===</span>
+This demo shows SmartTerm's features in non-interactive mode
+
+<span class="info">1. Context-Aware Output:</span>
+Normal message - standard output
+<span class="info">Info message - informational</span>
+<span class="success">Success message - operation completed</span>
+<span class="warning">Warning message - potential issue</span>
+<span class="error">Error message - something failed</span>
+Command output - system command result
+Comment - user annotation
+Special action - unique operation
+
+<span class="info">2. Formatted Output:</span>
+Formatted number: 42
+<span class="success">Operation completed in 1.23 seconds</span>
+<span class="info">User: demo | Session: abc123</span>
+
+<span class="info">3. Simulated Command Execution:</span>
+> help
+Available commands:
+  help    - Show this help
+  status  - Show system status
+  calc    - Calculate expression
+  quit    - Exit program
+
+> status
+<span class="info">System Status:</span>
+<span class="success">  CPU Usage:   23.4%</span>
+<span class="success">  Memory:      4096 MB / 8192 MB</span>
+<span class="success">  Uptime:      42 hours</span>
+
+> calc 2 + 2
+<span class="success">Result: 4</span>
+
+<span class="info">4. Error Handling:</span>
+> divide 10 0
+<span class="error">ERROR: Division by zero</span>
+# Division by zero caught and handled safely
+
+<span class="info">5. Log-Style Output:</span>
+<span class="info">[2025-12-13 10:30:00] Application started</span>
+<span class="success">[2025-12-13 10:30:01] Database connected</span>
+<span class="info">[2025-12-13 10:30:02] Loading configuration...</span>
+<span class="success">[2025-12-13 10:30:02] Configuration loaded</span>
+<span class="warning">[2025-12-13 10:30:03] Cache miss - rebuilding index</span>
+<span class="success">[2025-12-13 10:30:04] Server ready on port 8080</span>
+
+<span class="info">6. Chat-Style Interface:</span>
+<span class="info">Alice joined the channel</span>
+<Alice> Hello everyone!
+<span class="info">Bob joined the channel</span>
+<Bob> Hey Alice!
+<Alice> How's the SmartTerm library?
+<Bob> It's great! Love the context coloring
+* Alice sends a smile
+
+<span class="info">7. Code-Like Output:</span>
+# Example function implementation
+def calculate(x, y):
+    result = x + y
+    return result
+
+<span class="success">✓ Function defined successfully</span>
+
+<span class="success">=== Demo Complete ===</span>
+<span class="info">SmartTerm features demonstrated:</span>
+<span class="success">  ✓ Context-aware coloring (8 types)</span>
+<span class="success">  ✓ Formatted output (printf-style)</span>
+<span class="success">  ✓ Status bar updates</span>
+<span class="success">  ✓ Clean scrolling buffer</span>
+<span class="success">  ✓ No prompt duplication</span>
+<span class="success">  ✓ Multiple UI patterns (REPL, chat, logs)</span>
+</pre>
+</body>
+</html>
