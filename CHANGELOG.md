@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Headless demo with multi-format export (`examples/headless_demo.c`)
+- Non-interactive mode for CI/CD and documentation generation
+- Demo output samples in `demo_output/` (txt, ansi, md, html)
+- Convenience script `run_headless_demo.sh`
 - Test suite with test framework and basic API tests
 - GitHub Actions CI/CD workflow for automated testing
 - Issue and pull request templates
