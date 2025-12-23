@@ -270,6 +270,41 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 ---
 
+## Related jcaldwell-labs Projects
+
+SmartTerm is part of the [jcaldwell-labs](https://github.com/jcaldwell-labs) portfolio. These projects share synergies and can be combined:
+
+### Terminal/TUI Projects
+
+| Project | Description | Synergy with SmartTerm |
+|---------|-------------|------------------------|
+| [my-grid](https://github.com/jcaldwell-labs/my-grid) | ASCII canvas editor with vim-style navigation, zones, PTY support | Use SmartTerm's readline for command input in my-grid |
+| [boxes-live](https://github.com/jcaldwell-labs/boxes-live) | Real-time ASCII box drawing with joystick support | Share ncurses patterns; SmartTerm for status display |
+| [terminal-stars](https://github.com/jcaldwell-labs/terminal-stars) | Starfield animation for terminals | SmartTerm can embed starfield as background layer |
+| [atari-style](https://github.com/jcaldwell-labs/atari-style) | Retro visual effects and shaders for terminal apps | Apply atari-style shaders to SmartTerm themes |
+
+### CLI Tools
+
+| Project | Description | Synergy with SmartTerm |
+|---------|-------------|------------------------|
+| [my-context](https://github.com/jcaldwell-labs/my-context) | Context tracking for development sessions (Go CLI) | Track SmartTerm dev sessions; integrate context display |
+| [fintrack](https://github.com/jcaldwell-labs/fintrack) | Personal finance tracking CLI (Go) | SmartTerm could provide richer TUI for fintrack |
+| [tario](https://github.com/jcaldwell-labs/tario) | Terminal-based platformer game (Go) | Share terminal rendering techniques |
+
+### Game Engines
+
+| Project | Description | Synergy with SmartTerm |
+|---------|-------------|------------------------|
+| [adventure-engine-v2](https://github.com/jcaldwell-labs/adventure-engine-v2) | Multiplayer text adventure engine (C) | SmartTerm provides the terminal UI layer |
+
+### Meta/Organization
+
+| Project | Description |
+|---------|-------------|
+| [capability-catalog](https://github.com/jcaldwell-labs/capability-catalog) | Skill/capability definitions for AI agents |
+
+---
+
 ## Credits
 
 **Original POC:** smartterm-prototype (2025-11-17)

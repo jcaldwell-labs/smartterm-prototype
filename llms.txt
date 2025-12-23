@@ -91,6 +91,31 @@ gcc myapp.c -Iinclude -Lbuild -lsmartterm -lncurses -lreadline -lpthread -o myap
 - examples/ - Working example applications (repl, chat_client, log_viewer)
 - CLAUDE.md - AI assistant guide and architecture details
 
+## Related jcaldwell-labs Projects
+
+SmartTerm is part of a portfolio of terminal/CLI projects that can be combined:
+
+### Terminal/TUI Projects
+- **my-grid**: ASCII canvas editor with vim-style navigation, zones, PTY support
+- **boxes-live**: Real-time ASCII box drawing with joystick support
+- **terminal-stars**: Starfield animation for terminals
+- **atari-style**: Retro visual effects and shaders for terminal apps
+
+### CLI Tools
+- **my-context**: Context tracking for development sessions (Go CLI)
+- **fintrack**: Personal finance tracking CLI (Go)
+- **tario**: Terminal-based platformer game (Go)
+
+### Game Engines
+- **adventure-engine-v2**: Multiplayer text adventure engine (C) - uses SmartTerm for UI
+
+### Project Synergies
+- atari-style shaders can enhance SmartTerm themes and visual effects
+- terminal-stars starfield can serve as background layer in SmartTerm apps
+- my-grid can use SmartTerm's readline integration for command input
+- adventure-engine-v2 uses SmartTerm as its terminal UI layer
+- my-context can track development sessions across all jcaldwell-labs projects
+
 ## Repository
 
 https://github.com/jcaldwell-labs/smartterm-prototype
