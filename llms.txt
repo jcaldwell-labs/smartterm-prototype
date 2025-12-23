@@ -1,0 +1,100 @@
+# SmartTerm
+
+> A production-ready C library for terminal UIs with scrolling output, readline input, and rich features
+
+## What is SmartTerm?
+
+SmartTerm is a C library that combines ncurses and readline to create professional terminal applications. It solves the common problem of prompt duplication in terminal UIs by separating the output buffer from input handling, while providing thread-safe output, context-aware coloring, and export capabilities.
+
+## Key Capabilities
+
+- **Scrolling Output Buffer**: Store and display output history without prompt duplication
+- **Readline Integration**: Full command history, line editing, and tab completion support
+- **Context-Aware Coloring**: Semantic colors (info, error, success, command, etc.) for different message types
+- **Fixed Status Bar**: Always-visible status display with customizable content
+- **Thread-Safe Output**: Write from multiple threads with automatic synchronization
+- **Search & Export**: Find text in buffer, export to plain text, ANSI, Markdown, or HTML
+- **Themeable**: Built-in themes with custom theme support
+
+## Quick Start
+
+```bash
+# Install dependencies (Ubuntu/Debian)
+sudo apt-get install libncurses-dev libreadline-dev
+
+# Build library
+make -f Makefile.lib lib
+
+# Build and run examples
+make -f Makefile.lib examples
+./build/bin/repl
+```
+
+## Common Patterns
+
+```c
+// Initialize context
+smartterm_ctx *ctx = smartterm_init(NULL);
+
+// Write output with context
+smartterm_write(ctx, "Hello!", CTX_INFO);
+smartterm_write(ctx, "Error occurred", CTX_ERROR);
+smartterm_write_fmt(ctx, CTX_SUCCESS, "Count: %d", n);
+
+// Read input with readline
+char *input = smartterm_read_line(ctx, "> ");
+
+// Update status bar
+smartterm_status_set(ctx, "MyApp", "Ready");
+
+// Search buffer
+smartterm_search(ctx, "error", false, &results, &count);
+
+// Export to file
+smartterm_export(ctx, "log.html", EXPORT_HTML, 0, -1, true);
+
+// Cleanup
+smartterm_cleanup(ctx);
+```
+
+## Use Cases
+
+1. **Interactive REPLs**: Build calculator, shell, or language interpreters with full readline support
+2. **Log Viewers**: Monitor logs in real-time with search, filtering, and export
+3. **Chat Clients**: IRC-style interfaces with thread-safe message display
+4. **Text Adventure Games**: Story output with context coloring and status display
+5. **Development Tools**: Debug consoles, database clients, API testers
+
+## Architecture
+
+Built on ncurses for display and readline for input. The library manages:
+- Output buffer (array of lines with metadata and context)
+- Three-region layout (scrolling output, status bar, readline input)
+- Suspend/resume cycle between ncurses and readline
+- Thread synchronization for multi-threaded output
+- Color theme management and terminal resize handling
+
+## Integration
+
+**Compile with:**
+```bash
+gcc myapp.c -Iinclude -Lbuild -lsmartterm -lncurses -lreadline -lpthread -o myapp
+```
+
+**Header:** `#include <smartterm.h>`
+
+## Documentation
+
+- README.md - Project overview, quick start, feature comparison
+- docs/SMARTTERM-API.md - Complete API reference
+- docs/ARCHITECTURE.md - Design decisions and internals
+- examples/ - Working example applications (repl, chat_client, log_viewer)
+- CLAUDE.md - AI assistant guide and architecture details
+
+## Repository
+
+https://github.com/jcaldwell-labs/smartterm-prototype
+
+## License
+
+MIT

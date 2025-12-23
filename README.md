@@ -1,26 +1,56 @@
-# SmartTerm Library
+# SmartTerm
 
-**A production-ready C library for terminal UIs with scrolling output, readline input, and rich features**
-
-**Status**: Production Library v1.0.0 + Original POC
-
-[![CI](https://github.com/jcaldwell-labs/smartterm-prototype/workflows/CI/badge.svg)](https://github.com/jcaldwell-labs/smartterm-prototype/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![C Standard](https://img.shields.io/badge/C-C11-blue.svg)](https://en.cppreference.com/w/c/11)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
+
+**A production-ready C library for terminal UIs with scrolling output, readline input, and rich features.**
+
+> *Build terminal applications that feel native - scrolling history, command editing, context-aware coloring, all in one library.*
 
 ---
 
-## Overview
+## Why SmartTerm?
 
-SmartTerm provides a clean API for building terminal applications with:
+Traditional terminal UIs suffer from **prompt duplication** and poor readline integration. SmartTerm solves this by separating output from input while maintaining a native terminal feel.
 
-- 📜 **Scrolling Output Buffer** - No prompt duplication, clean history
-- ⌨️ **Readline Integration** - Command history, line editing, tab completion
-- 🎨 **Context-Aware Coloring** - Semantic coloring for different message types
-- 📊 **Status Bar** - Fixed status display with customizable content
-- 🔍 **Search & Navigation** - Search buffer, scrollback with PgUp/PgDn
-- 💾 **Export** - Save output to text, ANSI, Markdown, or HTML
-- 🧵 **Thread-Safe** - Write from multiple threads safely
-- 🎭 **Themeable** - Built-in and custom color themes
+**Key Benefits:**
+- **No prompt duplication** - Output buffer stores history cleanly
+- **Full readline integration** - Command history, line editing, tab completion
+- **Context-aware coloring** - Semantic colors for different message types
+- **Thread-safe by design** - Write from multiple threads safely
+- **Export anywhere** - Save output to plain text, ANSI, Markdown, or HTML
+
+**Perfect for:**
+- Interactive REPLs and shells
+- Log viewers and monitoring tools
+- Chat clients and messaging apps
+- Text adventure games
+- Any terminal app needing rich input/output
+
+---
+
+## Demo
+
+```
+┌──────────────────────────────────┐
+│  [INFO] Application started      │  ← Scrolling output
+│  [CMD] Loading config...         │     (no prompt duplication)
+│  [OK] Ready for input            │
+├──────────────────────────────────┤
+│  SmartTerm v1.0 | Lines: 42      │  ← Fixed status bar
+├──────────────────────────────────┤
+│  > _                             │  ← Readline input
+└──────────────────────────────────┘
+```
+
+### Try It Yourself
+
+```bash
+# Build and run the calculator REPL
+make -f Makefile.lib examples
+./build/bin/repl
+```
 
 ---
 
@@ -35,19 +65,15 @@ sudo apt-get install libncurses-dev libreadline-dev
 # Or macOS
 brew install ncurses readline
 
-# Build library
+# Clone and build
+git clone https://github.com/jcaldwell-labs/smartterm-prototype.git
+cd smartterm-prototype
 make -f Makefile.lib lib
-
-# Build examples
-make -f Makefile.lib examples
-
-# Run examples
-./build/bin/repl          # Calculator REPL
-./build/bin/chat_client   # IRC-style chat
-./build/bin/log_viewer    # Log monitoring
 ```
 
-### Hello World
+### First Steps
+
+**1. Create a simple REPL:**
 
 ```c
 #include <smartterm.h>
@@ -67,9 +93,19 @@ int main(void) {
 }
 ```
 
-Compile with:
+**2. Compile and run:**
+
 ```bash
 gcc hello.c -Iinclude -Lbuild -lsmartterm -lncurses -lreadline -lpthread -o hello
+./hello
+```
+
+**3. Explore the examples:**
+
+```bash
+./build/bin/repl          # Calculator REPL
+./build/bin/chat_client   # IRC-style chat simulation
+./build/bin/log_viewer    # Real-time log monitoring
 ```
 
 ---
@@ -78,45 +114,55 @@ gcc hello.c -Iinclude -Lbuild -lsmartterm -lncurses -lreadline -lpthread -o hell
 
 ### Core Functionality
 
-**Output Management**
-- Thread-safe output buffer (configurable size)
-- Context-aware message coloring
-- Automatic scrolling or manual control
-- Line metadata (timestamps, tags, context)
+| Feature | Description | Example |
+|---------|-------------|---------|
+| **Scrolling Output** | History without prompt duplication | `smartterm_write(ctx, msg, CTX_INFO)` |
+| **Readline Input** | History, editing, completion | `smartterm_read_line(ctx, "> ")` |
+| **Context Colors** | Semantic message coloring | `CTX_NORMAL`, `CTX_ERROR`, `CTX_SUCCESS` |
+| **Status Bar** | Fixed info display | `smartterm_status_set(ctx, "App", "Ready")` |
+| **Thread-Safe** | Write from any thread | Lock-free output buffer |
+| **Search** | Find in buffer (text/regex) | `smartterm_search(ctx, "error", ...)` |
+| **Export** | Save to multiple formats | `smartterm_export(ctx, "out.html", EXPORT_HTML, ...)` |
+| **Themes** | Built-in and custom themes | `smartterm_set_theme(ctx, THEME_DARK)` |
 
-**Input Handling**
-- Readline integration (history, editing, completion)
-- Custom prompt strings
-- Tab completion framework
-- Multi-line input support (basic)
+### Context Types
 
-**Visual Features**
-- Status bar with left/right alignment
-- Configurable themes
-- Scrollback navigation (PgUp/PgDn)
-- Search with highlighting
+| Context | Color | Use Case |
+|---------|-------|----------|
+| `CTX_NORMAL` | White | Default output |
+| `CTX_COMMAND` | Yellow | System commands |
+| `CTX_COMMENT` | Green | Comments, notes |
+| `CTX_SPECIAL` | Cyan | Special actions |
+| `CTX_SEARCH` | Magenta | Search results |
+| `CTX_ERROR` | Red | Error messages |
+| `CTX_SUCCESS` | Green | Success messages |
+| `CTX_INFO` | Blue | Informational |
 
-**Data Management**
-- Export to multiple formats (plain, ANSI, Markdown, HTML)
-- Search buffer (plain text or regex)
-- Access to raw buffer data
-- Line-by-line retrieval
+---
 
-**Advanced**
-- Custom key handlers
-- Terminal resize handling
-- Signal-safe writes
-- Configurable behavior
+## Comparison
+
+| Feature | SmartTerm | Raw ncurses | Raw readline | rlwrap |
+|---------|:---------:|:-----------:|:------------:|:------:|
+| Scrolling output | ✅ | ⚠️ Manual | ❌ | ❌ |
+| Readline integration | ✅ | ❌ | ✅ | ✅ |
+| No prompt duplication | ✅ | ⚠️ Manual | ❌ | ❌ |
+| Context-aware colors | ✅ | ⚠️ Manual | ❌ | ❌ |
+| Status bar | ✅ | ⚠️ Manual | ❌ | ❌ |
+| Thread-safe output | ✅ | ❌ | ❌ | ❌ |
+| Export to formats | ✅ | ❌ | ❌ | ❌ |
+| Search buffer | ✅ | ❌ | ✅ | ✅ |
+
+**SmartTerm = ncurses + readline + batteries included**
 
 ---
 
 ## Documentation
 
-- 📖 **[API Reference](docs/SMARTTERM-API.md)** - Complete API documentation
-- 🏗️ **[Architecture](docs/ARCHITECTURE.md)** - Design decisions and internals
-- 💡 **[Examples](examples/)** - Working example applications
-- 📝 **[Decision History](DECISION.md)** - Development path decisions
-- 🔄 **[Next Steps](NEXT-STEPS.md)** - Opportunity cost analysis
+- **[API Reference](docs/SMARTTERM-API.md)** - Complete function documentation
+- **[Architecture](docs/ARCHITECTURE.md)** - Design decisions and internals
+- **[Examples](examples/)** - Working example applications
+- **[Contributing](CONTRIBUTING.md)** - How to contribute
 
 ---
 
@@ -136,47 +182,14 @@ smartterm-prototype/
 │   ├── smartterm_scroll.c
 │   ├── smartterm_search.c
 │   ├── smartterm_export.c
-│   ├── smartterm_keyhandler.c
-│   └── smartterm_internal.h
+│   └── smartterm_keyhandler.c
 ├── examples/                # Example applications
 │   ├── repl.c              # Calculator REPL
 │   ├── chat_client.c       # IRC-style chat
 │   └── log_viewer.c        # Log monitoring
 ├── docs/                    # Documentation
-│   ├── SMARTTERM-API.md    # API reference
-│   └── ARCHITECTURE.md     # Architecture docs
-├── smartterm_poc.c          # Original POC (250 LOC)
-├── Makefile                 # POC build
-└── Makefile.lib             # Library build
+└── smartterm_poc.c          # Original POC (250 LOC)
 ```
-
----
-
-## Examples
-
-### Calculator REPL
-
-```bash
-./build/bin/repl
-```
-
-Features: Expression evaluation, history, export
-
-### Chat Client
-
-```bash
-./build/bin/chat_client
-```
-
-Features: Simulated messages, IRC-style interface, thread-safe output
-
-### Log Viewer
-
-```bash
-./build/bin/log_viewer
-```
-
-Features: Real-time log generation, search, pause/resume, export
 
 ---
 
@@ -201,322 +214,64 @@ smartterm_write(ctx, "Error occurred!", CTX_ERROR);
 smartterm_write_fmt(ctx, CTX_SUCCESS, "Count: %d", count);
 ```
 
-### Input
+### Search & Export
 
 ```c
-char *input = smartterm_read_line(ctx, "Enter command: ");
-// Use input
-free(input);
-```
-
-### Search
-
-```c
+// Search buffer
 smartterm_search_result_t *results;
 int count;
 smartterm_search(ctx, "error", false, &results, &count);
 smartterm_free_search_results(results);
-```
 
-### Export
-
-```c
-smartterm_export(ctx, "output.txt", EXPORT_PLAIN, 0, -1, true);
+// Export to HTML
 smartterm_export(ctx, "output.html", EXPORT_HTML, 0, -1, true);
 ```
 
-See [API Reference](docs/SMARTTERM-API.md) for complete documentation.
+See **[API Reference](docs/SMARTTERM-API.md)** for complete documentation.
 
 ---
 
-## POC (Proof of Concept)
+## Roadmap
 
-## What This Demonstrates
+See [.github/planning/](.github/planning/) for development roadmap and backlog.
 
-✅ **Scrolling Output Buffer**
-- History scrolls up (oldest lines drop off)
-- No prompt duplication in output
-- Clean display of past interactions
-
-✅ **Readline Integration**
-- Multi-line input support
-- Command history (up/down arrows)
-- Line editing (Ctrl+A, Ctrl+E, etc.)
-- Tab completion ready (not implemented)
-
-✅ **Context Awareness**
-- `> normal` - Default input
-- `! command` - System command context (yellow)
-- `# comment` - Comment context (green)
-- `@ special` - Special action context (cyan)
-- `/ search` - Search context (magenta)
-
-✅ **Status Bar**
-- Fixed at bottom (above input)
-- Shows app state and info
-- Separates output from input area
-
-✅ **ncurses + readline**
-- Proves the integration works
-- Both libraries cooperate
-- Terminal suspends/resumes cleanly
-
----
-
-The original proof of concept (smartterm_poc.c, ~250 LOC) validated the core concepts:
-
-### Building the POC
-
-```bash
-make        # Build POC
-make run    # Build and run POC
-make clean  # Clean up
-```
-
-Or manually:
-```bash
-gcc -o smartterm_poc smartterm_poc.c -lncurses -lreadline
-./smartterm_poc
-```
-
-### What the POC Demonstrates
-
-✅ Scrolling output without prompt duplication
-✅ Readline integration (history, editing)
-✅ Context-aware coloring
-✅ Status bar
-✅ ncurses + readline coexistence
-
----
-
-## Testing the POC
-
-### Test 1: Basic Output
-```
-> hello
-Echo [NORMAL]: hello
-> world
-Echo [NORMAL]: world
-```
-
-**Verify**: No prompt duplication, clean history
-
-### Test 2: Context Detection
-```
-> !system command
-Echo [CMD]: system command
-> # this is a comment
-Echo [COMMENT]: this is a comment
-> @ special action
-Echo [SPECIAL]: special action
-```
-
-**Verify**: Colors change based on context
-
-### Test 3: Commands
-```
-> help
-Available commands:
-  help    - Show this help
-  clear   - Clear screen
-  quit    - Exit program
-  ...
-```
-
-**Verify**: Output scrolls properly
-
-### Test 4: History & Editing
-- Press **Up Arrow**: Previous command
-- Press **Down Arrow**: Next command
-- **Ctrl+A**: Beginning of line
-- **Ctrl+E**: End of line
-- **Ctrl+K**: Kill to end of line
-- **Ctrl+U**: Kill entire line
-
-**Verify**: Readline features work
-
-### Test 5: Multi-line Input
-```
-> this is a very long line that exceeds the terminal width and should wrap properly without breaking
-```
-
-**Verify**: Long lines wrap correctly
-
-### Test 6: Scrolling
-Enter many commands to fill screen:
-```
-> line 1
-> line 2
-> line 3
-... (continue until screen fills)
-```
-
-**Verify**: Old lines scroll off top, new lines appear at bottom
-
----
-
-## What's Missing (Intentionally)
-
-This is a POC, not a full library. Missing features:
-
-❌ **Not Implemented**:
-- Tab completion (readline supports it, not wired up)
-- Actual multi-line expanding input (readline is single-line)
-- Persistent history file
-- Configurable themes
-- Custom key bindings
-- Full API surface
-- Error handling
-- Memory safety checks
-- Documentation beyond this file
-
-✅ **Core Concept Proven**:
-- Output buffer without prompt duplication ✅
-- Context-aware coloring ✅
-- Status bar ✅
-- ncurses + readline integration ✅
-
----
-
-## Architecture
-
-```
-┌──────────────────────────────────┐
-│     Output Window (scrolling)    │  ← OutputBuffer, no prompt duplication
-│  Line 1                          │
-│  Line 2                          │
-│  ...                             │
-│  Line N                          │
-├──────────────────────────────────┤
-│  Status Bar (info)               │  ← Status info, counts, mode
-├──────────────────────────────────┤
-│  (readline input area)           │  ← Input handled by readline
-│  > _                             │     (appears below window)
-└──────────────────────────────────┘
-```
-
-### Key Design Decisions
-
-**1. Output Buffer Separate from Display**
-- Store lines in array (no ncurses dependency)
-- Render buffer to window on demand
-- Allows scrollback, search, export
-
-**2. readline Suspends ncurses**
-- ncurses paused during input
-- readline handles editing
-- ncurses resumes for display
-
-**3. Context as Prefix**
-- Store context marker with each line
-- Render with appropriate color
-- Easy to extend to more contexts
-
-**4. Status Bar as Separate Window**
-- Fixed position
-- Always visible
-- Easy to update independently
-
----
-
-## Code Stats
-
-- **Lines**: ~250 LOC
-- **Dependencies**: ncurses, readline
-- **Time to Write**: ~30-45 minutes
-- **Complexity**: Low (single file)
-
----
-
-## Learnings from POC
-
-### What Works Well ✅
-
-1. **ncurses + readline integration**: Clean suspend/resume
-2. **Output buffer design**: Prevents prompt duplication
-3. **Context coloring**: Easy to parse and display
-4. **Status bar**: Good separation of concerns
-5. **Code simplicity**: Proves concept without over-engineering
-
-### What Needs Improvement ⚠️
-
-1. **Multi-line input**: readline is single-line, need custom handling
-2. **Input area sizing**: readline uses full terminal, conflicts with layout
-3. **Suspend/resume**: Flickers slightly on each input
-4. **Color coordination**: Hardcoded colors, should be theme-based
-5. **Memory management**: No bounds checking, could overflow
-
-### Surprising Discoveries 💡
-
-1. **readline owns the terminal**: Hard to constrain to bottom region
-2. **Multi-line is complex**: May need custom input handler, not readline
-3. **Suspend/resume works**: But not ideal UX (flickers)
-4. **Context detection is easy**: Simple prefix check works well
-5. **Buffer management straightforward**: Array of strings is simple and effective
-
----
-
-## Opportunity Costs Analysis
-
-See `NEXT-STEPS.md` for detailed analysis of paths forward.
-
----
-
-## Development History
-
-### POC Phase (Complete)
-- ✅ Validated core concepts
-- ✅ Proved ncurses + readline integration
-- ✅ ~250 LOC, 1 hour investment
-- ✅ Decision framework created
-
-### Library Phase (Complete)
-- ✅ Production-ready API designed
-- ✅ Thread-safe implementation
-- ✅ Comprehensive features (search, export, themes)
-- ✅ Example applications
-- ✅ Full documentation
-
-See [DECISION.md](DECISION.md) for development path analysis and [NEXT-STEPS.md](NEXT-STEPS.md) for opportunity costs.
+**Current Status:**
+- ✅ POC validated (smartterm_poc.c)
+- ✅ Production library v1.0.0
+- ✅ Three example applications
+- ✅ Comprehensive documentation
 
 ---
 
 ## Contributing
 
-Contributions welcome! This is a jcaldwell-labs project.
+Contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
-
-Quick start:
+**Quick Start:**
 1. Fork the repository
 2. Create a feature branch
-3. Make your changes with tests
+3. Make changes with tests
 4. Format code: `make -f Makefile.lib format`
-5. Run tests: `make -f Makefile.lib test`
-6. Submit a pull request
+5. Submit a pull request
+
+---
+
+## Community
+
+- **Issues:** [GitHub Issues](https://github.com/jcaldwell-labs/smartterm-prototype/issues)
+- **Questions:** Check the [API docs](docs/SMARTTERM-API.md) first, then open an issue
+- **Author:** jcaldwell-labs
 
 ---
 
 ## License
 
-MIT License - See LICENSE file for details
+MIT License - see [LICENSE](LICENSE) for details.
 
 ---
 
 ## Credits
 
-**Original POC**: smartterm-prototype proof of concept (2025-11-17)
-**Library Design**: Extracted and enhanced for production use
-**Inspired by**: readline, rlwrap, rlfe, Haskell Brick
-
----
-
-## Status
-
-- **POC**: ✅ Complete and validated
-- **Library**: ✅ Production-ready v1.0.0
-- **Documentation**: ✅ Comprehensive
-- **Examples**: ✅ Three working applications
-- **Next**: Ready for use in projects
-
-For questions or issues, see the [API documentation](docs/SMARTTERM-API.md) or create an issue.
+**Original POC:** smartterm-prototype (2025-11-17)
+**Library Design:** Extracted and enhanced for production use
+**Inspired by:** readline, rlwrap, rlfe, Haskell Brick
