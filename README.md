@@ -6,6 +6,15 @@
 
 ---
 
+## Two Versions Available
+
+| Version | Language | AI Integration | Dependencies |
+|---------|----------|----------------|--------------|
+| `cc-bash` | C | No | libreadline |
+| `cc-bash-sdk.py` | Python | Yes (Claude SDK) | claude-agent-sdk, prompt_toolkit, rich |
+
+---
+
 ## Overview
 
 cc-bash provides a Claude Code-inspired interface for interactive bash use:
@@ -19,7 +28,7 @@ cc-bash provides a Claude Code-inspired interface for interactive bash use:
 
 ---
 
-## Quick Start
+## Quick Start (C Version)
 
 ```bash
 # Install dependencies (Ubuntu/Debian)
@@ -34,7 +43,64 @@ make
 
 ---
 
-## Usage
+## Quick Start (Python + AI Version)
+
+```bash
+# Create virtual environment
+python3 -m venv venv
+source venv/bin/activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Run
+python cc-bash-sdk.py
+```
+
+### AI Commands
+
+The Python version includes Claude AI integration:
+
+| Command | Description |
+|---------|-------------|
+| `@ask <question>` | Ask Claude anything |
+| `@explain` | Have Claude explain the last command output |
+| `@fix` | Have Claude suggest a fix for the last error |
+| `@cmd <description>` | Generate a command from natural language |
+
+### Example AI Session
+
+```
+› ls -la
+$ ls -la
+total 24
+drwxr-xr-x 3 user user 4096 Dec 30 .
+-rw-r--r-- 1 user user 1234 Dec 30 main.c
+
+› @explain
+Asking Claude to explain...
+╭─ Explanation ─────────────────────────────────────────╮
+│ The `ls -la` command lists all files including       │
+│ hidden ones, showing permissions, owner, size...     │
+╰───────────────────────────────────────────────────────╯
+
+› @cmd find files larger than 100MB
+Generating command...
+Suggested: find . -size +100M -type f
+
+› some-command --wrong-flag
+error: unknown flag --wrong-flag
+
+› @fix
+Asking Claude for fix...
+╭─ Suggested Fix ───────────────────────────────────────╮
+│ The flag --wrong-flag doesn't exist. Try using...    │
+╰───────────────────────────────────────────────────────╯
+```
+
+---
+
+## Usage (C Version)
 
 ```
 cc-bash: Claude Code-style bash wrapper
@@ -149,8 +215,10 @@ The current ANSI-based approach keeps all output visible at all times.
 
 ```
 smartterm-prototype/
-├── cc-bash.c            # Main implementation (~350 LOC)
-├── Makefile             # Build configuration
+├── cc-bash.c            # C implementation (~350 LOC)
+├── cc-bash-sdk.py       # Python + Claude SDK implementation (~280 LOC)
+├── requirements.txt     # Python dependencies
+├── Makefile             # Build configuration (C version)
 ├── smartterm_poc.c      # Original ncurses POC (archived)
 └── README.md            # This file
 ```
@@ -164,7 +232,8 @@ This project evolved from "smartterm-prototype":
 1. **Original POC**: Attempted ncurses + readline integration
 2. **Problem discovered**: ncurses suspend/resume causes output to disappear during input
 3. **Repurposed**: Simplified to cc-bash using ANSI escape codes
-4. **Result**: Simple, working Claude Code-style bash wrapper
+4. **C version**: Simple, working Claude Code-style bash wrapper
+5. **Python + SDK**: Added AI integration via Claude Agent SDK
 
 See GitHub issue #14 for the repurposing discussion.
 
