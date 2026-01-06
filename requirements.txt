@@ -1,0 +1,6 @@
+# cc-bash-sdk dependencies
+# Install: pip install -r requirements.txt
+
+claude-agent-sdk>=0.1.18
+prompt_toolkit>=3.0.50
+rich>=14.0.0

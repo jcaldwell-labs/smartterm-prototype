@@ -1,168 +1,221 @@
-# SmartTerm
+# cc-bash: Claude Code-style Bash Wrapper
+
+**A simple terminal wrapper that executes bash commands by default with colored output**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![C Standard](https://img.shields.io/badge/C-C11-blue.svg)](https://en.cppreference.com/w/c/11)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
-**A production-ready C library for terminal UIs with scrolling output, readline input, and rich features.**
+---
 
-> *Build terminal applications that feel native - scrolling history, command editing, context-aware coloring, all in one library.*
+## Two Versions Available
+
+| Version          | Language | AI Integration   | Dependencies                           |
+| ---------------- | -------- | ---------------- | -------------------------------------- |
+| `cc-bash`        | C        | No               | libreadline                            |
+| `cc-bash-sdk.py` | Python   | Yes (Claude SDK) | claude-agent-sdk, prompt_toolkit, rich |
 
 ---
 
-## Why SmartTerm?
+## Overview
 
-Traditional terminal UIs suffer from **prompt duplication** and poor readline integration. SmartTerm solves this by separating output from input while maintaining a native terminal feel.
+cc-bash provides a Claude Code-inspired interface for interactive bash use:
 
-**Key Benefits:**
-- **No prompt duplication** - Output buffer stores history cleanly
-- **Full readline integration** - Command history, line editing, tab completion
-- **Context-aware coloring** - Semantic colors for different message types
-- **Thread-safe by design** - Write from multiple threads safely
-- **Export anywhere** - Save output to plain text, ANSI, Markdown, or HTML
-
-**Perfect for:**
-- Interactive REPLs and shells
-- Log viewers and monitoring tools
-- Chat clients and messaging apps
-- Text adventure games
-- Any terminal app needing rich input/output
+- Commands execute in bash by default (no `!` prefix needed)
+- Colored output: commands (cyan), stdout (white), stderr (red)
+- Status bar showing current directory, exit code, and time
+- Command history (up/down arrows via readline)
+- Notes with `#` prefix (displayed, not executed)
+- Internal commands with `@` prefix
 
 ---
 
-## Demo
-
-```
-┌──────────────────────────────────┐
-│  [INFO] Application started      │  ← Scrolling output
-│  [CMD] Loading config...         │     (no prompt duplication)
-│  [OK] Ready for input            │
-├──────────────────────────────────┤
-│  SmartTerm v1.0 | Lines: 42      │  ← Fixed status bar
-├──────────────────────────────────┤
-│  > _                             │  ← Readline input
-└──────────────────────────────────┘
-```
-
-### Try It Yourself
-
-```bash
-# Build and run the calculator REPL
-make -f Makefile.lib examples
-./build/bin/repl
-```
-
----
-
-## Quick Start
-
-### Installation
+## Quick Start (C Version)
 
 ```bash
 # Install dependencies (Ubuntu/Debian)
-sudo apt-get install libncurses-dev libreadline-dev
+sudo apt-get install libreadline-dev
 
-# Or macOS
-brew install ncurses readline
+# Build
+make
 
-# Clone and build
-git clone https://github.com/jcaldwell-labs/smartterm-prototype.git
-cd smartterm-prototype
-make -f Makefile.lib lib
+# Run
+./cc-bash
 ```
 
-### First Steps
+---
 
-**1. Create a simple REPL:**
-
-```c
-#include <smartterm.h>
-
-int main(void) {
-    smartterm_ctx *ctx = smartterm_init(NULL);
-
-    smartterm_write(ctx, "Hello, SmartTerm!", CTX_INFO);
-    smartterm_status_set(ctx, "My App", "Ready");
-
-    char *input = smartterm_read_line(ctx, "> ");
-    smartterm_write_fmt(ctx, CTX_SUCCESS, "You said: %s", input);
-
-    free(input);
-    smartterm_cleanup(ctx);
-    return 0;
-}
-```
-
-**2. Compile and run:**
+## Quick Start (Python + AI Version)
 
 ```bash
-gcc hello.c -Iinclude -Lbuild -lsmartterm -lncurses -lreadline -lpthread -o hello
-./hello
+# Create virtual environment
+python3 -m venv venv
+source venv/bin/activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Run
+python cc-bash-sdk.py
 ```
 
-**3. Explore the examples:**
+### AI Commands
 
-```bash
-./build/bin/repl          # Calculator REPL
-./build/bin/chat_client   # IRC-style chat simulation
-./build/bin/log_viewer    # Real-time log monitoring
+The Python version includes Claude AI integration:
+
+| Command              | Description                                  |
+| -------------------- | -------------------------------------------- |
+| `@ask <question>`    | Ask Claude anything                          |
+| `@explain`           | Have Claude explain the last command output  |
+| `@fix`               | Have Claude suggest a fix for the last error |
+| `@cmd <description>` | Generate a command from natural language     |
+
+### Example AI Session
+
+```
+› ls -la
+$ ls -la
+total 24
+drwxr-xr-x 3 user user 4096 Dec 30 .
+-rw-r--r-- 1 user user 1234 Dec 30 main.c
+
+› @explain
+Asking Claude to explain...
+╭─ Explanation ─────────────────────────────────────────╮
+│ The `ls -la` command lists all files including       │
+│ hidden ones, showing permissions, owner, size...     │
+╰───────────────────────────────────────────────────────╯
+
+› @cmd find files larger than 100MB
+Generating command...
+Suggested: find . -size +100M -type f
+
+› some-command --wrong-flag
+error: unknown flag --wrong-flag
+
+› @fix
+Asking Claude for fix...
+╭─ Suggested Fix ───────────────────────────────────────╮
+│ The flag --wrong-flag doesn't exist. Try using...    │
+╰───────────────────────────────────────────────────────╯
+```
+
+---
+
+## Usage (C Version)
+
+```
+cc-bash: Claude Code-style bash wrapper
+Type @help for help, @quit or exit to quit
+
+ ~/projects/myapp                                    [exit: 0] 14:30:00
+────────────────────────────────────────────────────────────────────────
+$ ls -la
+$ ls -la
+total 24
+drwxr-xr-x 3 user user 4096 Dec 30 14:30 .
+-rw-r--r-- 1 user user 1234 Dec 30 14:30 main.c
+
+ ~/projects/myapp                                    [exit: 0] 14:30:05
+────────────────────────────────────────────────────────────────────────
+$ # This is a note - it won't execute
+# This is a note - it won't execute
+
+$ @help
+cc-bash: Claude Code-style bash wrapper
+
+Commands are executed in bash by default.
+
+Special prefixes:
+  # comment  - Add a note (yellow, not executed)
+  @clear     - Clear screen
+  @help      - Show this help
+  @quit      - Exit cc-bash
+
+Built-in commands:
+  cd [path]  - Change directory
+  exit       - Exit cc-bash
 ```
 
 ---
 
 ## Features
 
-### Core Functionality
+### Command Execution
 
-| Feature | Description | Example |
-|---------|-------------|---------|
-| **Scrolling Output** | History without prompt duplication | `smartterm_write(ctx, msg, CTX_INFO)` |
-| **Readline Input** | History, editing, completion | `smartterm_read_line(ctx, "> ")` |
-| **Context Colors** | Semantic message coloring | `CTX_NORMAL`, `CTX_ERROR`, `CTX_SUCCESS` |
-| **Status Bar** | Fixed info display | `smartterm_status_set(ctx, "App", "Ready")` |
-| **Thread-Safe** | Write from any thread | Lock-free output buffer |
-| **Search** | Find in buffer (text/regex) | `smartterm_search(ctx, "error", ...)` |
-| **Export** | Save to multiple formats | `smartterm_export(ctx, "out.html", EXPORT_HTML, ...)` |
-| **Themes** | Built-in and custom themes | `smartterm_set_theme(ctx, THEME_DARK)` |
+- All input executes as bash commands by default
+- stdout displayed in white/default color
+- stderr displayed in red
+- Exit codes shown in status bar
 
-### Context Types
+### Status Bar
 
-| Context | Color | Use Case |
-|---------|-------|----------|
-| `CTX_NORMAL` | White | Default output |
-| `CTX_COMMAND` | Yellow | System commands |
-| `CTX_COMMENT` | Green | Comments, notes |
-| `CTX_SPECIAL` | Cyan | Special actions |
-| `CTX_SEARCH` | Magenta | Search results |
-| `CTX_ERROR` | Red | Error messages |
-| `CTX_SUCCESS` | Green | Success messages |
-| `CTX_INFO` | Blue | Informational |
+- Current working directory (truncated if long)
+- Last command exit code
+- Current time
+- Reverse video for visibility
 
----
+### Special Prefixes
 
-## Comparison
+| Prefix | Action                                           |
+| ------ | ------------------------------------------------ |
+| `#`    | Note/comment - displayed in yellow, not executed |
+| `@`    | Internal command (help, clear, quit)             |
 
-| Feature | SmartTerm | Raw ncurses | Raw readline | rlwrap |
-|---------|:---------:|:-----------:|:------------:|:------:|
-| Scrolling output | ✅ | ⚠️ Manual | ❌ | ❌ |
-| Readline integration | ✅ | ❌ | ✅ | ✅ |
-| No prompt duplication | ✅ | ⚠️ Manual | ❌ | ❌ |
-| Context-aware colors | ✅ | ⚠️ Manual | ❌ | ❌ |
-| Status bar | ✅ | ⚠️ Manual | ❌ | ❌ |
-| Thread-safe output | ✅ | ❌ | ❌ | ❌ |
-| Export to formats | ✅ | ❌ | ❌ | ❌ |
-| Search buffer | ✅ | ❌ | ✅ | ✅ |
+### Built-in Commands
 
-**SmartTerm = ncurses + readline + batteries included**
+| Command     | Action                                    |
+| ----------- | ----------------------------------------- |
+| `cd [path]` | Change directory (supports `~` expansion) |
+| `exit`      | Exit cc-bash                              |
+| `quit`      | Exit cc-bash                              |
+
+### Internal @ Commands
+
+| Command         | Action       |
+| --------------- | ------------ |
+| `@help` / `@h`  | Show help    |
+| `@clear` / `@c` | Clear screen |
+| `@quit` / `@q`  | Exit cc-bash |
 
 ---
 
-## Documentation
+## Building
 
-- **[API Reference](docs/SMARTTERM-API.md)** - Complete function documentation
-- **[Architecture](docs/ARCHITECTURE.md)** - Design decisions and internals
-- **[Examples](examples/)** - Working example applications
-- **[Contributing](CONTRIBUTING.md)** - How to contribute
+```bash
+# Build cc-bash (default)
+make
+
+# Build and run
+make run
+
+# Clean
+make clean
+
+# Show help
+make help
+```
+
+---
+
+## Design Philosophy
+
+cc-bash takes a **simple approach** using ANSI escape codes instead of ncurses:
+
+1. **Output stays visible** - No TUI that hides when you type
+2. **Readline for input** - Command history, line editing
+3. **ANSI colors** - Works in any terminal
+4. **Minimal dependencies** - Just readline
+
+### Why Not ncurses?
+
+An earlier POC used ncurses + readline integration. While the concept worked, the UX suffered:
+
+- ncurses must suspend during readline input
+- This causes the output area to disappear while typing
+- Not the seamless experience we wanted
+
+The current ANSI-based approach keeps all output visible at all times.
 
 ---
 
@@ -170,97 +223,31 @@ gcc hello.c -Iinclude -Lbuild -lsmartterm -lncurses -lreadline -lpthread -o hell
 
 ```
 smartterm-prototype/
-├── include/
-│   └── smartterm.h          # Public API header
-├── lib/smartterm/           # Library implementation
-│   ├── smartterm_core.c
-│   ├── smartterm_output.c
-│   ├── smartterm_input.c
-│   ├── smartterm_render.c
-│   ├── smartterm_theme.c
-│   ├── smartterm_status.c
-│   ├── smartterm_scroll.c
-│   ├── smartterm_search.c
-│   ├── smartterm_export.c
-│   └── smartterm_keyhandler.c
-├── examples/                # Example applications
-│   ├── repl.c              # Calculator REPL
-│   ├── chat_client.c       # IRC-style chat
-│   └── log_viewer.c        # Log monitoring
-├── docs/                    # Documentation
-└── smartterm_poc.c          # Original POC (250 LOC)
+├── cc-bash.c            # C implementation (~350 LOC)
+├── cc-bash-sdk.py       # Python + Claude SDK implementation (~280 LOC)
+├── requirements.txt     # Python dependencies
+├── Makefile             # Build configuration (C version)
+├── smartterm_poc.c      # Original ncurses POC (archived)
+├── lib/                 # SmartTerm library (legacy)
+├── include/             # Library headers (legacy)
+├── examples/            # Example applications (legacy)
+└── README.md            # This file
 ```
 
 ---
 
-## API Highlights
+## History
 
-### Initialization
+This project evolved from "smartterm-prototype":
 
-```c
-smartterm_config_t config = smartterm_default_config();
-config.max_lines = 5000;
-config.history_enabled = true;
-config.prompt = "$ ";
+1. **Original POC**: Attempted ncurses + readline integration
+2. **Problem discovered**: ncurses suspend/resume causes output to disappear during input
+3. **Library extraction**: Created libsmartterm v1.0 (still available in lib/)
+4. **Repurposed**: Simplified to cc-bash using ANSI escape codes
+5. **C version**: Simple, working Claude Code-style bash wrapper
+6. **Python + SDK**: Added AI integration via Claude Agent SDK
 
-smartterm_ctx *ctx = smartterm_init(&config);
-```
-
-### Output
-
-```c
-smartterm_write(ctx, "Normal message", CTX_NORMAL);
-smartterm_write(ctx, "Error occurred!", CTX_ERROR);
-smartterm_write_fmt(ctx, CTX_SUCCESS, "Count: %d", count);
-```
-
-### Search & Export
-
-```c
-// Search buffer
-smartterm_search_result_t *results;
-int count;
-smartterm_search(ctx, "error", false, &results, &count);
-smartterm_free_search_results(results);
-
-// Export to HTML
-smartterm_export(ctx, "output.html", EXPORT_HTML, 0, -1, true);
-```
-
-See **[API Reference](docs/SMARTTERM-API.md)** for complete documentation.
-
----
-
-## Roadmap
-
-See [.github/planning/](.github/planning/) for development roadmap and backlog.
-
-**Current Status:**
-- ✅ POC validated (smartterm_poc.c)
-- ✅ Production library v1.0.0
-- ✅ Three example applications
-- ✅ Comprehensive documentation
-
----
-
-## Contributing
-
-Contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
-
-**Quick Start:**
-1. Fork the repository
-2. Create a feature branch
-3. Make changes with tests
-4. Format code: `make -f Makefile.lib format`
-5. Submit a pull request
-
----
-
-## Community
-
-- **Issues:** [GitHub Issues](https://github.com/jcaldwell-labs/smartterm-prototype/issues)
-- **Questions:** Check the [API docs](docs/SMARTTERM-API.md) first, then open an issue
-- **Author:** jcaldwell-labs
+See GitHub issue #14 for the repurposing discussion.
 
 ---
 
@@ -272,41 +259,32 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 ## Related jcaldwell-labs Projects
 
-SmartTerm is part of the [jcaldwell-labs](https://github.com/jcaldwell-labs) portfolio. These projects share synergies and can be combined:
+cc-bash is part of the [jcaldwell-labs](https://github.com/jcaldwell-labs) portfolio:
 
 ### Terminal/TUI Projects
 
-| Project | Description | Synergy with SmartTerm |
-|---------|-------------|------------------------|
-| [my-grid](https://github.com/jcaldwell-labs/my-grid) | ASCII canvas editor with vim-style navigation, zones, PTY support | Use SmartTerm's readline for command input in my-grid |
-| [boxes-live](https://github.com/jcaldwell-labs/boxes-live) | Real-time ASCII box drawing with joystick support | Share ncurses patterns; SmartTerm for status display |
-| [terminal-stars](https://github.com/jcaldwell-labs/terminal-stars) | Starfield animation for terminals | SmartTerm can embed starfield as background layer |
-| [atari-style](https://github.com/jcaldwell-labs/atari-style) | Retro visual effects and shaders for terminal apps | Apply atari-style shaders to SmartTerm themes |
+| Project                                                            | Description                                   |
+| ------------------------------------------------------------------ | --------------------------------------------- |
+| [my-grid](https://github.com/jcaldwell-labs/my-grid)               | ASCII canvas editor with vim-style navigation |
+| [boxes-live](https://github.com/jcaldwell-labs/boxes-live)         | Real-time ASCII box drawing                   |
+| [terminal-stars](https://github.com/jcaldwell-labs/terminal-stars) | Starfield animation for terminals             |
+| [atari-style](https://github.com/jcaldwell-labs/atari-style)       | Retro visual effects for terminal apps        |
 
 ### CLI Tools
 
-| Project | Description | Synergy with SmartTerm |
-|---------|-------------|------------------------|
-| [my-context](https://github.com/jcaldwell-labs/my-context) | Context tracking for development sessions (Go CLI) | Track SmartTerm dev sessions; integrate context display |
-| [fintrack](https://github.com/jcaldwell-labs/fintrack) | Personal finance tracking CLI (Go) | SmartTerm could provide richer TUI for fintrack |
-| [tario](https://github.com/jcaldwell-labs/tario) | Terminal-based platformer game (Go) | Share terminal rendering techniques |
+| Project                                                    | Description                               |
+| ---------------------------------------------------------- | ----------------------------------------- |
+| [my-context](https://github.com/jcaldwell-labs/my-context) | Context tracking for development sessions |
+| [fintrack](https://github.com/jcaldwell-labs/fintrack)     | Personal finance tracking CLI             |
 
 ### Game Engines
 
-| Project | Description | Synergy with SmartTerm |
-|---------|-------------|------------------------|
-| [adventure-engine-v2](https://github.com/jcaldwell-labs/adventure-engine-v2) | Multiplayer text adventure engine (C) | SmartTerm provides the terminal UI layer |
-
-### Meta/Organization
-
-| Project | Description |
-|---------|-------------|
-| [capability-catalog](https://github.com/jcaldwell-labs/capability-catalog) | Skill/capability definitions for AI agents |
+| Project                                                                      | Description                       |
+| ---------------------------------------------------------------------------- | --------------------------------- |
+| [adventure-engine-v2](https://github.com/jcaldwell-labs/adventure-engine-v2) | Multiplayer text adventure engine |
 
 ---
 
 ## Credits
 
-**Original POC:** smartterm-prototype (2025-11-17)
-**Library Design:** Extracted and enhanced for production use
-**Inspired by:** readline, rlwrap, rlfe, Haskell Brick
+Inspired by Claude Code's terminal interface and Warp's modern terminal UX.
