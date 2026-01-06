@@ -177,7 +177,7 @@ static void draw_status(void)
     /* Line 2: hint */
     cursor_move(term_rows, 1);
     clear_line();
-    printf("  %s⏵⏵ run bash commands (exit to quit)%s", DIM, RESET);
+    printf("  %s⏵⏵ @help for commands, exit to quit%s", DIM, RESET);
 
     fflush(stdout);
 }
@@ -401,12 +401,19 @@ static int execute_command(const char* cmd)
          * TERM=xterm-256color tells programs the terminal supports 256 colors.
          * COLORTERM=truecolor indicates 24-bit color support.
          * CLICOLOR_FORCE=1 forces color output even when not connected to a TTY.
+         * FORCE_COLOR=1 is respected by Node.js and many npm packages.
+         *
          * Note: This doesn't make pipes into TTYs, so programs using isatty()
-         * may still disable colors. Use --color=always flags when needed.
+         * may still disable colors. For such programs, use:
+         *   - ls --color=always
+         *   - glow -s dark (or set GLAMOUR_STYLE=dark)
+         *   - grep --color=always
+         *   - bat --color=always
          */
         setenv("TERM", "xterm-256color", 0);  /* Don't override if already set */
         setenv("COLORTERM", "truecolor", 0);
         setenv("CLICOLOR_FORCE", "1", 1);     /* Force this one */
+        setenv("FORCE_COLOR", "1", 1);        /* Node.js and npm packages */
 
         execl("/bin/sh", "sh", "-c", cmd, NULL);
         _exit(127);
@@ -470,6 +477,31 @@ static int handle_cd(const char* path)
     getcwd(cwd, sizeof(cwd));
     draw_status();
     return 0;
+}
+
+/* Print help message for @help command */
+static void print_help(void)
+{
+    print_output("", 0);
+    print_output(CYAN "cc-bash" RESET " - Claude Code-style bash wrapper", 0);
+    print_output("", 0);
+    print_output(BOLD "Commands:" RESET, 0);
+    print_output("  <command>       Execute bash command", 0);
+    print_output("  cd <path>       Change directory (~ supported)", 0);
+    print_output("  clear           Clear output area (preserves TUI)", 0);
+    print_output("  exit / quit     Exit shell", 0);
+    print_output("", 0);
+    print_output(BOLD "@ Commands:" RESET, 0);
+    print_output("  @help / @h      Show this help", 0);
+    print_output("  @clear / @c     Clear output area", 0);
+    print_output("  @quit / @q      Exit shell", 0);
+    print_output("", 0);
+    print_output(BOLD "Special:" RESET, 0);
+    print_output("  # <note>        Comment (displayed, not executed)", 0);
+    print_output("  Tab             File/command completion", 0);
+    print_output("  PgUp/PgDn       Scroll output history", 0);
+    print_output("  Up/Down         Command history", 0);
+    print_output("", 0);
 }
 
 /* Handle clear command - Issue #17
@@ -1103,6 +1135,27 @@ int main(void)
             char msg[INPUT_BUF_SIZE + 16];
             snprintf(msg, sizeof(msg), "%s%s%s", YELLOW, input, RESET);
             print_output(msg, 0);
+        }
+        else if (input[0] == '@') {
+            /* @ commands - internal shell commands */
+            const char* cmd = input + 1;  /* Skip the @ */
+            if (strcmp(cmd, "help") == 0 || strcmp(cmd, "h") == 0) {
+                print_help();
+                last_exit = 0;
+            }
+            else if (strcmp(cmd, "clear") == 0 || strcmp(cmd, "c") == 0) {
+                handle_clear();
+                last_exit = 0;
+            }
+            else if (strcmp(cmd, "quit") == 0 || strcmp(cmd, "q") == 0) {
+                running = 0;
+            }
+            else {
+                char msg[INPUT_BUF_SIZE + 64];
+                snprintf(msg, sizeof(msg), "%sUnknown @ command: %s%s", RED, cmd, RESET);
+                print_output(msg, 1);
+                last_exit = 1;
+            }
         }
         else {
             last_exit = execute_command(input);
