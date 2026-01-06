@@ -117,6 +117,9 @@ typedef struct {
 static Alias aliases[MAX_ALIASES];
 static int alias_count = 0;
 
+/* Last command exit code - displayed in prompt when non-zero */
+static int last_exit = 0;
+
 /* ============================================================================
  * Terminal Setup and Teardown
  * ============================================================================
@@ -1052,6 +1055,23 @@ static int do_completion(const char* buf, int pos, int is_double_tab,
     return match_count;
 }
 
+/* Draw prompt with optional exit code
+ * Shows "[N] › " if last_exit is non-zero, otherwise just "› "
+ * Returns the cursor column after the prompt (for positioning)
+ */
+static int draw_prompt(void)
+{
+    cursor_move(prompt_row, 1);
+    clear_line();
+    if (last_exit != 0) {
+        printf("%s[%d]%s › ", RED, last_exit, RESET);
+        return 7 + (last_exit >= 10 ? 1 : 0) + (last_exit >= 100 ? 1 : 0);
+    } else {
+        printf("› ");
+        return 3;
+    }
+}
+
 /* Read a line with basic editing
  * Handles: backspace, left/right arrows, up/down for history, Tab completion,
  * PgUp/PgDn for scrollback, Ctrl+C, Ctrl+D.
@@ -1064,13 +1084,12 @@ static char* read_input(void)
     static int last_was_tab = 0;  /* Track double-tab for completions */
     int pos = 0;
     int len = 0;
+    int prompt_col;  /* Column after prompt (varies with exit code) */
 
     buf[0] = '\0';
 
-    /* Position cursor at prompt */
-    cursor_move(prompt_row, 1);
-    clear_line();
-    printf("› ");
+    /* Draw prompt with exit code if non-zero */
+    prompt_col = draw_prompt();
     fflush(stdout);
 
     while (1) {
@@ -1111,11 +1130,10 @@ static char* read_input(void)
                 len = len - word_len + comp_len;
                 pos = word_start + comp_len;
 
-                /* Redraw line */
-                cursor_move(prompt_row, 1);
-                clear_line();
-                printf("› %s", buf);
-                cursor_move(prompt_row, 3 + pos);
+                /* Redraw line with prompt */
+                prompt_col = draw_prompt();
+                printf("%s", buf);
+                cursor_move(prompt_row, prompt_col + pos);
                 fflush(stdout);
             }
 
@@ -1131,9 +1149,9 @@ static char* read_input(void)
                 memmove(&buf[pos-1], &buf[pos], len - pos + 1);
                 pos--;
                 len--;
-                cursor_move(prompt_row, 3);
+                cursor_move(prompt_row, prompt_col);
                 printf("%s ", buf);
-                cursor_move(prompt_row, 3 + pos);
+                cursor_move(prompt_row, prompt_col + pos);
             }
             fflush(stdout);
             continue;
@@ -1148,9 +1166,8 @@ static char* read_input(void)
                         history_pos--;
                         strcpy(buf, history[history_pos]);
                         len = pos = strlen(buf);
-                        cursor_move(prompt_row, 1);
-                        clear_line();
-                        printf("› %s", buf);
+                        prompt_col = draw_prompt();
+                        printf("%s", buf);
                         fflush(stdout);
                     }
                 } else if (c3 == 'B') {  /* Down arrow */
@@ -1163,20 +1180,19 @@ static char* read_input(void)
                         buf[0] = '\0';
                         len = pos = 0;
                     }
-                    cursor_move(prompt_row, 1);
-                    clear_line();
-                    printf("› %s", buf);
+                    prompt_col = draw_prompt();
+                    printf("%s", buf);
                     fflush(stdout);
                 } else if (c3 == 'C') {  /* Right arrow */
                     if (pos < len) {
                         pos++;
-                        cursor_move(prompt_row, 3 + pos);
+                        cursor_move(prompt_row, prompt_col + pos);
                         fflush(stdout);
                     }
                 } else if (c3 == 'D') {  /* Left arrow */
                     if (pos > 0) {
                         pos--;
-                        cursor_move(prompt_row, 3 + pos);
+                        cursor_move(prompt_row, prompt_col + pos);
                         fflush(stdout);
                     }
                 } else if (c3 == '5' || c3 == '6') {
@@ -1212,9 +1228,7 @@ static char* read_input(void)
 
         if (c == 3) {  /* Ctrl+C */
             buf[0] = '\0';
-            cursor_move(prompt_row, 1);
-            clear_line();
-            printf("› ");
+            prompt_col = draw_prompt();
             fflush(stdout);
             len = pos = 0;
             continue;
@@ -1226,9 +1240,9 @@ static char* read_input(void)
             buf[pos] = c;
             pos++;
             len++;
-            cursor_move(prompt_row, 3);
+            cursor_move(prompt_row, prompt_col);
             printf("%s", buf);
-            cursor_move(prompt_row, 3 + pos);
+            cursor_move(prompt_row, prompt_col + pos);
             fflush(stdout);
         }
     }
@@ -1299,7 +1313,6 @@ int main(void)
     init_screen();
 
     int running = 1;
-    int last_exit = 0;
 
     while (running) {
         if (resize_flag) {
