@@ -766,6 +766,12 @@ static void handle_clear(void)
 /* Add command to history buffer */
 static void add_history(const char* cmd)
 {
+    /* Skip if same as last command (no consecutive duplicates) */
+    if (history_count > 0 && strcmp(history[history_count - 1], cmd) == 0) {
+        history_pos = history_count;
+        return;
+    }
+
     if (history_count < MAX_HISTORY) {
         history[history_count++] = strdup(cmd);
     }
