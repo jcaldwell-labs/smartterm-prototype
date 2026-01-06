@@ -71,6 +71,7 @@
 #define MAX_COMPLETIONS 256
 #define MAX_ALIASES 100
 #define CONFIG_LINE_SIZE 1024
+#define HISTORY_FILE ".cc-bash-history"
 
 /* ============================================================================
  * Global State
@@ -283,6 +284,58 @@ static void free_aliases(void)
         free(aliases[i].command);
     }
     alias_count = 0;
+}
+
+/* ============================================================================
+ * Persistent History
+ * ============================================================================
+ * Load/save command history from ~/.cc-bash-history
+ */
+
+/* Load history from file */
+static void load_history(void)
+{
+    char path[PATH_MAX];
+    const char* home = getenv("HOME");
+    if (!home) return;
+
+    snprintf(path, sizeof(path), "%s/%s", home, HISTORY_FILE);
+
+    FILE* fp = fopen(path, "r");
+    if (!fp) return;
+
+    char line[INPUT_BUF_SIZE];
+    while (fgets(line, sizeof(line), fp) && history_count < MAX_HISTORY) {
+        /* Remove trailing newline */
+        line[strcspn(line, "\n")] = '\0';
+        if (strlen(line) > 0) {
+            history[history_count++] = strdup(line);
+        }
+    }
+    history_pos = history_count;
+
+    fclose(fp);
+}
+
+/* Save history to file */
+static void save_history(void)
+{
+    char path[PATH_MAX];
+    const char* home = getenv("HOME");
+    if (!home) return;
+
+    snprintf(path, sizeof(path), "%s/%s", home, HISTORY_FILE);
+
+    FILE* fp = fopen(path, "w");
+    if (!fp) return;
+
+    /* Save last MAX_HISTORY entries */
+    int start = (history_count > MAX_HISTORY) ? history_count - MAX_HISTORY : 0;
+    for (int i = start; i < history_count; i++) {
+        fprintf(fp, "%s\n", history[i]);
+    }
+
+    fclose(fp);
 }
 
 /* ============================================================================
@@ -638,10 +691,9 @@ static void print_help(void)
     print_output("  @alias          List aliases", 0);
     print_output("  @alias x='cmd'  Add alias (session only)", 0);
     print_output("", 0);
-    print_output(BOLD "Config:" RESET, 0);
-    print_output("  ~/.cc-bashrc    Loaded at startup", 0);
-    print_output("  alias ll='ls -la'", 0);
-    print_output("  export VAR=val", 0);
+    print_output(BOLD "Files:" RESET, 0);
+    print_output("  ~/.cc-bashrc         Config (aliases, exports)", 0);
+    print_output("  ~/.cc-bash-history   Command history (auto-saved)", 0);
     print_output("", 0);
     print_output(BOLD "Special:" RESET, 0);
     print_output("  # <note>        Comment (displayed, not executed)", 0);
@@ -1237,6 +1289,9 @@ int main(void)
     /* Load config file (~/.cc-bashrc) */
     load_config();
 
+    /* Load command history (~/.cc-bash-history) */
+    load_history();
+
     /* Set up signal handlers */
     signal(SIGWINCH, handle_sigwinch);
 
@@ -1386,6 +1441,9 @@ int main(void)
 
     disable_raw_mode();
     cleanup_screen();
+
+    /* Save command history */
+    save_history();
 
     /* Free history */
     for (int i = 0; i < history_count; i++) {
