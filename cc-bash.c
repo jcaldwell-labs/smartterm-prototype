@@ -69,6 +69,8 @@
 #define SCROLL_PAGE_SIZE 10
 #define SCROLL_LARGE_JUMP 50
 #define MAX_COMPLETIONS 256
+#define MAX_ALIASES 100
+#define CONFIG_LINE_SIZE 1024
 
 /* ============================================================================
  * Global State
@@ -104,6 +106,15 @@ static OutputLine output_buffer[MAX_OUTPUT_LINES];
 static int output_count = 0;      /* Total lines stored */
 static int output_start = 0;      /* Start index (circular) */
 static int scroll_offset = 0;     /* 0 = at bottom, positive = scrolled up */
+
+/* Aliases - loaded from ~/.cc-bashrc */
+typedef struct {
+    char* name;
+    char* command;
+} Alias;
+
+static Alias aliases[MAX_ALIASES];
+static int alias_count = 0;
 
 /* ============================================================================
  * Terminal Setup and Teardown
@@ -144,6 +155,135 @@ static void cursor_move(int row, int col) { printf("\033[%d;%dH", row, col); }
 
 /* Clear entire line */
 static void clear_line(void) { printf("\033[2K"); }
+
+/* ============================================================================
+ * Configuration and Aliases
+ * ============================================================================
+ * Load ~/.cc-bashrc config file and manage shell aliases.
+ * Config format:
+ *   alias ll='ls -la'
+ *   alias gs='git status'
+ *   export GLAMOUR_STYLE=dark
+ */
+
+/* Add an alias */
+static void add_alias(const char* name, const char* command)
+{
+    if (alias_count >= MAX_ALIASES) return;
+
+    /* Check for existing alias with same name and replace */
+    for (int i = 0; i < alias_count; i++) {
+        if (strcmp(aliases[i].name, name) == 0) {
+            free(aliases[i].command);
+            aliases[i].command = strdup(command);
+            return;
+        }
+    }
+
+    aliases[alias_count].name = strdup(name);
+    aliases[alias_count].command = strdup(command);
+    alias_count++;
+}
+
+/* Look up an alias, returns command or NULL */
+static const char* get_alias(const char* name)
+{
+    for (int i = 0; i < alias_count; i++) {
+        if (strcmp(aliases[i].name, name) == 0) {
+            return aliases[i].command;
+        }
+    }
+    return NULL;
+}
+
+/* Parse and load config file
+ * Supports:
+ *   alias name='command'
+ *   alias name="command"
+ *   export VAR=value
+ *   # comments
+ */
+static void load_config(void)
+{
+    char config_path[PATH_MAX];
+    const char* home = getenv("HOME");
+    if (!home) return;
+
+    snprintf(config_path, sizeof(config_path), "%s/.cc-bashrc", home);
+
+    FILE* fp = fopen(config_path, "r");
+    if (!fp) return;  /* Config file doesn't exist, that's fine */
+
+    char line[CONFIG_LINE_SIZE];
+    while (fgets(line, sizeof(line), fp)) {
+        /* Remove trailing newline */
+        line[strcspn(line, "\n")] = '\0';
+
+        /* Skip empty lines and comments */
+        char* p = line;
+        while (*p == ' ' || *p == '\t') p++;
+        if (*p == '\0' || *p == '#') continue;
+
+        /* Handle 'alias name=command' */
+        if (strncmp(p, "alias ", 6) == 0) {
+            p += 6;
+            while (*p == ' ') p++;
+
+            char* eq = strchr(p, '=');
+            if (eq) {
+                *eq = '\0';
+                char* name = p;
+                char* cmd = eq + 1;
+
+                /* Strip quotes from command */
+                size_t cmd_len = strlen(cmd);
+                if (cmd_len >= 2 &&
+                    ((cmd[0] == '\'' && cmd[cmd_len-1] == '\'') ||
+                     (cmd[0] == '"' && cmd[cmd_len-1] == '"'))) {
+                    cmd[cmd_len-1] = '\0';
+                    cmd++;
+                }
+
+                add_alias(name, cmd);
+            }
+        }
+        /* Handle 'export VAR=value' */
+        else if (strncmp(p, "export ", 7) == 0) {
+            p += 7;
+            while (*p == ' ') p++;
+
+            char* eq = strchr(p, '=');
+            if (eq) {
+                *eq = '\0';
+                char* var = p;
+                char* val = eq + 1;
+
+                /* Strip quotes from value */
+                size_t val_len = strlen(val);
+                if (val_len >= 2 &&
+                    ((val[0] == '\'' && val[val_len-1] == '\'') ||
+                     (val[0] == '"' && val[val_len-1] == '"'))) {
+                    val[val_len-1] = '\0';
+                    val++;
+                }
+
+                setenv(var, val, 1);
+            }
+        }
+    }
+
+    fclose(fp);
+}
+
+/* Free alias memory */
+static void free_aliases(void)
+{
+    for (int i = 0; i < alias_count; i++) {
+        free(aliases[i].name);
+        free(aliases[i].command);
+    }
+    alias_count = 0;
+}
 
 /* ============================================================================
  * Screen Drawing Functions
@@ -495,6 +635,13 @@ static void print_help(void)
     print_output("  @help / @h      Show this help", 0);
     print_output("  @clear / @c     Clear output area", 0);
     print_output("  @quit / @q      Exit shell", 0);
+    print_output("  @alias          List aliases", 0);
+    print_output("  @alias x='cmd'  Add alias (session only)", 0);
+    print_output("", 0);
+    print_output(BOLD "Config:" RESET, 0);
+    print_output("  ~/.cc-bashrc    Loaded at startup", 0);
+    print_output("  alias ll='ls -la'", 0);
+    print_output("  export VAR=val", 0);
     print_output("", 0);
     print_output(BOLD "Special:" RESET, 0);
     print_output("  # <note>        Comment (displayed, not executed)", 0);
@@ -1087,6 +1234,9 @@ int main(void)
 {
     getcwd(cwd, sizeof(cwd));
 
+    /* Load config file (~/.cc-bashrc) */
+    load_config();
+
     /* Set up signal handlers */
     signal(SIGWINCH, handle_sigwinch);
 
@@ -1150,6 +1300,57 @@ int main(void)
             else if (strcmp(cmd, "quit") == 0 || strcmp(cmd, "q") == 0) {
                 running = 0;
             }
+            else if (strncmp(cmd, "alias", 5) == 0) {
+                /* @alias - list or add aliases */
+                const char* arg = cmd + 5;
+                while (*arg == ' ') arg++;
+
+                if (*arg == '\0') {
+                    /* List all aliases */
+                    if (alias_count == 0) {
+                        print_output("No aliases defined.", 0);
+                        print_output("Add to ~/.cc-bashrc: alias ll='ls -la'", 0);
+                    } else {
+                        char msg[CONFIG_LINE_SIZE];
+                        for (int i = 0; i < alias_count; i++) {
+                            snprintf(msg, sizeof(msg), "alias %s='%s'",
+                                     aliases[i].name, aliases[i].command);
+                            print_output(msg, 0);
+                        }
+                    }
+                } else {
+                    /* Add new alias: @alias name=command */
+                    char* eq = strchr(arg, '=');
+                    if (eq) {
+                        char name[256];
+                        size_t name_len = (size_t)(eq - arg);
+                        if (name_len < sizeof(name)) {
+                            strncpy(name, arg, name_len);
+                            name[name_len] = '\0';
+                            const char* cmd_val = eq + 1;
+                            /* Strip quotes */
+                            size_t cmd_len = strlen(cmd_val);
+                            char cmd_clean[CONFIG_LINE_SIZE];
+                            if (cmd_len >= 2 &&
+                                ((cmd_val[0] == '\'' && cmd_val[cmd_len-1] == '\'') ||
+                                 (cmd_val[0] == '"' && cmd_val[cmd_len-1] == '"'))) {
+                                strncpy(cmd_clean, cmd_val + 1, cmd_len - 2);
+                                cmd_clean[cmd_len - 2] = '\0';
+                            } else {
+                                strncpy(cmd_clean, cmd_val, sizeof(cmd_clean) - 1);
+                                cmd_clean[sizeof(cmd_clean) - 1] = '\0';
+                            }
+                            add_alias(name, cmd_clean);
+                            char msg[CONFIG_LINE_SIZE + 256 + 16];  /* room for name + cmd + "alias =''" */
+                            snprintf(msg, sizeof(msg), "alias %s='%s'", name, cmd_clean);
+                            print_output(msg, 0);
+                        }
+                    } else {
+                        print_output("Usage: @alias name='command'", 1);
+                    }
+                }
+                last_exit = 0;
+            }
             else {
                 char msg[INPUT_BUF_SIZE + 64];
                 snprintf(msg, sizeof(msg), "%sUnknown @ command: %s%s", RED, cmd, RESET);
@@ -1158,7 +1359,28 @@ int main(void)
             }
         }
         else {
-            last_exit = execute_command(input);
+            /* Check for alias expansion on first word */
+            char first_word[INPUT_BUF_SIZE];
+            const char* rest = "";
+            char* space = strchr(input, ' ');
+            if (space) {
+                size_t len = (size_t)(space - input);
+                strncpy(first_word, input, len);
+                first_word[len] = '\0';
+                rest = space;  /* includes the space */
+            } else {
+                strcpy(first_word, input);
+            }
+
+            const char* alias_cmd = get_alias(first_word);
+            if (alias_cmd) {
+                /* Expand alias */
+                char expanded[INPUT_BUF_SIZE];
+                snprintf(expanded, sizeof(expanded), "%s%s", alias_cmd, rest);
+                last_exit = execute_command(expanded);
+            } else {
+                last_exit = execute_command(input);
+            }
         }
     }
 
@@ -1175,6 +1397,9 @@ int main(void)
         int index = (output_start + i) % MAX_OUTPUT_LINES;
         free(output_buffer[index].text);
     }
+
+    /* Free aliases */
+    free_aliases();
 
     return last_exit;
 }
