@@ -78,9 +78,6 @@ static void cursor_restore(void) { printf("\033[u"); }
 /* Move cursor to row, col (1-based) */
 static void cursor_move(int row, int col) { printf("\033[%d;%dH", row, col); }
 
-/* Clear from cursor to end of line */
-static void clear_to_eol(void) { printf("\033[K"); }
-
 /* Clear entire line */
 static void clear_line(void) { printf("\033[2K"); }
 
@@ -241,7 +238,7 @@ static int handle_cd(const char* path)
     }
 
     if (chdir(path) != 0) {
-        char err[512];
+        char err[PATH_MAX + 128];
         snprintf(err, sizeof(err), "cd: %s: %s", path, strerror(errno));
         print_output(err, 1);
         return 1;
