@@ -13,7 +13,7 @@ POC_SRC = smartterm_poc.c
 CCBASH_TARGET = cc-bash
 CCBASH_SRC = cc-bash.c
 
-.PHONY: all clean run poc cc-bash run-ccbash help
+.PHONY: all clean run poc cc-bash run-ccbash test help
 
 # Default: build cc-bash
 all: $(CCBASH_TARGET)
@@ -39,12 +39,19 @@ run-poc: $(POC_TARGET)
 clean:
 	rm -f $(POC_TARGET) $(CCBASH_TARGET)
 
+# Run cc-bash tests
+test: $(CCBASH_TARGET)
+	@echo "Running cc-bash tests..."
+	@chmod +x tests/test_cc_bash.sh
+	@./tests/test_cc_bash.sh
+
 help:
 	@echo "cc-bash: Claude Code-style bash wrapper"
 	@echo ""
 	@echo "Targets:"
 	@echo "  all       - Build cc-bash (default)"
 	@echo "  run       - Build and run cc-bash"
+	@echo "  test      - Run cc-bash test suite"
 	@echo "  poc       - Build original smartterm POC"
 	@echo "  run-poc   - Run original smartterm POC"
 	@echo "  clean     - Remove binaries"

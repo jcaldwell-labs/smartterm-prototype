@@ -17,6 +17,7 @@ Thank you for your interest in contributing to SmartTerm! This document provides
 ## Code of Conduct
 
 This project follows standard open source collaboration practices:
+
 - Be respectful and professional
 - Focus on technical merit
 - Provide constructive feedback
@@ -35,11 +36,13 @@ This project follows standard open source collaboration practices:
 - Git
 
 **Ubuntu/Debian:**
+
 ```bash
 sudo apt-get install build-essential libncurses-dev libreadline-dev git
 ```
 
 **macOS:**
+
 ```bash
 brew install ncurses readline make
 ```
@@ -60,6 +63,38 @@ brew install ncurses readline make
 ---
 
 ## Development Setup
+
+### Building cc-bash
+
+cc-bash is a lightweight Claude Code-style bash wrapper built with pure C (no external dependencies beyond POSIX):
+
+```bash
+# Build cc-bash
+make
+
+# Run cc-bash
+make run
+
+# Run tests
+make test
+
+# Clean
+make clean
+```
+
+### cc-bash Development Notes
+
+When working on cc-bash, keep in mind:
+
+- **No external dependencies**: cc-bash uses only POSIX C and standard terminal control
+- **Three-region layout**: Output area (top), prompt area (middle), status area (bottom)
+- **Raw terminal mode**: Uses `termios` for non-canonical input handling
+- **ANSI escape sequences**: Direct terminal control without ncurses
+
+Key source files:
+
+- `cc-bash.c` - Main implementation (~465 lines)
+- `tests/test_cc_bash.sh` - Test suite for cc-bash
 
 ### Building the Library
 
@@ -102,6 +137,7 @@ make -f Makefile.lib clean
 SmartTerm follows these conventions:
 
 **Naming:**
+
 - `snake_case` for functions and variables
 - `PascalCase` for structs and enums
 - `ALL_CAPS` for constants and macros
@@ -109,18 +145,21 @@ SmartTerm follows these conventions:
 - Prefix internal functions with `_smartterm_` or make them static
 
 **Formatting:**
+
 - 4-space indentation (no tabs)
 - 100 character line limit
 - Opening braces on new line for functions, same line for control structures
 - Use clang-format with provided `.clang-format` config
 
 **Code Organization:**
+
 - Group related functions together
 - Add clear section comments
 - Document all public API functions
 - Keep functions focused and reasonably sized
 
 **Example:**
+
 ```c
 // Public API function
 int smartterm_write(smartterm_ctx *ctx, const char *text, context_type_t ctx_type)
@@ -143,6 +182,7 @@ static void _smartterm_internal_helper(void)
 ### Formatting Code
 
 Before submitting changes, format your code:
+
 ```bash
 # Format all C files
 find . -type f \( -name "*.c" -o -name "*.h" \) ! -path "./.git/*" -exec clang-format -i {} \;
@@ -154,11 +194,13 @@ clang-format -i path/to/file.c
 ### Documentation
 
 **Code Comments:**
+
 - Document all public API functions with purpose, parameters, and return values
 - Use inline comments sparingly for non-obvious logic
 - Keep comments up-to-date with code changes
 
 **API Documentation:**
+
 - Update `docs/SMARTTERM-API.md` for API changes
 - Update `docs/ARCHITECTURE.md` for architectural changes
 - Update README.md for user-facing changes
@@ -192,6 +234,7 @@ When adding new functionality:
 ### Test Coverage
 
 Aim for good coverage of:
+
 - Core API functions
 - Error handling paths
 - Edge cases
@@ -215,6 +258,7 @@ git checkout -b feature/your-feature-name
 ### Making Commits
 
 **Commit Message Format:**
+
 ```
 Short summary (50 chars or less)
 
@@ -226,6 +270,7 @@ Explain the "why" not the "what" (code shows the "what").
 ```
 
 **Examples:**
+
 ```
 Add thread-safe buffer access with mutex locking
 
@@ -239,12 +284,14 @@ Fixes #42
 ### Pull Request Process
 
 1. **Update your branch:**
+
    ```bash
    git fetch upstream
    git rebase upstream/main
    ```
 
 2. **Run checks:**
+
    ```bash
    # Format code
    make -f Makefile.lib format
@@ -260,6 +307,7 @@ Fixes #42
    ```
 
 3. **Push to your fork:**
+
    ```bash
    git push origin feature/your-feature-name
    ```
@@ -309,6 +357,7 @@ For feature requests, provide:
 ### Security Issues
 
 For security vulnerabilities:
+
 - **Do not** open a public issue
 - Email the maintainer directly
 - Provide detailed description
@@ -364,6 +413,7 @@ README.md
 ```
 
 After making changes:
+
 - Update relevant documentation
 - Keep examples in sync with code
 - Check markdown syntax
