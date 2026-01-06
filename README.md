@@ -3,15 +3,17 @@
 **A simple terminal wrapper that executes bash commands by default with colored output**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![C Standard](https://img.shields.io/badge/C-C11-blue.svg)](https://en.cppreference.com/w/c/11)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
 ---
 
 ## Two Versions Available
 
-| Version | Language | AI Integration | Dependencies |
-|---------|----------|----------------|--------------|
-| `cc-bash` | C | No | libreadline |
-| `cc-bash-sdk.py` | Python | Yes (Claude SDK) | claude-agent-sdk, prompt_toolkit, rich |
+| Version          | Language | AI Integration   | Dependencies                           |
+| ---------------- | -------- | ---------------- | -------------------------------------- |
+| `cc-bash`        | C        | No               | libreadline                            |
+| `cc-bash-sdk.py` | Python   | Yes (Claude SDK) | claude-agent-sdk, prompt_toolkit, rich |
 
 ---
 
@@ -61,12 +63,12 @@ python cc-bash-sdk.py
 
 The Python version includes Claude AI integration:
 
-| Command | Description |
-|---------|-------------|
-| `@ask <question>` | Ask Claude anything |
-| `@explain` | Have Claude explain the last command output |
-| `@fix` | Have Claude suggest a fix for the last error |
-| `@cmd <description>` | Generate a command from natural language |
+| Command              | Description                                  |
+| -------------------- | -------------------------------------------- |
+| `@ask <question>`    | Ask Claude anything                          |
+| `@explain`           | Have Claude explain the last command output  |
+| `@fix`               | Have Claude suggest a fix for the last error |
+| `@cmd <description>` | Generate a command from natural language     |
 
 ### Example AI Session
 
@@ -140,36 +142,41 @@ Built-in commands:
 ## Features
 
 ### Command Execution
+
 - All input executes as bash commands by default
 - stdout displayed in white/default color
 - stderr displayed in red
 - Exit codes shown in status bar
 
 ### Status Bar
+
 - Current working directory (truncated if long)
 - Last command exit code
 - Current time
 - Reverse video for visibility
 
 ### Special Prefixes
-| Prefix | Action |
-|--------|--------|
-| `#` | Note/comment - displayed in yellow, not executed |
-| `@` | Internal command (help, clear, quit) |
+
+| Prefix | Action                                           |
+| ------ | ------------------------------------------------ |
+| `#`    | Note/comment - displayed in yellow, not executed |
+| `@`    | Internal command (help, clear, quit)             |
 
 ### Built-in Commands
-| Command | Action |
-|---------|--------|
+
+| Command     | Action                                    |
+| ----------- | ----------------------------------------- |
 | `cd [path]` | Change directory (supports `~` expansion) |
-| `exit` | Exit cc-bash |
-| `quit` | Exit cc-bash |
+| `exit`      | Exit cc-bash                              |
+| `quit`      | Exit cc-bash                              |
 
 ### Internal @ Commands
-| Command | Action |
-|---------|--------|
-| `@help` / `@h` | Show help |
+
+| Command         | Action       |
+| --------------- | ------------ |
+| `@help` / `@h`  | Show help    |
 | `@clear` / `@c` | Clear screen |
-| `@quit` / `@q` | Exit cc-bash |
+| `@quit` / `@q`  | Exit cc-bash |
 
 ---
 
@@ -203,6 +210,7 @@ cc-bash takes a **simple approach** using ANSI escape codes instead of ncurses:
 ### Why Not ncurses?
 
 An earlier POC used ncurses + readline integration. While the concept worked, the UX suffered:
+
 - ncurses must suspend during readline input
 - This causes the output area to disappear while typing
 - Not the seamless experience we wanted
@@ -220,6 +228,9 @@ smartterm-prototype/
 ├── requirements.txt     # Python dependencies
 ├── Makefile             # Build configuration (C version)
 ├── smartterm_poc.c      # Original ncurses POC (archived)
+├── lib/                 # SmartTerm library (legacy)
+├── include/             # Library headers (legacy)
+├── examples/            # Example applications (legacy)
 └── README.md            # This file
 ```
 
@@ -231,9 +242,10 @@ This project evolved from "smartterm-prototype":
 
 1. **Original POC**: Attempted ncurses + readline integration
 2. **Problem discovered**: ncurses suspend/resume causes output to disappear during input
-3. **Repurposed**: Simplified to cc-bash using ANSI escape codes
-4. **C version**: Simple, working Claude Code-style bash wrapper
-5. **Python + SDK**: Added AI integration via Claude Agent SDK
+3. **Library extraction**: Created libsmartterm v1.0 (still available in lib/)
+4. **Repurposed**: Simplified to cc-bash using ANSI escape codes
+5. **C version**: Simple, working Claude Code-style bash wrapper
+6. **Python + SDK**: Added AI integration via Claude Agent SDK
 
 See GitHub issue #14 for the repurposing discussion.
 
@@ -241,10 +253,38 @@ See GitHub issue #14 for the repurposing discussion.
 
 ## License
 
-MIT License - See LICENSE file for details
+MIT License - see [LICENSE](LICENSE) for details.
+
+---
+
+## Related jcaldwell-labs Projects
+
+cc-bash is part of the [jcaldwell-labs](https://github.com/jcaldwell-labs) portfolio:
+
+### Terminal/TUI Projects
+
+| Project                                                            | Description                                   |
+| ------------------------------------------------------------------ | --------------------------------------------- |
+| [my-grid](https://github.com/jcaldwell-labs/my-grid)               | ASCII canvas editor with vim-style navigation |
+| [boxes-live](https://github.com/jcaldwell-labs/boxes-live)         | Real-time ASCII box drawing                   |
+| [terminal-stars](https://github.com/jcaldwell-labs/terminal-stars) | Starfield animation for terminals             |
+| [atari-style](https://github.com/jcaldwell-labs/atari-style)       | Retro visual effects for terminal apps        |
+
+### CLI Tools
+
+| Project                                                    | Description                               |
+| ---------------------------------------------------------- | ----------------------------------------- |
+| [my-context](https://github.com/jcaldwell-labs/my-context) | Context tracking for development sessions |
+| [fintrack](https://github.com/jcaldwell-labs/fintrack)     | Personal finance tracking CLI             |
+
+### Game Engines
+
+| Project                                                                      | Description                       |
+| ---------------------------------------------------------------------------- | --------------------------------- |
+| [adventure-engine-v2](https://github.com/jcaldwell-labs/adventure-engine-v2) | Multiplayer text adventure engine |
 
 ---
 
 ## Credits
 
-Inspired by Claude Code's terminal interface.
+Inspired by Claude Code's terminal interface and Warp's modern terminal UX.
