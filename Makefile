@@ -13,7 +13,11 @@ POC_SRC = smartterm_poc.c
 CCBASH_TARGET = cc-bash
 CCBASH_SRC = cc-bash.c
 
-.PHONY: all clean run poc cc-bash run-ccbash test help
+# Unit tests
+TEST_UNIT_TARGET = test_unit
+TEST_UNIT_SRC = tests/test_unit.c
+
+.PHONY: all clean run poc cc-bash run-ccbash test test-unit help
 
 # Default: build cc-bash
 all: $(CCBASH_TARGET)
@@ -37,13 +41,24 @@ run-poc: $(POC_TARGET)
 	./$(POC_TARGET)
 
 clean:
-	rm -f $(POC_TARGET) $(CCBASH_TARGET)
+	rm -f $(POC_TARGET) $(CCBASH_TARGET) $(TEST_UNIT_TARGET)
 
-# Run cc-bash tests
-test: $(CCBASH_TARGET)
-	@echo "Running cc-bash tests..."
+# Build unit tests
+$(TEST_UNIT_TARGET): $(TEST_UNIT_SRC)
+	$(CC) $(CFLAGS) -o $(TEST_UNIT_TARGET) $(TEST_UNIT_SRC)
+
+# Run all tests (unit first, then static analysis)
+test: $(CCBASH_TARGET) $(TEST_UNIT_TARGET)
+	@echo "Running unit tests..."
+	@./$(TEST_UNIT_TARGET)
+	@echo ""
+	@echo "Running static analysis tests..."
 	@chmod +x tests/test_cc_bash.sh
 	@./tests/test_cc_bash.sh
+
+# Run only unit tests
+test-unit: $(TEST_UNIT_TARGET)
+	@./$(TEST_UNIT_TARGET)
 
 help:
 	@echo "cc-bash: Claude Code-style bash wrapper"
