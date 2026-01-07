@@ -1140,6 +1140,28 @@ static void user_data_handler(const Event* event, void* user_data)
     (*counter)++;
 }
 
+/* Variables and handler for CD event capture */
+static char captured_old_cwd[PATH_MAX] = "";
+static char captured_new_cwd[PATH_MAX] = "";
+
+static void cd_capture_handler(const Event* event, void* user_data)
+{
+    (void)user_data;
+    if (event->old_cwd) strncpy(captured_old_cwd, event->old_cwd, PATH_MAX - 1);
+    if (event->new_cwd) strncpy(captured_new_cwd, event->new_cwd, PATH_MAX - 1);
+}
+
+/* Variables and handler for expand event capture */
+static char captured_original[256] = "";
+static char captured_expanded[256] = "";
+
+static void expand_capture_handler(const Event* event, void* user_data)
+{
+    (void)user_data;
+    if (event->command) strncpy(captured_original, event->command, 255);
+    if (event->expanded) strncpy(captured_expanded, event->expanded, 255);
+}
+
 void test_event_register_hook(void)
 {
     printf("\n[Event: Register Hook]\n");
@@ -1272,21 +1294,15 @@ void test_event_cd_data(void)
     printf("\n[Event: CD Event Data]\n");
     reset_hooks();
 
-    static char captured_old[PATH_MAX] = "";
-    static char captured_new[PATH_MAX] = "";
-
-    /* Custom handler to capture CD paths */
-    void cd_capture_handler(const Event* event, void* user_data) {
-        (void)user_data;
-        if (event->old_cwd) strncpy(captured_old, event->old_cwd, PATH_MAX - 1);
-        if (event->new_cwd) strncpy(captured_new, event->new_cwd, PATH_MAX - 1);
-    }
+    /* Reset capture variables */
+    captured_old_cwd[0] = '\0';
+    captured_new_cwd[0] = '\0';
 
     register_hook(EVENT_CD, cd_capture_handler, NULL);
 
     emit_cd_event("/home/user", "/tmp");
-    ASSERT_STR_EQ(captured_old, "/home/user", "old_cwd captured");
-    ASSERT_STR_EQ(captured_new, "/tmp", "new_cwd captured");
+    ASSERT_STR_EQ(captured_old_cwd, "/home/user", "old_cwd captured");
+    ASSERT_STR_EQ(captured_new_cwd, "/tmp", "new_cwd captured");
 
     reset_hooks();
 }
@@ -1296,15 +1312,9 @@ void test_event_expand_data(void)
     printf("\n[Event: Expand Event Data]\n");
     reset_hooks();
 
-    static char captured_original[256] = "";
-    static char captured_expanded[256] = "";
-
-    /* Custom handler to capture expand data */
-    void expand_capture_handler(const Event* event, void* user_data) {
-        (void)user_data;
-        if (event->command) strncpy(captured_original, event->command, 255);
-        if (event->expanded) strncpy(captured_expanded, event->expanded, 255);
-    }
+    /* Reset capture variables */
+    captured_original[0] = '\0';
+    captured_expanded[0] = '\0';
 
     register_hook(EVENT_ALIAS_EXPAND, expand_capture_handler, NULL);
 
