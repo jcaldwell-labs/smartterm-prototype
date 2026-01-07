@@ -93,8 +93,16 @@ When working on cc-bash, keep in mind:
 
 Key source files:
 
-- `cc-bash.c` - Main implementation (~465 lines)
-- `tests/test_cc_bash.sh` - Test suite for cc-bash
+- `cc-bash.c` - Main implementation (~2700 lines)
+- `tests/test_unit.c` - Unit tests (170 tests)
+- `tests/test_cc_bash.sh` - Static analysis tests (12 tests)
+
+Key features implemented:
+
+- Aliases, snippets, workflows
+- Theme customization
+- Event/hook system
+- Plugin system
 
 ### Building the Library
 

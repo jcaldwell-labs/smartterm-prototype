@@ -24,7 +24,13 @@ cc-bash provides a Claude Code-inspired interface for interactive bash use:
 - Commands execute in bash by default (no `!` prefix needed)
 - Colored output: commands (cyan), stdout (white), stderr (red)
 - Status bar showing current directory, exit code, and time
-- Command history (up/down arrows via readline)
+- Command history with persistence (~/.cc-bash-history)
+- Tab completion for commands and file paths
+- **Aliases** - command shortcuts (`alias ll='ls -la'`)
+- **Snippets** - parameterized templates (`snippet greet='echo Hello, $1!'`)
+- **Workflows** - multi-step command sequences (`workflow build='make && make test'`)
+- **Plugins** - extensible via shell-script hooks
+- **Themes** - customizable colors
 - Notes with `#` prefix (displayed, not executed)
 - Internal commands with `@` prefix
 
@@ -212,11 +218,132 @@ Built-in commands:
 
 ### Internal @ Commands
 
-| Command         | Action       |
-| --------------- | ------------ |
-| `@help` / `@h`  | Show help    |
-| `@clear` / `@c` | Clear screen |
-| `@quit` / `@q`  | Exit cc-bash |
+| Command                        | Action                                  |
+| ------------------------------ | --------------------------------------- |
+| `@help` / `@h`                 | Show help                               |
+| `@clear` / `@c`                | Clear screen                            |
+| `@quit` / `@q`                 | Exit cc-bash                            |
+| `@alias [name=cmd]`            | List aliases or add new one             |
+| `@snippet [name args...]`      | List snippets or run one with arguments |
+| `@workflow [name] [--dry-run]` | List workflows, run one, or preview     |
+| `@theme`                       | Display current theme colors            |
+| `@hooks`                       | List registered event hooks             |
+| `@plugins`                     | List loaded plugins                     |
+
+---
+
+## Configuration
+
+cc-bash uses `~/.cc-bashrc` for configuration. Create it manually or copy from `cc-bashrc.template`.
+
+### Aliases
+
+```bash
+# Define command shortcuts
+alias ll='ls -la'
+alias gs='git status'
+alias gd='git diff'
+```
+
+Usage: Type `ll` and it expands to `ls -la`
+
+### Snippets
+
+```bash
+# Define parameterized templates ($1, $2, etc.)
+snippet find-name='find . -name "$1"'
+snippet grep-r='grep -r "$1" .'
+snippet mkdir-cd='mkdir -p $1 && cd $1'
+```
+
+Usage: `@snippet find-name "*.c"` → `find . -name "*.c"`
+
+### Workflows
+
+```bash
+# Multi-step command sequences
+workflow build='make clean && make && make test'
+workflow gitcheck='git status; git diff --stat'
+```
+
+- Use `&&` to stop on first error
+- Use `;` to continue regardless of errors
+
+Usage:
+
+- `@workflow` - list all workflows
+- `@workflow build` - run the build workflow
+- `@workflow build --dry-run` - preview without executing
+
+### Themes
+
+```bash
+# Customize colors (black, red, green, yellow, blue, magenta, cyan, white)
+# Modifiers: bold, dim
+theme.prompt=bold cyan
+theme.error=bold red
+theme.comment=green
+theme.dim=dim
+theme.header=bold white
+theme.status=bold
+theme.scroll=dim
+```
+
+### Environment Variables
+
+```bash
+export EDITOR=vim
+export PAGER=less
+```
+
+---
+
+## Plugins
+
+Plugins extend cc-bash with custom hooks, commands, aliases, and workflows.
+
+### Plugin Location
+
+```
+~/.cc-bash/plugins/<plugin-name>/
+├── plugin.conf     # Required: plugin manifest
+├── config.conf     # Optional: aliases/snippets/workflows
+└── hooks/          # Optional: event hook scripts
+    ├── on_startup.sh
+    ├── on_cd.sh
+    └── on_post_command.sh
+```
+
+### Plugin Manifest (plugin.conf)
+
+```ini
+name=my-plugin
+version=1.0
+description=My custom plugin
+
+# Event hooks (shell scripts)
+hook.startup=hooks/on_startup.sh
+hook.cd=hooks/on_cd.sh
+hook.post_command=hooks/on_post_command.sh
+```
+
+### Event Types
+
+| Event          | Environment Variables                |
+| -------------- | ------------------------------------ |
+| `startup`      | (none)                               |
+| `shutdown`     | (none)                               |
+| `pre_command`  | `CCBASH_COMMAND`                     |
+| `post_command` | `CCBASH_COMMAND`, `CCBASH_EXIT_CODE` |
+| `cd`           | `CCBASH_OLD_CWD`, `CCBASH_NEW_CWD`   |
+
+### Example Hook Script
+
+```bash
+#!/bin/sh
+# hooks/on_cd.sh - Log directory changes
+echo "[$(date)] cd: $CCBASH_OLD_CWD -> $CCBASH_NEW_CWD" >> ~/.cc-bash/cd.log
+```
 
 ---
 
@@ -263,15 +390,29 @@ The current ANSI-based approach keeps all output visible at all times.
 
 ```
 smartterm-prototype/
-├── cc-bash.c            # C implementation (~350 LOC)
-├── cc-bash-sdk.py       # Python + Claude SDK implementation (~280 LOC)
-├── requirements.txt     # Python dependencies
-├── Makefile             # Build configuration (C version)
-├── smartterm_poc.c      # Original ncurses POC (archived)
-├── lib/                 # SmartTerm library (legacy)
-├── include/             # Library headers (legacy)
-├── examples/            # Example applications (legacy)
-└── README.md            # This file
+├── cc-bash.c              # C implementation (~2700 LOC)
+├── cc-bash-sdk.py         # Python + Claude SDK implementation
+├── cc-bashrc.template     # Sample configuration file
+├── install.sh             # Installation script
+├── Makefile               # Build configuration
+├── tests/
+│   ├── test_unit.c        # Unit tests (170 tests)
+│   └── test_cc_bash.sh    # Static analysis tests
+├── .github/
+│   └── workflows/
+│       ├── ci.yml         # CI pipeline (build, test, lint)
+│       └── release.yml    # Release automation
+├── lib/                   # SmartTerm library (legacy)
+├── include/               # Library headers (legacy)
+└── examples/              # Example applications (legacy)
+```
+
+### User Files
+
+```
+~/.cc-bashrc               # Configuration (aliases, snippets, workflows, themes)
+~/.cc-bash-history         # Command history
+~/.cc-bash/plugins/        # Plugin directory
 ```
 
 ---
