@@ -53,6 +53,8 @@
  * ============================================================================
  * These codes control terminal text formatting. We use them directly instead
  * of ncurses for simplicity and portability. All modern terminals support these.
+ *
+ * Default values - these are used as fallbacks when theme is not configured.
  */
 #define RESET   "\033[0m"
 #define BOLD    "\033[1m"
@@ -61,6 +63,42 @@
 #define GREEN   "\033[32m"
 #define YELLOW  "\033[33m"
 #define CYAN    "\033[36m"
+#define BLUE    "\033[34m"
+#define MAGENTA "\033[35m"
+#define WHITE   "\033[37m"
+
+/* ============================================================================
+ * Theme Configuration
+ * ============================================================================
+ * Configurable colors loaded from ~/.cc-bashrc using theme.* syntax:
+ *   theme.prompt=cyan
+ *   theme.error=red
+ *   theme.comment=green
+ *   theme.dim=dim
+ *   theme.header=bold cyan
+ *
+ * Supported colors: black, red, green, yellow, blue, magenta, cyan, white
+ * Modifiers: bold, dim (can be combined with color)
+ */
+typedef struct {
+    char prompt[32];    /* Prompt symbol color (default: none) */
+    char error[32];     /* Error/stderr color (default: red) */
+    char comment[32];   /* Comment (#) color (default: yellow) */
+    char dim[32];       /* Dim text color (default: dim gray) */
+    char header[32];    /* Help headers color (default: cyan) */
+    char status[32];    /* Status bar color (default: bold) */
+    char scroll[32];    /* Scroll indicator color (default: cyan) */
+} Theme;
+
+static Theme theme = {
+    .prompt = "",           /* No color by default */
+    .error = "\033[31m",    /* Red */
+    .comment = "\033[33m",  /* Yellow */
+    .dim = "\033[2m",       /* Dim */
+    .header = "\033[36m",   /* Cyan */
+    .status = "\033[1m",    /* Bold */
+    .scroll = "\033[36m"    /* Cyan */
+};
 
 /* Buffer and history size limits */
 #define INPUT_BUF_SIZE 4096
@@ -70,8 +108,55 @@
 #define SCROLL_LARGE_JUMP 50
 #define MAX_COMPLETIONS 256
 #define MAX_ALIASES 100
+#define MAX_SNIPPETS 50
+#define MAX_WORKFLOWS 20
+#define MAX_WORKFLOW_STEPS 10
+#define MAX_HOOKS 20
+#define MAX_PLUGINS 20
+#define MAX_PLUGIN_COMMANDS 10
+#define MAX_PLUGIN_HOOKS 7   /* One per event type */
 #define CONFIG_LINE_SIZE 1024
 #define HISTORY_FILE ".cc-bash-history"
+#define PLUGIN_DIR ".cc-bash/plugins"
+
+/* ============================================================================
+ * Event System Types
+ * ============================================================================
+ * The event system provides lifecycle hooks for internal features (like
+ * @workflow) and future plugin extensibility. Events are emitted at key
+ * points in the shell lifecycle.
+ */
+
+typedef enum {
+    EVENT_STARTUP,       /* Shell started, config loaded */
+    EVENT_SHUTDOWN,      /* Shell exiting */
+    EVENT_PRE_COMMAND,   /* Before command execution */
+    EVENT_POST_COMMAND,  /* After command execution */
+    EVENT_CD,            /* Directory changed */
+    EVENT_ALIAS_EXPAND,  /* Alias was expanded */
+    EVENT_SNIPPET_EXPAND /* Snippet was expanded */
+} EventType;
+
+/* Event data passed to handlers */
+typedef struct {
+    EventType type;
+    const char* command;      /* For PRE/POST_COMMAND, ALIAS/SNIPPET_EXPAND */
+    const char* expanded;     /* For ALIAS/SNIPPET_EXPAND: the expanded form */
+    int exit_code;            /* For POST_COMMAND */
+    const char* old_cwd;      /* For CD: previous directory */
+    const char* new_cwd;      /* For CD: new directory */
+} Event;
+
+/* Event handler function type */
+typedef void (*EventHandler)(const Event* event, void* user_data);
+
+/* Registered hook */
+typedef struct {
+    EventType type;
+    EventHandler handler;
+    void* user_data;
+    int active;
+} Hook;
 
 /* ============================================================================
  * Global State
@@ -117,8 +202,191 @@ typedef struct {
 static Alias aliases[MAX_ALIASES];
 static int alias_count = 0;
 
+/* Snippets - command templates with $1, $2, etc. substitution */
+typedef struct {
+    char* name;
+    char* template;
+} Snippet;
+
+static Snippet snippets[MAX_SNIPPETS];
+static int snippet_count = 0;
+
+/* Workflows - named sequences of commands executed together
+ * Config syntax: workflow name='cmd1 && cmd2 && cmd3'
+ * The && separator means "stop on first failure"
+ * Use ; separator for "continue regardless of failure"
+ */
+typedef struct {
+    char* name;
+    char* steps[MAX_WORKFLOW_STEPS];  /* Individual commands */
+    int step_count;
+    int stop_on_error;                /* 1 = stop on first failure (&&), 0 = continue (;) */
+} Workflow;
+
+static Workflow workflows[MAX_WORKFLOWS];
+static int workflow_count = 0;
+
+/* ============================================================================
+ * Plugin System Types
+ * ============================================================================
+ * Plugins extend cc-bash with custom commands, hooks, aliases, snippets,
+ * and workflows. Plugins are loaded from ~/.cc-bash/plugins/<name>/
+ *
+ * Plugin structure:
+ *   ~/.cc-bash/plugins/my-plugin/
+ *   ├── plugin.conf           # Manifest (name, version, description)
+ *   ├── config.conf           # Optional: aliases, snippets, workflows
+ *   └── hooks/                # Optional: shell scripts for event hooks
+ *       ├── on_startup.sh
+ *       ├── on_pre_command.sh
+ *       └── on_cd.sh
+ */
+
+/* Plugin command - custom @ command provided by plugin */
+typedef struct {
+    char* name;          /* Command name (after @) */
+    char* script_path;   /* Path to shell script */
+    char* description;   /* Help text */
+} PluginCommand;
+
+/* Plugin - loaded from plugin directory */
+typedef struct {
+    char* name;
+    char* version;
+    char* description;
+    char* path;                              /* Plugin directory path */
+    int enabled;
+    PluginCommand commands[MAX_PLUGIN_COMMANDS];
+    int command_count;
+    char* hook_scripts[MAX_PLUGIN_HOOKS];    /* Script paths indexed by EventType */
+} Plugin;
+
+static Plugin plugins[MAX_PLUGINS];
+static int plugin_count = 0;
+
 /* Last command exit code - displayed in prompt when non-zero */
 static int last_exit = 0;
+
+/* Event hooks - registered handlers for lifecycle events */
+static Hook hooks[MAX_HOOKS];
+static int hook_count = 0;
+
+/* ============================================================================
+ * Event System Functions
+ * ============================================================================
+ * Register, unregister, and emit events to registered handlers.
+ */
+
+/* Register a hook for an event type
+ * Returns hook ID (>= 0) on success, -1 if hooks array is full
+ */
+static int register_hook(EventType type, EventHandler handler, void* user_data)
+{
+    if (hook_count >= MAX_HOOKS) return -1;
+
+    hooks[hook_count].type = type;
+    hooks[hook_count].handler = handler;
+    hooks[hook_count].user_data = user_data;
+    hooks[hook_count].active = 1;
+
+    return hook_count++;
+}
+
+/* Unregister a hook by ID */
+static void unregister_hook(int hook_id)
+{
+    if (hook_id >= 0 && hook_id < hook_count) {
+        hooks[hook_id].active = 0;
+    }
+}
+
+/* Forward declaration for plugin hook execution */
+static void execute_plugin_hooks(EventType type, const Event* event);
+
+/* Emit an event to all registered handlers of matching type */
+static void emit_event(const Event* event)
+{
+    /* Call internal event handlers */
+    for (int i = 0; i < hook_count; i++) {
+        if (hooks[i].active && hooks[i].type == event->type) {
+            hooks[i].handler(event, hooks[i].user_data);
+        }
+    }
+
+    /* Call plugin hook scripts */
+    execute_plugin_hooks(event->type, event);
+}
+
+/* Helper: Create and emit a simple event */
+static void emit_simple_event(EventType type)
+{
+    Event event = {
+        .type = type,
+        .command = NULL,
+        .expanded = NULL,
+        .exit_code = 0,
+        .old_cwd = NULL,
+        .new_cwd = NULL
+    };
+    emit_event(&event);
+}
+
+/* Helper: Emit command event (PRE or POST) */
+static void emit_command_event(EventType type, const char* command, int exit_code)
+{
+    Event event = {
+        .type = type,
+        .command = command,
+        .expanded = NULL,
+        .exit_code = exit_code,
+        .old_cwd = NULL,
+        .new_cwd = NULL
+    };
+    emit_event(&event);
+}
+
+/* Helper: Emit CD event */
+static void emit_cd_event(const char* old_dir, const char* new_dir)
+{
+    Event event = {
+        .type = EVENT_CD,
+        .command = NULL,
+        .expanded = NULL,
+        .exit_code = 0,
+        .old_cwd = old_dir,
+        .new_cwd = new_dir
+    };
+    emit_event(&event);
+}
+
+/* Helper: Emit alias/snippet expand event */
+static void emit_expand_event(EventType type, const char* original, const char* expanded)
+{
+    Event event = {
+        .type = type,
+        .command = original,
+        .expanded = expanded,
+        .exit_code = 0,
+        .old_cwd = NULL,
+        .new_cwd = NULL
+    };
+    emit_event(&event);
+}
+
+/* Get event type name (for debugging/display) */
+static const char* event_type_name(EventType type)
+{
+    switch (type) {
+        case EVENT_STARTUP:        return "STARTUP";
+        case EVENT_SHUTDOWN:       return "SHUTDOWN";
+        case EVENT_PRE_COMMAND:    return "PRE_COMMAND";
+        case EVENT_POST_COMMAND:   return "POST_COMMAND";
+        case EVENT_CD:             return "CD";
+        case EVENT_ALIAS_EXPAND:   return "ALIAS_EXPAND";
+        case EVENT_SNIPPET_EXPAND: return "SNIPPET_EXPAND";
+        default:                   return "UNKNOWN";
+    }
+}
 
 /* ============================================================================
  * Terminal Setup and Teardown
@@ -170,6 +438,86 @@ static void clear_line(void) { printf("\033[2K"); }
  *   export GLAMOUR_STYLE=dark
  */
 
+/* ============================================================================
+ * Theme Color Parsing
+ * ============================================================================
+ * Convert color names like "red", "bold cyan" to ANSI escape sequences.
+ */
+
+/* Parse a color name to ANSI code, returns pointer to static buffer */
+static const char* parse_color(const char* name)
+{
+    static char buf[64];
+    buf[0] = '\0';
+
+    if (!name || strlen(name) == 0) {
+        return buf;  /* Empty = no color */
+    }
+
+    /* Make a copy for tokenizing */
+    char copy[64];
+    strncpy(copy, name, sizeof(copy) - 1);
+    copy[sizeof(copy) - 1] = '\0';
+
+    /* Parse tokens (e.g., "bold cyan" -> "\033[1m\033[36m") */
+    char* token = strtok(copy, " ");
+    while (token) {
+        /* Modifiers */
+        if (strcmp(token, "bold") == 0) {
+            strcat(buf, "\033[1m");
+        } else if (strcmp(token, "dim") == 0) {
+            strcat(buf, "\033[2m");
+        }
+        /* Colors */
+        else if (strcmp(token, "black") == 0) {
+            strcat(buf, "\033[30m");
+        } else if (strcmp(token, "red") == 0) {
+            strcat(buf, "\033[31m");
+        } else if (strcmp(token, "green") == 0) {
+            strcat(buf, "\033[32m");
+        } else if (strcmp(token, "yellow") == 0) {
+            strcat(buf, "\033[33m");
+        } else if (strcmp(token, "blue") == 0) {
+            strcat(buf, "\033[34m");
+        } else if (strcmp(token, "magenta") == 0) {
+            strcat(buf, "\033[35m");
+        } else if (strcmp(token, "cyan") == 0) {
+            strcat(buf, "\033[36m");
+        } else if (strcmp(token, "white") == 0) {
+            strcat(buf, "\033[37m");
+        }
+        /* Default/none */
+        else if (strcmp(token, "none") == 0 || strcmp(token, "default") == 0) {
+            /* Leave empty */
+        }
+        token = strtok(NULL, " ");
+    }
+
+    return buf;
+}
+
+/* Set a theme field by name */
+static void set_theme_color(const char* field, const char* value)
+{
+    const char* code = parse_color(value);
+
+    if (strcmp(field, "prompt") == 0) {
+        strncpy(theme.prompt, code, sizeof(theme.prompt) - 1);
+    } else if (strcmp(field, "error") == 0) {
+        strncpy(theme.error, code, sizeof(theme.error) - 1);
+    } else if (strcmp(field, "comment") == 0) {
+        strncpy(theme.comment, code, sizeof(theme.comment) - 1);
+    } else if (strcmp(field, "dim") == 0) {
+        strncpy(theme.dim, code, sizeof(theme.dim) - 1);
+    } else if (strcmp(field, "header") == 0) {
+        strncpy(theme.header, code, sizeof(theme.header) - 1);
+    } else if (strcmp(field, "status") == 0) {
+        strncpy(theme.status, code, sizeof(theme.status) - 1);
+    } else if (strcmp(field, "scroll") == 0) {
+        strncpy(theme.scroll, code, sizeof(theme.scroll) - 1);
+    }
+}
+
 /* Add an alias */
 static void add_alias(const char* name, const char* command)
 {
@@ -195,6 +543,487 @@ static const char* get_alias(const char* name)
     for (int i = 0; i < alias_count; i++) {
         if (strcmp(aliases[i].name, name) == 0) {
             return aliases[i].command;
+        }
+    }
+    return NULL;
+}
+
+/* ============================================================================
+ * Snippet Management
+ * ============================================================================
+ * Snippets are command templates with $1, $2, $N placeholder substitution.
+ * Unlike aliases, snippets support positional arguments.
+ *
+ * Config syntax: snippet name='command with $1 and $2'
+ * Usage: @snippet name arg1 arg2
+ */
+
+/* Add a snippet */
+static void add_snippet(const char* name, const char* template)
+{
+    if (snippet_count >= MAX_SNIPPETS) return;
+
+    /* Check for existing snippet with same name and replace */
+    for (int i = 0; i < snippet_count; i++) {
+        if (strcmp(snippets[i].name, name) == 0) {
+            free(snippets[i].template);
+            snippets[i].template = strdup(template);
+            return;
+        }
+    }
+
+    snippets[snippet_count].name = strdup(name);
+    snippets[snippet_count].template = strdup(template);
+    snippet_count++;
+}
+
+/* Look up a snippet, returns template or NULL */
+static const char* get_snippet(const char* name)
+{
+    for (int i = 0; i < snippet_count; i++) {
+        if (strcmp(snippets[i].name, name) == 0) {
+            return snippets[i].template;
+        }
+    }
+    return NULL;
+}
+
+/* Expand snippet template with arguments
+ * Replaces $1, $2, ... $9 with corresponding args
+ * Returns newly allocated string (caller must free)
+ */
+static char* expand_snippet(const char* template, char** args, int arg_count)
+{
+    char* result = malloc(INPUT_BUF_SIZE);
+    if (!result) return NULL;
+
+    char* out = result;
+    const char* in = template;
+    size_t remaining = INPUT_BUF_SIZE - 1;
+
+    while (*in && remaining > 0) {
+        if (*in == '$' && in[1] >= '1' && in[1] <= '9') {
+            /* Found $N placeholder */
+            int arg_idx = in[1] - '1';  /* Convert '1'-'9' to 0-8 */
+            if (arg_idx < arg_count && args[arg_idx]) {
+                size_t arg_len = strlen(args[arg_idx]);
+                if (arg_len <= remaining) {
+                    strcpy(out, args[arg_idx]);
+                    out += arg_len;
+                    remaining -= arg_len;
+                }
+            }
+            in += 2;  /* Skip $N */
+        } else {
+            *out++ = *in++;
+            remaining--;
+        }
+    }
+    *out = '\0';
+
+    return result;
+}
+
+/* Free snippet memory */
+static void free_snippets(void)
+{
+    for (int i = 0; i < snippet_count; i++) {
+        free(snippets[i].name);
+        free(snippets[i].template);
+    }
+    snippet_count = 0;
+}
+
+/* ============================================================================
+ * Workflow Management
+ * ============================================================================
+ * Workflows are named sequences of commands. They integrate with the event
+ * system to emit progress events as each step executes.
+ *
+ * Config syntax: workflow name='cmd1 && cmd2 && cmd3'
+ * Usage: @workflow name
+ */
+
+/* Add a workflow from config string
+ * Parses the command string into steps, using && or ; as separators
+ * && means stop on first failure, ; means continue regardless
+ */
+static void add_workflow(const char* name, const char* commands)
+{
+    if (workflow_count >= MAX_WORKFLOWS) return;
+
+    /* Check for existing workflow with same name and replace */
+    int idx = -1;
+    for (int i = 0; i < workflow_count; i++) {
+        if (strcmp(workflows[i].name, name) == 0) {
+            /* Free old steps */
+            for (int j = 0; j < workflows[i].step_count; j++) {
+                free(workflows[i].steps[j]);
+            }
+            idx = i;
+            break;
+        }
+    }
+
+    if (idx < 0) {
+        idx = workflow_count++;
+        workflows[idx].name = strdup(name);
+    }
+
+    workflows[idx].step_count = 0;
+    workflows[idx].stop_on_error = 1;  /* Default: stop on error (&&) */
+
+    /* Make a copy for tokenizing */
+    char* cmd_copy = strdup(commands);
+    if (!cmd_copy) return;
+
+    /* Detect separator type: && or ; */
+    if (strstr(cmd_copy, "&&")) {
+        workflows[idx].stop_on_error = 1;
+        /* Split by && */
+        char* saveptr;
+        char* step = strtok_r(cmd_copy, "&", &saveptr);
+        while (step && workflows[idx].step_count < MAX_WORKFLOW_STEPS) {
+            /* Skip empty tokens (from &&) */
+            while (*step == '&' || *step == ' ') step++;
+            if (*step) {
+                /* Trim trailing spaces */
+                char* end = step + strlen(step) - 1;
+                while (end > step && *end == ' ') *end-- = '\0';
+                if (*step) {
+                    workflows[idx].steps[workflows[idx].step_count++] = strdup(step);
+                }
+            }
+            step = strtok_r(NULL, "&", &saveptr);
+        }
+    } else {
+        /* Split by ; */
+        workflows[idx].stop_on_error = 0;
+        char* saveptr;
+        char* step = strtok_r(cmd_copy, ";", &saveptr);
+        while (step && workflows[idx].step_count < MAX_WORKFLOW_STEPS) {
+            /* Trim leading/trailing spaces */
+            while (*step == ' ') step++;
+            if (*step) {
+                char* end = step + strlen(step) - 1;
+                while (end > step && *end == ' ') *end-- = '\0';
+                if (*step) {
+                    workflows[idx].steps[workflows[idx].step_count++] = strdup(step);
+                }
+            }
+            step = strtok_r(NULL, ";", &saveptr);
+        }
+    }
+
+    free(cmd_copy);
+}
+
+/* Look up a workflow by name */
+static Workflow* get_workflow(const char* name)
+{
+    for (int i = 0; i < workflow_count; i++) {
+        if (strcmp(workflows[i].name, name) == 0) {
+            return &workflows[i];
+        }
+    }
+    return NULL;
+}
+
+/* Free workflow memory */
+static void free_workflows(void)
+{
+    for (int i = 0; i < workflow_count; i++) {
+        free(workflows[i].name);
+        for (int j = 0; j < workflows[i].step_count; j++) {
+            free(workflows[i].steps[j]);
+        }
+    }
+    workflow_count = 0;
+}
+
+/* ============================================================================
+ * Plugin System Functions
+ * ============================================================================
+ * Load, manage, and execute plugins from ~/.cc-bash/plugins/
+ */
+
+/* Forward declaration for execute_command */
+static int execute_command(const char* cmd);
+
+/* Free plugin memory */
+static void free_plugins(void)
+{
+    for (int i = 0; i < plugin_count; i++) {
+        free(plugins[i].name);
+        free(plugins[i].version);
+        free(plugins[i].description);
+        free(plugins[i].path);
+        for (int j = 0; j < plugins[i].command_count; j++) {
+            free(plugins[i].commands[j].name);
+            free(plugins[i].commands[j].script_path);
+            free(plugins[i].commands[j].description);
+        }
+        for (int j = 0; j < MAX_PLUGIN_HOOKS; j++) {
+            if (plugins[i].hook_scripts[j]) {
+                free(plugins[i].hook_scripts[j]);
+            }
+        }
+    }
+    plugin_count = 0;
+}
+
+/* Parse a config file (plugin.conf or config.conf) into current state */
+static void parse_plugin_config(const char* filepath, const char* plugin_path)
+{
+    FILE* fp = fopen(filepath, "r");
+    if (!fp) return;
+
+    char line[CONFIG_LINE_SIZE];
+    while (fgets(line, sizeof(line), fp)) {
+        line[strcspn(line, "\n")] = '\0';
+
+        char* p = line;
+        while (*p == ' ' || *p == '\t') p++;
+        if (*p == '\0' || *p == '#') continue;
+
+        /* Handle alias, snippet, workflow - same syntax as main config */
+        if (strncmp(p, "alias ", 6) == 0) {
+            p += 6;
+            while (*p == ' ') p++;
+            char* eq = strchr(p, '=');
+            if (eq) {
+                *eq = '\0';
+                char* name = p;
+                char* cmd = eq + 1;
+                size_t cmd_len = strlen(cmd);
+                if (cmd_len >= 2 &&
+                    ((cmd[0] == '\'' && cmd[cmd_len-1] == '\'') ||
+                     (cmd[0] == '"' && cmd[cmd_len-1] == '"'))) {
+                    cmd[cmd_len-1] = '\0';
+                    cmd++;
+                }
+                add_alias(name, cmd);
+            }
+        }
+        else if (strncmp(p, "snippet ", 8) == 0) {
+            p += 8;
+            while (*p == ' ') p++;
+            char* eq = strchr(p, '=');
+            if (eq) {
+                *eq = '\0';
+                char* name = p;
+                char* tmpl = eq + 1;
+                size_t tmpl_len = strlen(tmpl);
+                if (tmpl_len >= 2 &&
+                    ((tmpl[0] == '\'' && tmpl[tmpl_len-1] == '\'') ||
+                     (tmpl[0] == '"' && tmpl[tmpl_len-1] == '"'))) {
+                    tmpl[tmpl_len-1] = '\0';
+                    tmpl++;
+                }
+                add_snippet(name, tmpl);
+            }
+        }
+        else if (strncmp(p, "workflow ", 9) == 0) {
+            p += 9;
+            while (*p == ' ') p++;
+            char* eq = strchr(p, '=');
+            if (eq) {
+                *eq = '\0';
+                char* name = p;
+                char* cmds = eq + 1;
+                size_t cmds_len = strlen(cmds);
+                if (cmds_len >= 2 &&
+                    ((cmds[0] == '\'' && cmds[cmds_len-1] == '\'') ||
+                     (cmds[0] == '"' && cmds[cmds_len-1] == '"'))) {
+                    cmds[cmds_len-1] = '\0';
+                    cmds++;
+                }
+                add_workflow(name, cmds);
+            }
+        }
+    }
+
+    (void)plugin_path;  /* For future use */
+    fclose(fp);
+}
+
+/* Load a single plugin from a directory */
+static int load_plugin(const char* plugin_dir)
+{
+    if (plugin_count >= MAX_PLUGINS) return -1;
+
+    /* Check for plugin.conf */
+    char manifest_path[PATH_MAX];
+    snprintf(manifest_path, sizeof(manifest_path), "%s/plugin.conf", plugin_dir);
+
+    FILE* fp = fopen(manifest_path, "r");
+    if (!fp) return -1;  /* No manifest, not a valid plugin */
+
+    Plugin* p = &plugins[plugin_count];
+    memset(p, 0, sizeof(Plugin));
+    p->path = strdup(plugin_dir);
+    p->enabled = 1;
+
+    /* Parse plugin.conf for metadata and hooks */
+    char line[CONFIG_LINE_SIZE];
+    while (fgets(line, sizeof(line), fp)) {
+        line[strcspn(line, "\n")] = '\0';
+
+        char* ptr = line;
+        while (*ptr == ' ' || *ptr == '\t') ptr++;
+        if (*ptr == '\0' || *ptr == '#') continue;
+
+        /* Parse key=value */
+        char* eq = strchr(ptr, '=');
+        if (!eq) continue;
+        *eq = '\0';
+        char* key = ptr;
+        char* val = eq + 1;
+
+        /* Strip quotes from value */
+        size_t val_len = strlen(val);
+        if (val_len >= 2 &&
+            ((val[0] == '\'' && val[val_len-1] == '\'') ||
+             (val[0] == '"' && val[val_len-1] == '"'))) {
+            val[val_len-1] = '\0';
+            val++;
+        }
+
+        /* Metadata fields */
+        if (strcmp(key, "name") == 0) {
+            p->name = strdup(val);
+        } else if (strcmp(key, "version") == 0) {
+            p->version = strdup(val);
+        } else if (strcmp(key, "description") == 0) {
+            p->description = strdup(val);
+        } else if (strcmp(key, "enabled") == 0) {
+            p->enabled = (strcmp(val, "true") == 0 || strcmp(val, "1") == 0);
+        }
+        /* Hook scripts */
+        else if (strncmp(key, "hook.", 5) == 0) {
+            char* hook_type = key + 5;
+            char script_path[PATH_MAX];
+            snprintf(script_path, sizeof(script_path), "%s/%s", plugin_dir, val);
+
+            if (strcmp(hook_type, "startup") == 0) {
+                p->hook_scripts[EVENT_STARTUP] = strdup(script_path);
+            } else if (strcmp(hook_type, "shutdown") == 0) {
+                p->hook_scripts[EVENT_SHUTDOWN] = strdup(script_path);
+            } else if (strcmp(hook_type, "pre_command") == 0) {
+                p->hook_scripts[EVENT_PRE_COMMAND] = strdup(script_path);
+            } else if (strcmp(hook_type, "post_command") == 0) {
+                p->hook_scripts[EVENT_POST_COMMAND] = strdup(script_path);
+            } else if (strcmp(hook_type, "cd") == 0) {
+                p->hook_scripts[EVENT_CD] = strdup(script_path);
+            }
+        }
+        /* Custom commands */
+        else if (strncmp(key, "command.", 8) == 0 && p->command_count < MAX_PLUGIN_COMMANDS) {
+            char* cmd_name = key + 8;
+            char script_path[PATH_MAX];
+            snprintf(script_path, sizeof(script_path), "%s/%s", plugin_dir, val);
+
+            p->commands[p->command_count].name = strdup(cmd_name);
+            p->commands[p->command_count].script_path = strdup(script_path);
+            p->commands[p->command_count].description = NULL;
+            p->command_count++;
+        }
+    }
+    fclose(fp);
+
+    /* Set default name if not specified */
+    if (!p->name) {
+        /* Extract directory name as plugin name */
+        const char* last_slash = strrchr(plugin_dir, '/');
+        p->name = strdup(last_slash ? last_slash + 1 : plugin_dir);
+    }
+    if (!p->version) p->version = strdup("1.0");
+    if (!p->description) p->description = strdup("");
+
+    /* Load plugin's config.conf for aliases/snippets/workflows */
+    char config_path[PATH_MAX];
+    snprintf(config_path, sizeof(config_path), "%s/config.conf", plugin_dir);
+    if (p->enabled) {
+        parse_plugin_config(config_path, plugin_dir);
+    }
+
+    plugin_count++;
+    return 0;
+}
+
+/* Load all plugins from plugin directory */
+static void load_plugins(void)
+{
+    const char* home = getenv("HOME");
+    if (!home) return;
+
+    char plugins_dir[PATH_MAX];
+    snprintf(plugins_dir, sizeof(plugins_dir), "%s/%s", home, PLUGIN_DIR);
+
+    DIR* dir = opendir(plugins_dir);
+    if (!dir) return;  /* Plugin directory doesn't exist, that's fine */
+
+    struct dirent* entry;
+    while ((entry = readdir(dir)) != NULL) {
+        /* Skip . and .. */
+        if (entry->d_name[0] == '.') continue;
+
+        /* Build full path */
+        char plugin_path[PATH_MAX];
+        snprintf(plugin_path, sizeof(plugin_path), "%s/%s", plugins_dir, entry->d_name);
+
+        /* Check if it's a directory */
+        struct stat st;
+        if (stat(plugin_path, &st) == 0 && S_ISDIR(st.st_mode)) {
+            load_plugin(plugin_path);
+        }
+    }
+
+    closedir(dir);
+}
+
+/* Execute plugin hooks for an event type */
+static void execute_plugin_hooks(EventType type, const Event* event)
+{
+    for (int i = 0; i < plugin_count; i++) {
+        if (!plugins[i].enabled) continue;
+        if (!plugins[i].hook_scripts[type]) continue;
+
+        /* Build command with event data as environment variables */
+        char cmd[INPUT_BUF_SIZE * 2];
+        const char* script = plugins[i].hook_scripts[type];
+
+        /* Set environment variables based on event type */
+        if (type == EVENT_PRE_COMMAND || type == EVENT_POST_COMMAND) {
+            snprintf(cmd, sizeof(cmd),
+                     "CCBASH_COMMAND='%s' CCBASH_EXIT_CODE=%d /bin/sh '%s' 2>/dev/null",
+                     event->command ? event->command : "",
+                     event->exit_code,
+                     script);
+        } else if (type == EVENT_CD) {
+            snprintf(cmd, sizeof(cmd),
+                     "CCBASH_OLD_CWD='%s' CCBASH_NEW_CWD='%s' /bin/sh '%s' 2>/dev/null",
+                     event->old_cwd ? event->old_cwd : "",
+                     event->new_cwd ? event->new_cwd : "",
+                     script);
+        } else {
+            snprintf(cmd, sizeof(cmd), "/bin/sh '%s' 2>/dev/null", script);
+        }
+
+        /* Execute hook script (ignore return value) */
+        system(cmd);
+    }
+}
+
+/* Find a plugin command by name */
+static PluginCommand* find_plugin_command(const char* name)
+{
+    for (int i = 0; i < plugin_count; i++) {
+        if (!plugins[i].enabled) continue;
+        for (int j = 0; j < plugins[i].command_count; j++) {
+            if (strcmp(plugins[i].commands[j].name, name) == 0) {
+                return &plugins[i].commands[j];
+            }
         }
     }
     return NULL;
@@ -274,6 +1103,74 @@ static void load_config(void)
                 setenv(var, val, 1);
             }
         }
+        /* Handle 'theme.field=value' */
+        else if (strncmp(p, "theme.", 6) == 0) {
+            p += 6;  /* Skip "theme." */
+
+            char* eq = strchr(p, '=');
+            if (eq) {
+                *eq = '\0';
+                char* field = p;
+                char* val = eq + 1;
+
+                /* Strip quotes from value */
+                size_t val_len = strlen(val);
+                if (val_len >= 2 &&
+                    ((val[0] == '\'' && val[val_len-1] == '\'') ||
+                     (val[0] == '"' && val[val_len-1] == '"'))) {
+                    val[val_len-1] = '\0';
+                    val++;
+                }
+
+                set_theme_color(field, val);
+            }
+        }
+        /* Handle 'snippet name=template' */
+        else if (strncmp(p, "snippet ", 8) == 0) {
+            p += 8;
+            while (*p == ' ') p++;
+
+            char* eq = strchr(p, '=');
+            if (eq) {
+                *eq = '\0';
+                char* name = p;
+                char* tmpl = eq + 1;
+
+                /* Strip quotes from template */
+                size_t tmpl_len = strlen(tmpl);
+                if (tmpl_len >= 2 &&
+                    ((tmpl[0] == '\'' && tmpl[tmpl_len-1] == '\'') ||
+                     (tmpl[0] == '"' && tmpl[tmpl_len-1] == '"'))) {
+                    tmpl[tmpl_len-1] = '\0';
+                    tmpl++;
+                }
+
+                add_snippet(name, tmpl);
+            }
+        }
+        /* Handle 'workflow name=cmd1 && cmd2' */
+        else if (strncmp(p, "workflow ", 9) == 0) {
+            p += 9;
+            while (*p == ' ') p++;
+
+            char* eq = strchr(p, '=');
+            if (eq) {
+                *eq = '\0';
+                char* name = p;
+                char* cmds = eq + 1;
+
+                /* Strip quotes from commands */
+                size_t cmds_len = strlen(cmds);
+                if (cmds_len >= 2 &&
+                    ((cmds[0] == '\'' && cmds[cmds_len-1] == '\'') ||
+                     (cmds[0] == '"' && cmds[cmds_len-1] == '"'))) {
+                    cmds[cmds_len-1] = '\0';
+                    cmds++;
+                }
+
+                add_workflow(name, cmds);
+            }
+        }
     }
 
     fclose(fp);
@@ -351,7 +1248,7 @@ static void save_history(void)
 static void draw_separator(int row)
 {
     cursor_move(row, 1);
-    printf("%s", DIM);
+    printf("%s", theme.dim);
     for (int i = 0; i < term_cols; i++) printf("─");
     printf("%s", RESET);
     fflush(stdout);
@@ -368,12 +1265,12 @@ static void draw_status(void)
     /* Line 1: user@host:path */
     cursor_move(term_rows - 1, 1);
     clear_line();
-    printf("  %s%s@%s%s:%s", BOLD, user, hostname, RESET, cwd);
+    printf("  %s%s@%s%s:%s", theme.status, user, hostname, RESET, cwd);
 
     /* Line 2: hint */
     cursor_move(term_rows, 1);
     clear_line();
-    printf("  %s⏵⏵ @help for commands, exit to quit%s", DIM, RESET);
+    printf("  %s⏵⏵ @help for commands, exit to quit%s", theme.dim, RESET);
 
     fflush(stdout);
 }
@@ -477,7 +1374,7 @@ static void redraw_output(void)
             OutputLine* line = get_output_line(line_index);
             if (line && line->text) {
                 if (line->is_stderr) {
-                    printf("%s%s%s", RED, line->text, RESET);
+                    printf("%s%s%s", theme.error, line->text, RESET);
                 } else {
                     printf("%s", line->text);
                 }
@@ -490,9 +1387,9 @@ static void redraw_output(void)
     clear_line();
     if (scroll_offset > 0) {
         printf("  %s[Scrolled: %d/%d lines - PgDn to scroll down]%s",
-               CYAN, scroll_offset, total_lines, RESET);
+               theme.scroll, scroll_offset, total_lines, RESET);
     } else {
-        printf("  %s>> run bash commands (exit to quit)%s", DIM, RESET);
+        printf("  %s>> run bash commands (exit to quit)%s", theme.dim, RESET);
     }
 
     fflush(stdout);
@@ -543,8 +1440,8 @@ static void print_output(const char* text, int is_stderr)
     cursor_move(prompt_row - 2, 1);
 
     if (is_stderr) {
-        /* Prefix stderr with red, but still allow embedded ANSI codes */
-        printf("%s%s%s\n", RED, text, RESET);
+        /* Prefix stderr with error color, but still allow embedded ANSI codes */
+        printf("%s%s%s\n", theme.error, text, RESET);
     } else {
         /* Pass through stdout as-is, preserving any ANSI escape sequences */
         printf("%s\n", text);
@@ -650,6 +1547,10 @@ static int execute_command(const char* cmd)
  */
 static int handle_cd(const char* path)
 {
+    /* Save old directory for CD event */
+    char old_cwd[PATH_MAX];
+    strcpy(old_cwd, cwd);
+
     if (!path || strlen(path) == 0) {
         path = getenv("HOME");
     }
@@ -671,6 +1572,10 @@ static int handle_cd(const char* path)
     }
 
     getcwd(cwd, sizeof(cwd));
+
+    /* Emit CD event with old and new directories */
+    emit_cd_event(old_cwd, cwd);
+
     draw_status();
     return 0;
 }
@@ -678,27 +1583,40 @@ static int handle_cd(const char* path)
 /* Print help message for @help command */
 static void print_help(void)
 {
+    char buf[256];
     print_output("", 0);
-    print_output(CYAN "cc-bash" RESET " - Claude Code-style bash wrapper", 0);
+    snprintf(buf, sizeof(buf), "%scc-bash%s - Claude Code-style bash wrapper", theme.header, RESET);
+    print_output(buf, 0);
     print_output("", 0);
-    print_output(BOLD "Commands:" RESET, 0);
+    snprintf(buf, sizeof(buf), "%sCommands:%s", theme.status, RESET);
+    print_output(buf, 0);
     print_output("  <command>       Execute bash command", 0);
     print_output("  cd <path>       Change directory (~ supported)", 0);
     print_output("  clear           Clear output area (preserves TUI)", 0);
     print_output("  exit / quit     Exit shell", 0);
     print_output("", 0);
-    print_output(BOLD "@ Commands:" RESET, 0);
+    snprintf(buf, sizeof(buf), "%s@ Commands:%s", theme.status, RESET);
+    print_output(buf, 0);
     print_output("  @help / @h      Show this help", 0);
     print_output("  @clear / @c     Clear output area", 0);
     print_output("  @quit / @q      Exit shell", 0);
     print_output("  @alias          List aliases", 0);
     print_output("  @alias x='cmd'  Add alias (session only)", 0);
+    print_output("  @snippet        List snippets", 0);
+    print_output("  @snippet name args  Run snippet with arguments", 0);
+    print_output("  @theme          Show current theme", 0);
+    print_output("  @hooks          Show registered event hooks", 0);
+    print_output("  @workflow       List workflows", 0);
+    print_output("  @workflow name  Run workflow (--dry-run to preview)", 0);
+    print_output("  @plugins        List loaded plugins", 0);
     print_output("", 0);
-    print_output(BOLD "Files:" RESET, 0);
-    print_output("  ~/.cc-bashrc         Config (aliases, exports)", 0);
+    snprintf(buf, sizeof(buf), "%sFiles:%s", theme.status, RESET);
+    print_output(buf, 0);
+    print_output("  ~/.cc-bashrc         Config (aliases, exports, snippets, theme, workflows)", 0);
     print_output("  ~/.cc-bash-history   Command history (auto-saved)", 0);
     print_output("", 0);
-    print_output(BOLD "Special:" RESET, 0);
+    snprintf(buf, sizeof(buf), "%sSpecial:%s", theme.status, RESET);
+    print_output(buf, 0);
     print_output("  # <note>        Comment (displayed, not executed)", 0);
     print_output("  Tab             File/command completion", 0);
     print_output("  PgUp/PgDn       Scroll output history", 0);
@@ -1040,7 +1958,7 @@ static int do_completion(const char* buf, int pos, int is_double_tab,
             /* Show available completions on double-tab */
             cursor_save();
             cursor_move(prompt_row - 2, 1);
-            printf("%sCompletions:%s ", DIM, RESET);
+            printf("%sCompletions:%s ", theme.dim, RESET);
             for (int i = 0; i < cr.count && i < 10; i++) {
                 printf("%s ", cr.matches[i]);
             }
@@ -1070,10 +1988,10 @@ static int draw_prompt(void)
     cursor_move(prompt_row, 1);
     clear_line();
     if (last_exit != 0) {
-        printf("%s[%d]%s › ", RED, last_exit, RESET);
+        printf("%s[%d]%s %s›%s ", theme.error, last_exit, RESET, theme.prompt, RESET);
         return 7 + (last_exit >= 10 ? 1 : 0) + (last_exit >= 100 ? 1 : 0);
     } else {
-        printf("› ");
+        printf("%s›%s ", theme.prompt, RESET);
         return 3;
     }
 }
@@ -1309,6 +2227,9 @@ int main(void)
     /* Load config file (~/.cc-bashrc) */
     load_config();
 
+    /* Load plugins (~/.cc-bash/plugins/) */
+    load_plugins();
+
     /* Load command history (~/.cc-bash-history) */
     load_history();
 
@@ -1317,6 +2238,9 @@ int main(void)
 
     enable_raw_mode();
     init_screen();
+
+    /* Emit startup event - config loaded, screen ready */
+    emit_simple_event(EVENT_STARTUP);
 
     int running = 1;
 
@@ -1356,8 +2280,8 @@ int main(void)
         }
         else if (input[0] == '#') {
             /* Comment - just show it */
-            char msg[INPUT_BUF_SIZE + 16];
-            snprintf(msg, sizeof(msg), "%s%s%s", YELLOW, input, RESET);
+            char msg[INPUT_BUF_SIZE + 64];
+            snprintf(msg, sizeof(msg), "%s%s%s", theme.comment, input, RESET);
             print_output(msg, 0);
         }
         else if (input[0] == '@') {
@@ -1425,11 +2349,352 @@ int main(void)
                 }
                 last_exit = 0;
             }
+            else if (strcmp(cmd, "theme") == 0) {
+                /* @theme - show current theme colors */
+                char buf[256];
+                print_output("", 0);
+                snprintf(buf, sizeof(buf), "%sTheme Configuration:%s", theme.status, RESET);
+                print_output(buf, 0);
+                print_output("", 0);
+                snprintf(buf, sizeof(buf), "  %sprompt%s  = (this color)", theme.prompt, RESET);
+                print_output(buf, 0);
+                snprintf(buf, sizeof(buf), "  %serror%s   = (this color)", theme.error, RESET);
+                print_output(buf, 0);
+                snprintf(buf, sizeof(buf), "  %scomment%s = (this color)", theme.comment, RESET);
+                print_output(buf, 0);
+                snprintf(buf, sizeof(buf), "  %sdim%s     = (this color)", theme.dim, RESET);
+                print_output(buf, 0);
+                snprintf(buf, sizeof(buf), "  %sheader%s  = (this color)", theme.header, RESET);
+                print_output(buf, 0);
+                snprintf(buf, sizeof(buf), "  %sstatus%s  = (this color)", theme.status, RESET);
+                print_output(buf, 0);
+                snprintf(buf, sizeof(buf), "  %sscroll%s  = (this color)", theme.scroll, RESET);
+                print_output(buf, 0);
+                print_output("", 0);
+                print_output("Configure in ~/.cc-bashrc:", 0);
+                print_output("  theme.prompt=cyan", 0);
+                print_output("  theme.error=bold red", 0);
+                print_output("  theme.comment=green", 0);
+                print_output("", 0);
+                print_output("Colors: black red green yellow blue magenta cyan white", 0);
+                print_output("Modifiers: bold dim (combine with space: 'bold cyan')", 0);
+                print_output("", 0);
+                last_exit = 0;
+            }
+            else if (strncmp(cmd, "snippet", 7) == 0) {
+                /* @snippet - list or run snippets */
+                const char* arg = cmd + 7;
+                while (*arg == ' ') arg++;
+
+                if (*arg == '\0') {
+                    /* List all snippets */
+                    if (snippet_count == 0) {
+                        print_output("No snippets defined.", 0);
+                        print_output("", 0);
+                        print_output("Add to ~/.cc-bashrc:", 0);
+                        print_output("  snippet deploy='git push origin $1'", 0);
+                        print_output("  snippet logs='docker logs -f --tail $1 $2'", 0);
+                        print_output("", 0);
+                        print_output("Usage: @snippet name arg1 arg2 ...", 0);
+                    } else {
+                        char msg[CONFIG_LINE_SIZE];
+                        snprintf(msg, sizeof(msg), "%sSnippets:%s", theme.status, RESET);
+                        print_output(msg, 0);
+                        for (int i = 0; i < snippet_count; i++) {
+                            snprintf(msg, sizeof(msg), "  %s%s%s = %s",
+                                     theme.header, snippets[i].name, RESET,
+                                     snippets[i].template);
+                            print_output(msg, 0);
+                        }
+                    }
+                    last_exit = 0;
+                } else {
+                    /* Run snippet: @snippet name arg1 arg2 ... */
+                    char snippet_name[256];
+                    char* args[9] = {NULL};  /* $1 through $9 */
+                    int arg_count = 0;
+
+                    /* Parse snippet name and arguments */
+                    const char* p = arg;
+                    char* dst = snippet_name;
+                    while (*p && *p != ' ' && (size_t)(dst - snippet_name) < sizeof(snippet_name) - 1) {
+                        *dst++ = *p++;
+                    }
+                    *dst = '\0';
+
+                    /* Skip space and parse arguments */
+                    while (*p == ' ') p++;
+
+                    /* Tokenize remaining arguments */
+                    if (*p) {
+                        char arg_buf[INPUT_BUF_SIZE];
+                        strncpy(arg_buf, p, sizeof(arg_buf) - 1);
+                        arg_buf[sizeof(arg_buf) - 1] = '\0';
+
+                        char* token = strtok(arg_buf, " ");
+                        while (token && arg_count < 9) {
+                            args[arg_count++] = strdup(token);
+                            token = strtok(NULL, " ");
+                        }
+                    }
+
+                    /* Look up and expand snippet */
+                    const char* tmpl = get_snippet(snippet_name);
+                    if (tmpl) {
+                        char* expanded = expand_snippet(tmpl, args, arg_count);
+                        if (expanded) {
+                            /* Emit snippet expand event */
+                            emit_expand_event(EVENT_SNIPPET_EXPAND, snippet_name, expanded);
+
+                            /* Show what we're running */
+                            char msg[INPUT_BUF_SIZE + 64];
+                            snprintf(msg, sizeof(msg), "%s→ %s%s", theme.dim, expanded, RESET);
+                            print_output(msg, 0);
+
+                            /* Execute the expanded command with command events */
+                            emit_command_event(EVENT_PRE_COMMAND, expanded, 0);
+                            last_exit = execute_command(expanded);
+                            emit_command_event(EVENT_POST_COMMAND, expanded, last_exit);
+                            free(expanded);
+                        } else {
+                            print_output("Error: Failed to expand snippet", 1);
+                            last_exit = 1;
+                        }
+                    } else {
+                        char msg[512];
+                        snprintf(msg, sizeof(msg), "%sUnknown snippet: %s%s", theme.error, snippet_name, RESET);
+                        print_output(msg, 1);
+                        last_exit = 1;
+                    }
+
+                    /* Free argument copies */
+                    for (int i = 0; i < arg_count; i++) {
+                        free(args[i]);
+                    }
+                }
+            }
+            else if (strcmp(cmd, "hooks") == 0) {
+                /* @hooks - list registered event hooks (for debugging/introspection) */
+                char buf[256];
+                print_output("", 0);
+                snprintf(buf, sizeof(buf), "%sEvent Hooks:%s", theme.status, RESET);
+                print_output(buf, 0);
+                print_output("", 0);
+
+                if (hook_count == 0) {
+                    print_output("  No hooks registered.", 0);
+                } else {
+                    for (int i = 0; i < hook_count; i++) {
+                        snprintf(buf, sizeof(buf), "  [%d] %s%s%s %s",
+                                 i, theme.header, event_type_name(hooks[i].type), RESET,
+                                 hooks[i].active ? "(active)" : "(inactive)");
+                        print_output(buf, 0);
+                    }
+                }
+
+                print_output("", 0);
+                snprintf(buf, sizeof(buf), "%sEvent Types:%s", theme.status, RESET);
+                print_output(buf, 0);
+                print_output("  STARTUP        - Shell started, config loaded", 0);
+                print_output("  SHUTDOWN       - Shell exiting", 0);
+                print_output("  PRE_COMMAND    - Before command execution", 0);
+                print_output("  POST_COMMAND   - After command execution (has exit code)", 0);
+                print_output("  CD             - Directory changed (has old/new path)", 0);
+                print_output("  ALIAS_EXPAND   - Alias was expanded", 0);
+                print_output("  SNIPPET_EXPAND - Snippet was expanded", 0);
+                print_output("", 0);
+                last_exit = 0;
+            }
+            else if (strncmp(cmd, "workflow", 8) == 0) {
+                /* @workflow - list or run workflows */
+                const char* arg = cmd + 8;
+                while (*arg == ' ') arg++;
+
+                if (*arg == '\0') {
+                    /* List all workflows */
+                    if (workflow_count == 0) {
+                        print_output("No workflows defined.", 0);
+                        print_output("", 0);
+                        print_output("Add to ~/.cc-bashrc:", 0);
+                        print_output("  workflow build='make clean && make && make test'", 0);
+                        print_output("  workflow deploy='git add . && git commit -m \"deploy\" && git push'", 0);
+                        print_output("", 0);
+                        print_output("Usage: @workflow name [--dry-run]", 0);
+                    } else {
+                        char msg[CONFIG_LINE_SIZE];
+                        snprintf(msg, sizeof(msg), "%sWorkflows:%s", theme.status, RESET);
+                        print_output(msg, 0);
+                        for (int i = 0; i < workflow_count; i++) {
+                            snprintf(msg, sizeof(msg), "  %s%s%s (%d steps, %s)",
+                                     theme.header, workflows[i].name, RESET,
+                                     workflows[i].step_count,
+                                     workflows[i].stop_on_error ? "stop on error" : "continue on error");
+                            print_output(msg, 0);
+                            /* Show steps indented */
+                            for (int j = 0; j < workflows[i].step_count; j++) {
+                                snprintf(msg, sizeof(msg), "    %s%d.%s %s",
+                                         theme.dim, j + 1, RESET, workflows[i].steps[j]);
+                                print_output(msg, 0);
+                            }
+                        }
+                    }
+                    last_exit = 0;
+                } else {
+                    /* Run workflow: @workflow name [--dry-run] */
+                    char workflow_name[256];
+                    int dry_run = 0;
+
+                    /* Parse name and optional --dry-run flag */
+                    const char* p = arg;
+                    char* dst = workflow_name;
+                    while (*p && *p != ' ' && (size_t)(dst - workflow_name) < sizeof(workflow_name) - 1) {
+                        *dst++ = *p++;
+                    }
+                    *dst = '\0';
+
+                    /* Check for --dry-run flag */
+                    while (*p == ' ') p++;
+                    if (strncmp(p, "--dry-run", 9) == 0) {
+                        dry_run = 1;
+                    }
+
+                    /* Look up workflow */
+                    Workflow* wf = get_workflow(workflow_name);
+                    if (wf) {
+                        char msg[INPUT_BUF_SIZE + 128];
+                        if (dry_run) {
+                            snprintf(msg, sizeof(msg), "%s[dry-run] Workflow: %s%s", theme.dim, wf->name, RESET);
+                            print_output(msg, 0);
+                            for (int j = 0; j < wf->step_count; j++) {
+                                snprintf(msg, sizeof(msg), "  %s%d.%s %s",
+                                         theme.dim, j + 1, RESET, wf->steps[j]);
+                                print_output(msg, 0);
+                            }
+                            last_exit = 0;
+                        } else {
+                            /* Execute workflow */
+                            snprintf(msg, sizeof(msg), "%s▶ Running workflow: %s%s (%d steps)",
+                                     theme.header, wf->name, RESET, wf->step_count);
+                            print_output(msg, 0);
+
+                            int workflow_failed = 0;
+                            for (int j = 0; j < wf->step_count; j++) {
+                                snprintf(msg, sizeof(msg), "%s[%d/%d]%s %s",
+                                         theme.status, j + 1, wf->step_count, RESET, wf->steps[j]);
+                                print_output(msg, 0);
+
+                                /* Emit pre-command event */
+                                emit_command_event(EVENT_PRE_COMMAND, wf->steps[j], 0);
+
+                                /* Execute step */
+                                int step_exit = execute_command(wf->steps[j]);
+
+                                /* Emit post-command event */
+                                emit_command_event(EVENT_POST_COMMAND, wf->steps[j], step_exit);
+
+                                if (step_exit != 0) {
+                                    workflow_failed = 1;
+                                    last_exit = step_exit;
+                                    if (wf->stop_on_error) {
+                                        snprintf(msg, sizeof(msg), "%s✗ Step %d failed (exit %d), stopping workflow%s",
+                                                 theme.error, j + 1, step_exit, RESET);
+                                        print_output(msg, 1);
+                                        break;
+                                    } else {
+                                        snprintf(msg, sizeof(msg), "%s⚠ Step %d failed (exit %d), continuing...%s",
+                                                 theme.comment, j + 1, step_exit, RESET);
+                                        print_output(msg, 0);
+                                    }
+                                }
+                            }
+
+                            if (!workflow_failed) {
+                                snprintf(msg, sizeof(msg), "%s✓ Workflow completed successfully%s",
+                                         GREEN, RESET);
+                                print_output(msg, 0);
+                                last_exit = 0;
+                            }
+                        }
+                    } else {
+                        char msg[512];
+                        snprintf(msg, sizeof(msg), "%sUnknown workflow: %s%s", theme.error, workflow_name, RESET);
+                        print_output(msg, 1);
+                        last_exit = 1;
+                    }
+                }
+            }
+            else if (strcmp(cmd, "plugins") == 0) {
+                /* @plugins - list loaded plugins */
+                char msg[CONFIG_LINE_SIZE];
+                if (plugin_count == 0) {
+                    print_output("No plugins loaded.", 0);
+                    print_output("", 0);
+                    print_output("Create plugins in: ~/.cc-bash/plugins/<name>/", 0);
+                    print_output("", 0);
+                    print_output("Plugin structure:", 0);
+                    print_output("  plugin.conf    - Manifest (name, version, hooks)", 0);
+                    print_output("  config.conf    - Optional aliases/snippets/workflows", 0);
+                    print_output("  hooks/         - Optional event hook scripts", 0);
+                } else {
+                    snprintf(msg, sizeof(msg), "%sLoaded Plugins:%s", theme.status, RESET);
+                    print_output(msg, 0);
+                    print_output("", 0);
+                    for (int i = 0; i < plugin_count; i++) {
+                        snprintf(msg, sizeof(msg), "  %s%s%s v%s %s",
+                                 theme.header, plugins[i].name, RESET,
+                                 plugins[i].version,
+                                 plugins[i].enabled ? "" : "(disabled)");
+                        print_output(msg, 0);
+                        if (plugins[i].description && strlen(plugins[i].description) > 0) {
+                            snprintf(msg, sizeof(msg), "    %s%s%s",
+                                     theme.dim, plugins[i].description, RESET);
+                            print_output(msg, 0);
+                        }
+                        /* Show commands */
+                        if (plugins[i].command_count > 0) {
+                            print_output("    Commands:", 0);
+                            for (int j = 0; j < plugins[i].command_count; j++) {
+                                snprintf(msg, sizeof(msg), "      @%s",
+                                         plugins[i].commands[j].name);
+                                print_output(msg, 0);
+                            }
+                        }
+                        /* Show hooks */
+                        int has_hooks = 0;
+                        for (int j = 0; j < MAX_PLUGIN_HOOKS; j++) {
+                            if (plugins[i].hook_scripts[j]) has_hooks = 1;
+                        }
+                        if (has_hooks) {
+                            print_output("    Hooks:", 0);
+                            if (plugins[i].hook_scripts[EVENT_STARTUP])
+                                print_output("      startup", 0);
+                            if (plugins[i].hook_scripts[EVENT_SHUTDOWN])
+                                print_output("      shutdown", 0);
+                            if (plugins[i].hook_scripts[EVENT_PRE_COMMAND])
+                                print_output("      pre_command", 0);
+                            if (plugins[i].hook_scripts[EVENT_POST_COMMAND])
+                                print_output("      post_command", 0);
+                            if (plugins[i].hook_scripts[EVENT_CD])
+                                print_output("      cd", 0);
+                        }
+                    }
+                }
+                last_exit = 0;
+            }
             else {
-                char msg[INPUT_BUF_SIZE + 64];
-                snprintf(msg, sizeof(msg), "%sUnknown @ command: %s%s", RED, cmd, RESET);
-                print_output(msg, 1);
-                last_exit = 1;
+                /* Check if it's a plugin command */
+                PluginCommand* pcmd = find_plugin_command(cmd);
+                if (pcmd) {
+                    /* Execute plugin command script */
+                    char script_cmd[INPUT_BUF_SIZE * 2];
+                    snprintf(script_cmd, sizeof(script_cmd), "/bin/sh '%s'", pcmd->script_path);
+                    last_exit = execute_command(script_cmd);
+                } else {
+                    char msg[INPUT_BUF_SIZE + 64];
+                    snprintf(msg, sizeof(msg), "%sUnknown @ command: %s%s", theme.error, cmd, RESET);
+                    print_output(msg, 1);
+                    last_exit = 1;
+                }
             }
         }
         else {
@@ -1451,12 +2716,27 @@ int main(void)
                 /* Expand alias */
                 char expanded[INPUT_BUF_SIZE];
                 snprintf(expanded, sizeof(expanded), "%s%s", alias_cmd, rest);
+
+                /* Emit alias expand event */
+                emit_expand_event(EVENT_ALIAS_EXPAND, input, expanded);
+
+                /* Emit pre-command event */
+                emit_command_event(EVENT_PRE_COMMAND, expanded, 0);
                 last_exit = execute_command(expanded);
+                /* Emit post-command event */
+                emit_command_event(EVENT_POST_COMMAND, expanded, last_exit);
             } else {
+                /* Emit pre-command event */
+                emit_command_event(EVENT_PRE_COMMAND, input, 0);
                 last_exit = execute_command(input);
+                /* Emit post-command event */
+                emit_command_event(EVENT_POST_COMMAND, input, last_exit);
             }
         }
     }
+
+    /* Emit shutdown event before cleanup */
+    emit_simple_event(EVENT_SHUTDOWN);
 
     disable_raw_mode();
     cleanup_screen();
@@ -1477,6 +2757,15 @@ int main(void)
 
     /* Free aliases */
     free_aliases();
+
+    /* Free snippets */
+    free_snippets();
+
+    /* Free workflows */
+    free_workflows();
+
+    /* Free plugins */
+    free_plugins();
 
     return last_exit;
 }
