@@ -218,23 +218,29 @@ Built-in commands:
 
 ### Internal @ Commands
 
-| Command                        | Action                                  |
-| ------------------------------ | --------------------------------------- |
-| `@help` / `@h`                 | Show help                               |
-| `@clear` / `@c`                | Clear screen                            |
-| `@quit` / `@q`                 | Exit cc-bash                            |
-| `@alias [name=cmd]`            | List aliases or add new one             |
-| `@snippet [name args...]`      | List snippets or run one with arguments |
-| `@workflow [name] [--dry-run]` | List workflows, run one, or preview     |
-| `@theme`                       | Display current theme colors            |
-| `@hooks`                       | List registered event hooks             |
-| `@plugins`                     | List loaded plugins                     |
+| Command                        | Action                                     |
+| ------------------------------ | ------------------------------------------ |
+| `@help` / `@h`                 | Show help                                  |
+| `@clear` / `@c`                | Clear screen                               |
+| `@quit` / `@q`                 | Exit cc-bash                               |
+| `@edit` / `@e`                 | Edit config file (~/.cc-bashrc) in $EDITOR |
+| `@reload` / `@r`               | Reload config (aliases, snippets, etc.)    |
+| `@alias`                       | List aliases (\* = session only)           |
+| `@alias name=cmd`              | Add session alias                          |
+| `@alias save`                  | Save session aliases to config file        |
+| `@snippet [name args...]`      | List snippets or run one with arguments    |
+| `@workflow [name] [--dry-run]` | List workflows, run one, or preview        |
+| `@theme`                       | Display current theme colors               |
+| `@hooks`                       | List registered event hooks                |
+| `@plugins`                     | List loaded plugins                        |
 
 ---
 
 ## Configuration
 
 cc-bash uses `~/.cc-bashrc` for configuration. Create it manually or copy from `cc-bashrc.template`.
+
+You can edit the config file directly with `@edit`, then apply changes with `@reload`.
 
 ### Aliases
 

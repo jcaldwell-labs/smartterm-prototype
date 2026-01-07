@@ -32,7 +32,11 @@ static int tests_failed = 0;
     } \
 } while(0)
 
-#define ASSERT_STR_EQ(a, b, msg) ASSERT((a) && (b) && strcmp((a), (b)) == 0, msg)
+/* Note: ASSERT_STR_EQ assumes both strings are valid (not NULL).
+ * For pointer strings that might be NULL, check with ASSERT_NOT_NULL first.
+ * This avoids -Waddress warnings when used with static arrays.
+ */
+#define ASSERT_STR_EQ(a, b, msg) ASSERT(strcmp((a), (b)) == 0, msg)
 #define ASSERT_NULL(a, msg) ASSERT((a) == NULL, msg)
 #define ASSERT_NOT_NULL(a, msg) ASSERT((a) != NULL, msg)
 
@@ -148,13 +152,14 @@ static void set_theme_color(const char* field, const char* value)
 typedef struct {
     char* name;
     char* command;
+    int from_session;  /* 1 if added via @alias (not from config), 0 if from config */
 } Alias;
 
 static Alias aliases[MAX_ALIASES];
 static int alias_count = 0;
 
-/* Add an alias */
-static void add_alias(const char* name, const char* command)
+/* Add an alias - from_session: 1 if from @alias command, 0 if from config file */
+static void add_alias(const char* name, const char* command, int from_session)
 {
     if (alias_count >= MAX_ALIASES) return;
 
@@ -163,12 +168,14 @@ static void add_alias(const char* name, const char* command)
         if (strcmp(aliases[i].name, name) == 0) {
             free(aliases[i].command);
             aliases[i].command = strdup(command);
+            aliases[i].from_session = from_session;
             return;
         }
     }
 
     aliases[alias_count].name = strdup(name);
     aliases[alias_count].command = strdup(command);
+    aliases[alias_count].from_session = from_session;
     alias_count++;
 }
 
@@ -551,7 +558,7 @@ static void parse_config_line(char* line)
                 cmd++;
             }
 
-            add_alias(name, cmd);
+            add_alias(name, cmd, 0);  /* from config file */
         }
     }
 }
@@ -590,7 +597,7 @@ void test_alias_basic(void)
     printf("\n[Alias Basic Operations]\n");
     free_aliases();
 
-    add_alias("ll", "ls -la");
+    add_alias("ll", "ls -la", 0);
     ASSERT(alias_count == 1, "alias_count is 1 after adding one alias");
     ASSERT_STR_EQ(get_alias("ll"), "ls -la", "get_alias returns correct command");
     ASSERT_NULL(get_alias("nonexistent"), "get_alias returns NULL for unknown alias");
@@ -603,8 +610,8 @@ void test_alias_replace(void)
     printf("\n[Alias Replacement]\n");
     free_aliases();
 
-    add_alias("ll", "ls -la");
-    add_alias("ll", "ls -lah");
+    add_alias("ll", "ls -la", 0);
+    add_alias("ll", "ls -lah", 0);
     ASSERT(alias_count == 1, "alias_count stays 1 after replacing");
     ASSERT_STR_EQ(get_alias("ll"), "ls -lah", "alias command is updated");
 
@@ -616,14 +623,39 @@ void test_alias_multiple(void)
     printf("\n[Multiple Aliases]\n");
     free_aliases();
 
-    add_alias("ll", "ls -la");
-    add_alias("gs", "git status");
-    add_alias("gd", "git diff");
+    add_alias("ll", "ls -la", 0);
+    add_alias("gs", "git status", 0);
+    add_alias("gd", "git diff", 0);
 
     ASSERT(alias_count == 3, "alias_count is 3 after adding three aliases");
     ASSERT_STR_EQ(get_alias("ll"), "ls -la", "first alias correct");
     ASSERT_STR_EQ(get_alias("gs"), "git status", "second alias correct");
     ASSERT_STR_EQ(get_alias("gd"), "git diff", "third alias correct");
+
+    free_aliases();
+}
+
+void test_alias_from_session_flag(void)
+{
+    printf("\n[Alias from_session Flag]\n");
+    free_aliases();
+
+    /* Add alias from config (from_session = 0) */
+    add_alias("ll", "ls -la", 0);
+    ASSERT(aliases[0].from_session == 0, "from_session is 0 for config alias");
+
+    /* Add alias from session (from_session = 1) */
+    add_alias("gs", "git status", 1);
+    ASSERT(aliases[1].from_session == 1, "from_session is 1 for session alias");
+
+    /* Replace config alias with session alias - flag should update */
+    add_alias("ll", "ls -lah", 1);
+    ASSERT(aliases[0].from_session == 1, "from_session updates when replaced");
+    ASSERT_STR_EQ(get_alias("ll"), "ls -lah", "command updated");
+
+    /* Replace session alias with config alias - flag should update */
+    add_alias("gs", "git status -s", 0);
+    ASSERT(aliases[1].from_session == 0, "from_session can be reset to 0");
 
     free_aliases();
 }
@@ -1477,6 +1509,7 @@ int main(void)
     test_alias_basic();
     test_alias_replace();
     test_alias_multiple();
+    test_alias_from_session_flag();
 
     /* Config parsing tests */
     test_config_parse_alias_single_quotes();

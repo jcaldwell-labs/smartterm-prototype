@@ -196,10 +196,11 @@ static int output_count = 0;      /* Total lines stored */
 static int output_start = 0;      /* Start index (circular) */
 static int scroll_offset = 0;     /* 0 = at bottom, positive = scrolled up */
 
-/* Aliases - loaded from ~/.cc-bashrc */
+/* Aliases - loaded from ~/.cc-bashrc or added via @alias */
 typedef struct {
     char* name;
     char* command;
+    int from_session;  /* 1 if added via @alias (not from config), 0 if from config */
 } Alias;
 
 static Alias aliases[MAX_ALIASES];
@@ -282,7 +283,9 @@ static int hook_count = 0;
 
 /* Register a hook for an event type
  * Returns hook ID (>= 0) on success, -1 if hooks array is full
+ * Note: Part of public API for plugins, may not be called in main program
  */
+__attribute__((unused))
 static int register_hook(EventType type, EventHandler handler, void* user_data)
 {
     if (hook_count >= MAX_HOOKS) return -1;
@@ -295,7 +298,10 @@ static int register_hook(EventType type, EventHandler handler, void* user_data)
     return hook_count++;
 }
 
-/* Unregister a hook by ID */
+/* Unregister a hook by ID
+ * Note: Part of public API for plugins, may not be called in main program
+ */
+__attribute__((unused))
 static void unregister_hook(int hook_id)
 {
     if (hook_id >= 0 && hook_id < hook_count) {
@@ -521,8 +527,10 @@ static void set_theme_color(const char* field, const char* value)
     }
 }
 
-/* Add an alias */
-static void add_alias(const char* name, const char* command)
+/* Add an alias
+ * from_session: 1 if added via @alias command (can be saved), 0 if from config file
+ */
+static void add_alias(const char* name, const char* command, int from_session)
 {
     if (alias_count >= MAX_ALIASES) return;
 
@@ -531,12 +539,14 @@ static void add_alias(const char* name, const char* command)
         if (strcmp(aliases[i].name, name) == 0) {
             free(aliases[i].command);
             aliases[i].command = strdup(command);
+            aliases[i].from_session = from_session;
             return;
         }
     }
 
     aliases[alias_count].name = strdup(name);
     aliases[alias_count].command = strdup(command);
+    aliases[alias_count].from_session = from_session;
     alias_count++;
 }
 
@@ -549,6 +559,18 @@ static const char* get_alias(const char* name)
         }
     }
     return NULL;
+}
+
+/* Clear all aliases (used for @reload) */
+static void clear_aliases(void)
+{
+    for (int i = 0; i < alias_count; i++) {
+        free(aliases[i].name);
+        free(aliases[i].command);
+        aliases[i].name = NULL;
+        aliases[i].command = NULL;
+    }
+    alias_count = 0;
 }
 
 /* ============================================================================
@@ -805,7 +827,7 @@ static void parse_plugin_config(const char* filepath, const char* plugin_path)
                     cmd[cmd_len-1] = '\0';
                     cmd++;
                 }
-                add_alias(name, cmd);
+                add_alias(name, cmd, 0);  /* from config file */
             }
         }
         else if (strncmp(p, "snippet ", 8) == 0) {
@@ -971,9 +993,10 @@ static void load_plugins(void)
         /* Skip . and .. */
         if (entry->d_name[0] == '.') continue;
 
-        /* Build full path */
-        char plugin_path[PATH_MAX];
-        snprintf(plugin_path, sizeof(plugin_path), "%s/%s", plugins_dir, entry->d_name);
+        /* Build full path - use larger buffer to satisfy compiler analysis */
+        char plugin_path[PATH_MAX + 256];
+        int len = snprintf(plugin_path, sizeof(plugin_path), "%s/%s", plugins_dir, entry->d_name);
+        if (len < 0 || (size_t)len >= PATH_MAX) continue;  /* Skip if truncated or too long */
 
         /* Check if it's a directory */
         struct stat st;
@@ -1080,7 +1103,7 @@ static void load_config(void)
                     cmd++;
                 }
 
-                add_alias(name, cmd);
+                add_alias(name, cmd, 0);  /* from config file */
             }
         }
         /* Handle 'export VAR=value' */
@@ -1603,8 +1626,11 @@ static void print_help(void)
     print_output("  @help / @h      Show this help", 0);
     print_output("  @clear / @c     Clear output area", 0);
     print_output("  @quit / @q      Exit shell", 0);
-    print_output("  @alias          List aliases", 0);
+    print_output("  @edit / @e      Edit config file (~/.cc-bashrc)", 0);
+    print_output("  @reload / @r    Reload config (aliases, snippets, workflows)", 0);
+    print_output("  @alias          List aliases (* = session only)", 0);
     print_output("  @alias x='cmd'  Add alias (session only)", 0);
+    print_output("  @alias save     Save session aliases to config file", 0);
     print_output("  @snippet        List snippets", 0);
     print_output("  @snippet name args  Run snippet with arguments", 0);
     print_output("  @theme          Show current theme", 0);
@@ -2302,7 +2328,7 @@ int main(void)
                 running = 0;
             }
             else if (strncmp(cmd, "alias", 5) == 0) {
-                /* @alias - list or add aliases */
+                /* @alias - list, add, or save aliases */
                 const char* arg = cmd + 5;
                 while (*arg == ' ') arg++;
 
@@ -2314,11 +2340,69 @@ int main(void)
                     } else {
                         char msg[CONFIG_LINE_SIZE];
                         for (int i = 0; i < alias_count; i++) {
-                            snprintf(msg, sizeof(msg), "alias %s='%s'",
-                                     aliases[i].name, aliases[i].command);
+                            snprintf(msg, sizeof(msg), "alias %s='%s'%s",
+                                     aliases[i].name, aliases[i].command,
+                                     aliases[i].from_session ? " *" : "");
                             print_output(msg, 0);
                         }
+                        /* Show legend if any session aliases */
+                        int has_session = 0;
+                        for (int i = 0; i < alias_count; i++) {
+                            if (aliases[i].from_session) { has_session = 1; break; }
+                        }
+                        if (has_session) {
+                            print_output("", 0);
+                            print_output("* = session only (use @alias save to persist)", 0);
+                        }
                     }
+                } else if (strcmp(arg, "save") == 0) {
+                    /* @alias save - save session aliases to config */
+                    const char* home = getenv("HOME");
+                    if (!home) {
+                        print_output("Error: HOME not set", 1);
+                        last_exit = 1;
+                    } else {
+                        char config_path[PATH_MAX];
+                        snprintf(config_path, sizeof(config_path), "%s/.cc-bashrc", home);
+
+                        /* Count session aliases */
+                        int session_count = 0;
+                        for (int i = 0; i < alias_count; i++) {
+                            if (aliases[i].from_session) session_count++;
+                        }
+
+                        if (session_count == 0) {
+                            print_output("No session aliases to save.", 0);
+                        } else {
+                            FILE* fp = fopen(config_path, "a");
+                            if (!fp) {
+                                char msg[PATH_MAX + 64];
+                                snprintf(msg, sizeof(msg), "Error: Cannot open %s for writing", config_path);
+                                print_output(msg, 1);
+                                last_exit = 1;
+                            } else {
+                                /* Add newline before aliases section if file not empty */
+                                fseek(fp, 0, SEEK_END);
+                                if (ftell(fp) > 0) {
+                                    fprintf(fp, "\n# Session aliases saved at runtime\n");
+                                }
+
+                                for (int i = 0; i < alias_count; i++) {
+                                    if (aliases[i].from_session) {
+                                        fprintf(fp, "alias %s='%s'\n", aliases[i].name, aliases[i].command);
+                                        aliases[i].from_session = 0;  /* Mark as saved */
+                                    }
+                                }
+                                fclose(fp);
+
+                                char msg[PATH_MAX + 64];
+                                snprintf(msg, sizeof(msg), "Saved %d alias%s to %s",
+                                         session_count, session_count == 1 ? "" : "es", config_path);
+                                print_output(msg, 0);
+                            }
+                        }
+                    }
+                    last_exit = 0;
                 } else {
                     /* Add new alias: @alias name=command */
                     char* eq = strchr(arg, '=');
@@ -2341,13 +2425,14 @@ int main(void)
                                 strncpy(cmd_clean, cmd_val, sizeof(cmd_clean) - 1);
                                 cmd_clean[sizeof(cmd_clean) - 1] = '\0';
                             }
-                            add_alias(name, cmd_clean);
-                            char msg[CONFIG_LINE_SIZE + 256 + 16];  /* room for name + cmd + "alias =''" */
-                            snprintf(msg, sizeof(msg), "alias %s='%s'", name, cmd_clean);
+                            add_alias(name, cmd_clean, 1);  /* from session */
+                            char msg[CONFIG_LINE_SIZE + 256 + 64];
+                            snprintf(msg, sizeof(msg), "alias %s='%s' (session only, use @alias save to persist)",
+                                     name, cmd_clean);
                             print_output(msg, 0);
                         }
                     } else {
-                        print_output("Usage: @alias name='command'", 1);
+                        print_output("Usage: @alias name='command' or @alias save", 1);
                     }
                 }
                 last_exit = 0;
@@ -2682,6 +2767,99 @@ int main(void)
                         }
                     }
                 }
+                last_exit = 0;
+            }
+            else if (strcmp(cmd, "edit") == 0 || strcmp(cmd, "e") == 0) {
+                /* @edit - open config file in editor */
+                const char* home = getenv("HOME");
+                if (!home) {
+                    print_output("Error: HOME not set", 1);
+                    last_exit = 1;
+                } else {
+                    char config_path[PATH_MAX];
+                    snprintf(config_path, sizeof(config_path), "%s/.cc-bashrc", home);
+
+                    /* Find editor: $EDITOR, $VISUAL, or fallback to common editors */
+                    const char* editor = getenv("EDITOR");
+                    if (!editor || strlen(editor) == 0) {
+                        editor = getenv("VISUAL");
+                    }
+                    if (!editor || strlen(editor) == 0) {
+                        /* Try common editors */
+                        if (access("/usr/bin/vim", X_OK) == 0 ||
+                            access("/usr/local/bin/vim", X_OK) == 0) {
+                            editor = "vim";
+                        } else if (access("/usr/bin/vi", X_OK) == 0 ||
+                                   access("/usr/local/bin/vi", X_OK) == 0) {
+                            editor = "vi";
+                        } else if (access("/usr/bin/nano", X_OK) == 0 ||
+                                   access("/usr/local/bin/nano", X_OK) == 0) {
+                            editor = "nano";
+                        } else {
+                            editor = "vi";  /* Last resort */
+                        }
+                    }
+
+                    /* Create config file if it doesn't exist */
+                    if (access(config_path, F_OK) != 0) {
+                        FILE* fp = fopen(config_path, "w");
+                        if (fp) {
+                            fprintf(fp, "# cc-bash configuration file\n");
+                            fprintf(fp, "# See: https://github.com/jcaldwell-labs/smartterm-prototype\n\n");
+                            fprintf(fp, "# Aliases\n");
+                            fprintf(fp, "# alias ll='ls -la'\n");
+                            fprintf(fp, "# alias gs='git status'\n\n");
+                            fprintf(fp, "# Snippets (with $1, $2 placeholders)\n");
+                            fprintf(fp, "# snippet greet='echo Hello, $1!'\n\n");
+                            fprintf(fp, "# Workflows (multi-step commands)\n");
+                            fprintf(fp, "# workflow build='make clean && make && make test'\n\n");
+                            fprintf(fp, "# Theme colors (black red green yellow blue magenta cyan white)\n");
+                            fprintf(fp, "# theme.prompt=cyan\n");
+                            fprintf(fp, "# theme.error=bold red\n\n");
+                            fprintf(fp, "# Environment variables\n");
+                            fprintf(fp, "# export EDITOR=vim\n");
+                            fclose(fp);
+                        }
+                    }
+
+                    char edit_cmd[PATH_MAX + 256];
+                    snprintf(edit_cmd, sizeof(edit_cmd), "%s '%s'", editor, config_path);
+                    print_output("Opening config in editor...", 0);
+                    last_exit = execute_command(edit_cmd);
+                    print_output("Config editor closed. Use @reload to apply changes.", 0);
+                }
+            }
+            else if (strcmp(cmd, "reload") == 0 || strcmp(cmd, "r") == 0) {
+                /* @reload - reload configuration file */
+                print_output("Reloading configuration...", 0);
+
+                /* Clear current config state */
+                clear_aliases();
+                free_snippets();
+                free_workflows();
+
+                /* Reset theme to defaults */
+                strncpy(theme.prompt, CYAN, sizeof(theme.prompt) - 1);
+                strncpy(theme.error, RED, sizeof(theme.error) - 1);
+                strncpy(theme.comment, GREEN, sizeof(theme.comment) - 1);
+                strncpy(theme.dim, DIM, sizeof(theme.dim) - 1);
+                strncpy(theme.header, BOLD WHITE, sizeof(theme.header) - 1);
+                strncpy(theme.status, BOLD, sizeof(theme.status) - 1);
+                strncpy(theme.scroll, DIM, sizeof(theme.scroll) - 1);
+
+                /* Note: We don't unload plugins since they may have state */
+                /* If user wants to reload plugins, they should restart cc-bash */
+
+                /* Reload config */
+                load_config();
+
+                /* Report what was loaded */
+                char msg[256];
+                snprintf(msg, sizeof(msg), "Loaded: %d alias%s, %d snippet%s, %d workflow%s",
+                         alias_count, alias_count == 1 ? "" : "es",
+                         snippet_count, snippet_count == 1 ? "" : "s",
+                         workflow_count, workflow_count == 1 ? "" : "s");
+                print_output(msg, 0);
                 last_exit = 0;
             }
             else {
