@@ -33,7 +33,10 @@
  * CONTRIBUTING.md for development guidelines.
  */
 
+/* Feature test macros - must come before any includes */
 #define _POSIX_C_SOURCE 200809L
+#define _GNU_SOURCE     /* Linux: enables SIGWINCH and other extensions */
+#define _DARWIN_C_SOURCE /* macOS: enables SIGWINCH */
 
 #include <dirent.h>
 #include <errno.h>
