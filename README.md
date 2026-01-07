@@ -30,17 +30,57 @@ cc-bash provides a Claude Code-inspired interface for interactive bash use:
 
 ---
 
-## Quick Start (C Version)
+## Installation
+
+### Option 1: Install Script (Recommended)
+
+```bash
+# One-command install (builds from source)
+curl -fsSL https://raw.githubusercontent.com/jcaldwell-labs/smartterm-prototype/master/install.sh | bash
+```
+
+### Option 2: Download Pre-built Binary
+
+Download from [GitHub Releases](https://github.com/jcaldwell-labs/smartterm-prototype/releases):
+
+```bash
+# Linux x86_64
+curl -fsSL https://github.com/jcaldwell-labs/smartterm-prototype/releases/latest/download/cc-bash-linux-x86_64 -o cc-bash
+chmod +x cc-bash
+sudo mv cc-bash /usr/local/bin/
+
+# Create config
+mkdir -p ~/.cc-bash/plugins
+curl -fsSL https://raw.githubusercontent.com/jcaldwell-labs/smartterm-prototype/master/cc-bashrc.template -o ~/.cc-bashrc
+```
+
+### Option 3: Build from Source
 
 ```bash
 # Install dependencies (Ubuntu/Debian)
 sudo apt-get install libreadline-dev
 
-# Build
+# Clone and build
+git clone https://github.com/jcaldwell-labs/smartterm-prototype.git
+cd smartterm-prototype
 make
 
-# Run
+# Install system-wide
+sudo make install
+
+# Or run locally
 ./cc-bash
+```
+
+### Option 4: Local User Install (no sudo)
+
+```bash
+# Install to ~/.local/bin
+make
+make install PREFIX=$HOME/.local
+
+# Add to PATH (add to ~/.bashrc)
+export PATH="$HOME/.local/bin:$PATH"
 ```
 
 ---

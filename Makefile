@@ -17,7 +17,7 @@ CCBASH_SRC = cc-bash.c
 TEST_UNIT_TARGET = test_unit
 TEST_UNIT_SRC = tests/test_unit.c
 
-.PHONY: all clean run poc cc-bash run-ccbash test test-unit help
+.PHONY: all clean run poc cc-bash run-ccbash test test-unit help install uninstall
 
 # Default: build cc-bash
 all: $(CCBASH_TARGET)
@@ -60,6 +60,40 @@ test: $(CCBASH_TARGET) $(TEST_UNIT_TARGET)
 test-unit: $(TEST_UNIT_TARGET)
 	@./$(TEST_UNIT_TARGET)
 
+# Installation directories
+PREFIX ?= /usr/local
+BINDIR = $(PREFIX)/bin
+SYSCONFDIR = $(HOME)/.cc-bash
+CONFIG_FILE = $(HOME)/.cc-bashrc
+
+# Install cc-bash
+install: $(CCBASH_TARGET)
+	@echo "Installing cc-bash..."
+	install -d $(BINDIR)
+	install -m 755 $(CCBASH_TARGET) $(BINDIR)/
+	@echo "Creating config directory..."
+	install -d $(SYSCONFDIR)
+	install -d $(SYSCONFDIR)/plugins
+	@if [ ! -f $(CONFIG_FILE) ]; then \
+		echo "Creating default config file..."; \
+		install -m 644 cc-bashrc.template $(CONFIG_FILE); \
+	else \
+		echo "Config file already exists, skipping..."; \
+	fi
+	@echo ""
+	@echo "Installation complete!"
+	@echo "  Binary:  $(BINDIR)/cc-bash"
+	@echo "  Config:  $(CONFIG_FILE)"
+	@echo "  Plugins: $(SYSCONFDIR)/plugins/"
+	@echo ""
+	@echo "Run 'cc-bash' to start"
+
+# Uninstall cc-bash
+uninstall:
+	@echo "Uninstalling cc-bash..."
+	rm -f $(BINDIR)/$(CCBASH_TARGET)
+	@echo "Binary removed. Config files preserved in $(SYSCONFDIR)"
+
 help:
 	@echo "cc-bash: Claude Code-style bash wrapper"
 	@echo ""
@@ -67,6 +101,8 @@ help:
 	@echo "  all       - Build cc-bash (default)"
 	@echo "  run       - Build and run cc-bash"
 	@echo "  test      - Run cc-bash test suite"
+	@echo "  install   - Install to $(PREFIX)/bin (use sudo)"
+	@echo "  uninstall - Remove from $(PREFIX)/bin"
 	@echo "  poc       - Build original smartterm POC"
 	@echo "  run-poc   - Run original smartterm POC"
 	@echo "  clean     - Remove binaries"

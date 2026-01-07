@@ -1,0 +1,61 @@
+# cc-bash configuration file
+# Copy to ~/.cc-bashrc or install with: make install
+
+# ============================================================================
+# ALIASES
+# ============================================================================
+# Define shortcuts for common commands
+# Syntax: alias name='command'
+
+alias ll='ls -la'
+alias la='ls -A'
+alias gs='git status'
+alias gd='git diff'
+alias gl='git log --oneline -10'
+
+# ============================================================================
+# SNIPPETS
+# ============================================================================
+# Define command templates with placeholders ($1, $2, etc.)
+# Syntax: snippet name='command with $1 and $2'
+# Usage: @snippet name arg1 arg2
+
+snippet find-name='find . -name "$1"'
+snippet grep-r='grep -r "$1" .'
+snippet mkdir-cd='mkdir -p $1 && cd $1'
+
+# ============================================================================
+# WORKFLOWS
+# ============================================================================
+# Define multi-step command sequences
+# Syntax: workflow name='cmd1 && cmd2'  (stop on error)
+#         workflow name='cmd1; cmd2'    (continue on error)
+# Usage: @workflow name
+
+workflow build='make clean && make && make test'
+workflow gitcheck='git status; git diff --stat'
+
+# ============================================================================
+# THEME
+# ============================================================================
+# Customize colors for different UI elements
+# Available colors: black, red, green, yellow, blue, magenta, cyan, white
+# Modifiers: bold, dim (can combine: "bold cyan")
+
+# theme.prompt=bold cyan
+# theme.error=bold red
+# theme.comment=green
+# theme.dim=dim
+# theme.header=bold white
+# theme.status=bold
+# theme.scroll=dim
+
+# ============================================================================
+# ENVIRONMENT
+# ============================================================================
+# Set environment variables
+# Syntax: export NAME=value
+
+# export EDITOR=vim
+# export PAGER=less
+
