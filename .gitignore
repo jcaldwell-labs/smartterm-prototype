@@ -28,3 +28,4 @@ core
 # Test outputs
 test_output/
 *.log
+cc-bash
