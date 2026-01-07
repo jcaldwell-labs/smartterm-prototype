@@ -9,6 +9,7 @@
  */
 
 #define _POSIX_C_SOURCE 200809L
+#define _GNU_SOURCE  /* for strcasestr */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -586,6 +587,101 @@ static void free_history(void)
         free(history[i]);
     }
     history_count = 0;
+}
+
+/* ============================================================================
+ * History Search (Ctrl+R) - Issue #23
+ * ============================================================================
+ * Fuzzy search scoring for history entries.
+ */
+
+/* Calculate fuzzy match score (copied from cc-bash.c for testing) */
+static int fuzzy_score(const char* query, const char* text)
+{
+    if (!query || !text || query[0] == '\0') {
+        return 0;
+    }
+
+    /* Case-insensitive substring search */
+    const char* match = strcasestr(text, query);
+    if (!match) {
+        return 0;
+    }
+
+    int score = 100;  /* Base score for substring match */
+    int match_pos = match - text;
+
+    /* Bonus for match at start */
+    if (match_pos == 0) {
+        score += 50;
+    }
+
+    /* Bonus for word boundary match */
+    if (match_pos > 0) {
+        char prev = text[match_pos - 1];
+        if (prev == ' ' || prev == '/' || prev == '-' || prev == '_' || prev == '.') {
+            score += 30;
+        }
+    }
+
+    /* Bonus for case-exact match */
+    if (strstr(text, query) != NULL) {
+        score += 20;
+    }
+
+    /* Position bonus: earlier matches are better (max +40) */
+    score += (40 - (match_pos > 40 ? 40 : match_pos));
+
+    return score;
+}
+
+/* Search state for testing */
+static int search_match_indices[MAX_HISTORY];
+static int search_match_count = 0;
+
+/* Update search matches (simplified version for testing) */
+static void update_search_matches(const char* query)
+{
+    search_match_count = 0;
+
+    if (!query || query[0] == '\0') {
+        return;
+    }
+
+    typedef struct {
+        int index;
+        int score;
+    } ScoredMatch;
+
+    ScoredMatch scored[MAX_HISTORY];
+    int scored_count = 0;
+
+    for (int i = history_count - 1; i >= 0; i--) {
+        int base_score = fuzzy_score(query, history[i]);
+        if (base_score > 0) {
+            int recency_bonus = 50 - ((history_count - 1 - i) * 50 / (history_count > 1 ? history_count - 1 : 1));
+            if (recency_bonus < 0) recency_bonus = 0;
+
+            scored[scored_count].index = i;
+            scored[scored_count].score = base_score + recency_bonus;
+            scored_count++;
+        }
+    }
+
+    /* Sort by score */
+    for (int i = 0; i < scored_count - 1; i++) {
+        for (int j = i + 1; j < scored_count; j++) {
+            if (scored[j].score > scored[i].score) {
+                ScoredMatch tmp = scored[i];
+                scored[i] = scored[j];
+                scored[j] = tmp;
+            }
+        }
+    }
+
+    for (int i = 0; i < scored_count && i < MAX_HISTORY; i++) {
+        search_match_indices[search_match_count++] = scored[i].index;
+    }
 }
 
 /* ============================================================================
@@ -1496,6 +1592,110 @@ void test_workflow_complex_commands(void)
 }
 
 /* ============================================================================
+ * History Search Tests - Issue #23
+ * ============================================================================ */
+
+void test_fuzzy_score_basic(void)
+{
+    printf("\n[Fuzzy Score: Basic Matching]\n");
+
+    ASSERT(fuzzy_score("ls", "ls -la") > 0, "substring match returns positive score");
+    ASSERT(fuzzy_score("xyz", "ls -la") == 0, "no match returns 0");
+    ASSERT(fuzzy_score("", "ls -la") == 0, "empty query returns 0");
+    ASSERT(fuzzy_score("ls", "") == 0, "empty text returns 0");
+    ASSERT(fuzzy_score(NULL, "ls") == 0, "NULL query returns 0");
+}
+
+void test_fuzzy_score_case_insensitive(void)
+{
+    printf("\n[Fuzzy Score: Case Insensitivity]\n");
+
+    ASSERT(fuzzy_score("LS", "ls -la") > 0, "uppercase query matches lowercase text");
+    ASSERT(fuzzy_score("ls", "LS -LA") > 0, "lowercase query matches uppercase text");
+    ASSERT(fuzzy_score("Git", "git status") > 0, "mixed case query matches");
+}
+
+void test_fuzzy_score_ranking(void)
+{
+    printf("\n[Fuzzy Score: Ranking Preference]\n");
+
+    int start_score = fuzzy_score("git", "git status");
+    int middle_score = fuzzy_score("git", "run git status");
+    int end_score = fuzzy_score("git", "status git");
+
+    ASSERT(start_score > middle_score, "start match ranks higher than middle");
+    ASSERT(middle_score > end_score, "earlier position ranks higher");
+}
+
+void test_fuzzy_score_word_boundary(void)
+{
+    printf("\n[Fuzzy Score: Word Boundary Bonus]\n");
+
+    int boundary_score = fuzzy_score("status", "git status");  /* after space */
+    int inline_score = fuzzy_score("status", "gitstatus");    /* inline */
+
+    ASSERT(boundary_score > inline_score, "word boundary match ranks higher");
+}
+
+void test_search_matches_basic(void)
+{
+    printf("\n[Search Matches: Basic]\n");
+    free_history();
+
+    add_history("ls -la");
+    add_history("git status");
+    add_history("git diff");
+    add_history("make test");
+
+    update_search_matches("git");
+    ASSERT(search_match_count == 2, "finds 2 git matches");
+    ASSERT(strcmp(history[search_match_indices[0]], "git diff") == 0 ||
+           strcmp(history[search_match_indices[0]], "git status") == 0,
+           "first match is a git command");
+
+    update_search_matches("xyz");
+    ASSERT(search_match_count == 0, "no matches for xyz");
+
+    free_history();
+}
+
+void test_search_matches_recency(void)
+{
+    printf("\n[Search Matches: Recency Ranking]\n");
+    free_history();
+
+    /* Add same command twice with other commands in between */
+    add_history("ls -la");     /* oldest */
+    add_history("make clean");
+    add_history("ls -lh");     /* newest ls */
+
+    update_search_matches("ls");
+    ASSERT(search_match_count == 2, "finds 2 ls matches");
+    /* Most recent should be first due to recency bonus */
+    ASSERT(strcmp(history[search_match_indices[0]], "ls -lh") == 0,
+           "most recent match first");
+
+    free_history();
+}
+
+void test_search_matches_empty(void)
+{
+    printf("\n[Search Matches: Empty Query]\n");
+    free_history();
+
+    add_history("ls -la");
+    add_history("git status");
+
+    update_search_matches("");
+    ASSERT(search_match_count == 0, "empty query returns no matches");
+
+    update_search_matches(NULL);
+    ASSERT(search_match_count == 0, "NULL query returns no matches");
+
+    free_history();
+}
+
+/* ============================================================================
  * Main
  * ============================================================================ */
 
@@ -1568,6 +1768,15 @@ int main(void)
     test_workflow_multiple();
     test_workflow_whitespace_handling();
     test_workflow_complex_commands();
+
+    /* History search tests (Issue #23) */
+    test_fuzzy_score_basic();
+    test_fuzzy_score_case_insensitive();
+    test_fuzzy_score_ranking();
+    test_fuzzy_score_word_boundary();
+    test_search_matches_basic();
+    test_search_matches_recency();
+    test_search_matches_empty();
 
     /* Summary */
     printf("\n========================================\n");

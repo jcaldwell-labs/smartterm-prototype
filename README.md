@@ -208,6 +208,19 @@ Built-in commands:
 | `#`    | Note/comment - displayed in yellow, not executed |
 | `@`    | Internal command (help, clear, quit)             |
 
+### Keyboard Shortcuts
+
+| Key          | Action                                              |
+| ------------ | --------------------------------------------------- |
+| `Ctrl+R`     | Fuzzy history search (type to search, Enter to use) |
+| `Ctrl+C`     | Cancel current input or search                      |
+| `Ctrl+D`     | Exit cc-bash                                        |
+| `Up/Down`    | Navigate command history                            |
+| `Left/Right` | Move cursor in input                                |
+| `Tab`        | Complete command/file (double-Tab for options)      |
+| `PgUp/PgDn`  | Scroll output buffer                                |
+| `Esc`        | Cancel search mode                                  |
+
 ### Built-in Commands
 
 | Command     | Action                                    |

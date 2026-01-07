@@ -185,6 +185,14 @@ static char* history[MAX_HISTORY];
 static int history_count = 0;
 static int history_pos = 0;
 
+/* History search state (Ctrl+R) - Issue #23 */
+static int search_mode = 0;           /* 1 = in search mode */
+static char search_query[256];        /* Current search query */
+static int search_query_len = 0;
+static int search_match_indices[MAX_HISTORY];  /* Indices of matching history entries */
+static int search_match_count = 0;    /* Number of matches */
+static int search_match_pos = 0;      /* Current position in matches (0 = most recent) */
+
 /* Output buffer for scrollback */
 typedef struct {
     char* text;
@@ -1726,6 +1734,127 @@ static void add_history(const char* cmd)
 }
 
 /* ============================================================================
+ * History Search (Ctrl+R) - Issue #23
+ * ============================================================================
+ * Fuzzy history search with scoring based on:
+ * - Substring match (required)
+ * - Match position (earlier = better)
+ * - Word boundary matches (bonus)
+ * - Recency in history (more recent = better)
+ */
+
+/* Calculate fuzzy match score for a query against a history entry.
+ * Returns 0 for no match, positive score for match (higher = better).
+ * Scoring factors:
+ *   - Base score 100 for substring match
+ *   - +50 if match is at start of string
+ *   - +30 if match is at word boundary (after space or special char)
+ *   - +20 if match is case-exact
+ *   - Position bonus: earlier in string = higher score
+ *   - Recency bonus passed separately
+ */
+static int fuzzy_score(const char* query, const char* text)
+{
+    if (!query || !text || query[0] == '\0') {
+        return 0;
+    }
+
+    /* Case-insensitive substring search */
+    const char* match = strcasestr(text, query);
+    if (!match) {
+        return 0;
+    }
+
+    int score = 100;  /* Base score for substring match */
+    int match_pos = match - text;
+
+    /* Bonus for match at start */
+    if (match_pos == 0) {
+        score += 50;
+    }
+
+    /* Bonus for word boundary match */
+    if (match_pos > 0) {
+        char prev = text[match_pos - 1];
+        if (prev == ' ' || prev == '/' || prev == '-' || prev == '_' || prev == '.') {
+            score += 30;
+        }
+    }
+
+    /* Bonus for case-exact match */
+    if (strstr(text, query) != NULL) {
+        score += 20;
+    }
+
+    /* Position bonus: earlier matches are better (max +40) */
+    score += (40 - (match_pos > 40 ? 40 : match_pos));
+
+    return score;
+}
+
+/* Update search matches based on current query.
+ * Populates search_match_indices with indices of matching history entries,
+ * sorted by score (best first). Recency is factored into score.
+ */
+static void update_search_matches(void)
+{
+    search_match_count = 0;
+    search_match_pos = 0;
+
+    if (search_query_len == 0) {
+        return;
+    }
+
+    /* Score all history entries */
+    typedef struct {
+        int index;
+        int score;
+    } ScoredMatch;
+
+    ScoredMatch scored[MAX_HISTORY];
+    int scored_count = 0;
+
+    /* Search from most recent (highest index) to oldest */
+    for (int i = history_count - 1; i >= 0; i--) {
+        int base_score = fuzzy_score(search_query, history[i]);
+        if (base_score > 0) {
+            /* Add recency bonus: most recent gets +50, decays */
+            int recency_bonus = 50 - ((history_count - 1 - i) * 50 / (history_count > 1 ? history_count - 1 : 1));
+            if (recency_bonus < 0) recency_bonus = 0;
+
+            scored[scored_count].index = i;
+            scored[scored_count].score = base_score + recency_bonus;
+            scored_count++;
+        }
+    }
+
+    /* Sort by score (simple bubble sort - history is small) */
+    for (int i = 0; i < scored_count - 1; i++) {
+        for (int j = i + 1; j < scored_count; j++) {
+            if (scored[j].score > scored[i].score) {
+                ScoredMatch tmp = scored[i];
+                scored[i] = scored[j];
+                scored[j] = tmp;
+            }
+        }
+    }
+
+    /* Store sorted indices */
+    for (int i = 0; i < scored_count && i < MAX_HISTORY; i++) {
+        search_match_indices[search_match_count++] = scored[i].index;
+    }
+}
+
+/* Get the currently selected history entry in search mode, or NULL */
+static const char* get_search_selection(void)
+{
+    if (search_match_count > 0 && search_match_pos < search_match_count) {
+        return history[search_match_indices[search_match_pos]];
+    }
+    return NULL;
+}
+
+/* ============================================================================
  * Tab Completion Support - Issue #15
  * ============================================================================
  * Implements file/directory and command completion:
@@ -2025,6 +2154,45 @@ static int draw_prompt(void)
     }
 }
 
+/* Draw search prompt for Ctrl+R history search
+ * Format: (reverse-i-search)`query': match
+ * Returns column position after prompt
+ */
+static int draw_search_prompt(void)
+{
+    cursor_move(prompt_row, 1);
+    clear_line();
+
+    const char* selection = get_search_selection();
+
+    printf("%s(reverse-i-search)`%s", theme.dim, RESET);
+    printf("%s%s%s", theme.prompt, search_query, RESET);
+    printf("%s':%s ", theme.dim, RESET);
+
+    if (selection) {
+        /* Highlight the matching portion in the result */
+        const char* match_start = strcasestr(selection, search_query);
+        if (match_start && search_query_len > 0) {
+            /* Print part before match */
+            int before_len = match_start - selection;
+            printf("%.*s", before_len, selection);
+            /* Print match highlighted */
+            printf("%s%.*s%s", theme.prompt, search_query_len, match_start, RESET);
+            /* Print part after match */
+            printf("%s", match_start + search_query_len);
+        } else {
+            printf("%s", selection);
+        }
+    } else if (search_query_len > 0) {
+        printf("%s(no match)%s", theme.error, RESET);
+    }
+
+    fflush(stdout);
+
+    /* Return cursor position at end of query for editing */
+    return 19 + search_query_len;  /* Length of "(reverse-i-search)`" + query */
+}
+
 /* Read a line with basic editing
  * Handles: backspace, left/right arrows, up/down for history, Tab completion,
  * PgUp/PgDn for scrollback, Ctrl+C, Ctrl+D.
@@ -2180,10 +2348,92 @@ static char* read_input(void)
         }
 
         if (c == 3) {  /* Ctrl+C */
-            buf[0] = '\0';
-            prompt_col = draw_prompt();
-            fflush(stdout);
-            len = pos = 0;
+            if (search_mode) {
+                /* Exit search mode without selecting */
+                search_mode = 0;
+                search_query[0] = '\0';
+                search_query_len = 0;
+                search_match_count = 0;
+                prompt_col = draw_prompt();
+                printf("%s", buf);
+                cursor_move(prompt_row, prompt_col + pos);
+                fflush(stdout);
+            } else {
+                buf[0] = '\0';
+                prompt_col = draw_prompt();
+                fflush(stdout);
+                len = pos = 0;
+            }
+            continue;
+        }
+
+        if (c == 18) {  /* Ctrl+R - history search */
+            if (!search_mode) {
+                /* Enter search mode */
+                search_mode = 1;
+                search_query[0] = '\0';
+                search_query_len = 0;
+                search_match_count = 0;
+                search_match_pos = 0;
+                draw_search_prompt();
+            } else {
+                /* Already in search mode - cycle to next match */
+                if (search_match_count > 0) {
+                    search_match_pos = (search_match_pos + 1) % search_match_count;
+                    draw_search_prompt();
+                }
+            }
+            continue;
+        }
+
+        /* Handle search mode input */
+        if (search_mode) {
+            if (c == 27) {  /* Escape - exit search without selecting */
+                search_mode = 0;
+                search_query[0] = '\0';
+                search_query_len = 0;
+                search_match_count = 0;
+                prompt_col = draw_prompt();
+                printf("%s", buf);
+                cursor_move(prompt_row, prompt_col + pos);
+                fflush(stdout);
+                continue;
+            }
+
+            if (c == '\n' || c == '\r') {  /* Enter - accept selection */
+                const char* selection = get_search_selection();
+                if (selection) {
+                    strncpy(buf, selection, INPUT_BUF_SIZE - 1);
+                    buf[INPUT_BUF_SIZE - 1] = '\0';
+                    len = pos = strlen(buf);
+                }
+                search_mode = 0;
+                search_query[0] = '\0';
+                search_query_len = 0;
+                search_match_count = 0;
+                prompt_col = draw_prompt();
+                printf("%s", buf);
+                cursor_move(prompt_row, prompt_col + pos);
+                fflush(stdout);
+                continue;
+            }
+
+            if (c == 127 || c == 8) {  /* Backspace in search */
+                if (search_query_len > 0) {
+                    search_query[--search_query_len] = '\0';
+                    update_search_matches();
+                    draw_search_prompt();
+                }
+                continue;
+            }
+
+            /* Regular character - add to search query */
+            if (search_query_len < (int)sizeof(search_query) - 1 && c >= 32 && c < 127) {
+                search_query[search_query_len++] = c;
+                search_query[search_query_len] = '\0';
+                update_search_matches();
+                draw_search_prompt();
+            }
             continue;
         }
 
