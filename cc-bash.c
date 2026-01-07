@@ -2825,7 +2825,31 @@ int main(void)
                     char edit_cmd[PATH_MAX + 256];
                     snprintf(edit_cmd, sizeof(edit_cmd), "%s '%s'", editor, config_path);
                     print_output("Opening config in editor...", 0);
-                    last_exit = execute_command(edit_cmd);
+
+                    /* Prepare terminal for external editor:
+                     * 1. Reset scroll region to full screen
+                     * 2. Move cursor to top and clear screen
+                     * 3. Disable raw mode so editor gets clean terminal
+                     */
+                    printf("\033[r");           /* Reset scroll region */
+                    printf("\033[H\033[2J");    /* Move to top, clear screen */
+                    fflush(stdout);
+                    disable_raw_mode();
+
+                    /* Use system() instead of execute_command() to give editor
+                     * direct terminal access (no pipe redirection) */
+                    last_exit = system(edit_cmd);
+                    if (last_exit != -1) {
+                        last_exit = WEXITSTATUS(last_exit);
+                    }
+
+                    /* Restore terminal state:
+                     * 1. Re-enable raw mode
+                     * 2. Reinitialize screen layout (scroll regions, separators, etc.)
+                     */
+                    enable_raw_mode();
+                    init_screen();
+
                     print_output("Config editor closed. Use @reload to apply changes.", 0);
                 }
             }
