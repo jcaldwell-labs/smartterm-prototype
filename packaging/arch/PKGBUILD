@@ -12,8 +12,7 @@ license=('MIT')
 depends=('glibc')
 makedepends=('gcc' 'make')
 source=("$pkgname-$pkgver.tar.gz::https://github.com/jcaldwell-labs/smartterm-prototype/archive/refs/tags/v$pkgver.tar.gz")
-# Note: Update sha256sum after v1.2.0 release is created
-sha256sums=('SKIP')
+sha256sums=('4805774ebf9719920c0289a3e21cf4dc4c0c3e9f46a327cfd0292098c7d939c5')
 
 build() {
     cd "smartterm-prototype-$pkgver"

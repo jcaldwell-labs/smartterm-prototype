@@ -5,8 +5,7 @@ class CcBash < Formula
   desc "Claude Code-style bash wrapper with colored output and status bar"
   homepage "https://github.com/jcaldwell-labs/smartterm-prototype"
   url "https://github.com/jcaldwell-labs/smartterm-prototype/archive/refs/tags/v1.2.0.tar.gz"
-  # Note: Update sha256 after v1.2.0 release is created
-  sha256 "PLACEHOLDER_UPDATE_AFTER_RELEASE"
+  sha256 "4805774ebf9719920c0289a3e21cf4dc4c0c3e9f46a327cfd0292098c7d939c5"
   license "MIT"
   head "https://github.com/jcaldwell-labs/smartterm-prototype.git", branch: "master"
 
