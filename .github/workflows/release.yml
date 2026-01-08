@@ -3,144 +3,84 @@ name: Release
 on:
   push:
     tags:
-      - "v*"
+      - 'v*'
+      - 'v*-rc*'
+  workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
-  build-linux:
+  build:
+    name: Build Release
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        include:
-          - arch: x86_64
-            cc: gcc
-          - arch: arm64
-            cc: aarch64-linux-gnu-gcc
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libreadline-dev
-          if [ "${{ matrix.arch }}" = "arm64" ]; then
-            sudo apt-get install -y gcc-aarch64-linux-gnu
-          fi
+          sudo apt-get install -y libncurses-dev
 
-      - name: Build cc-bash
+      - name: Get version info
+        id: version
         run: |
-          if [ "${{ matrix.arch }}" = "arm64" ]; then
-            # Cross-compile for ARM64 (static linking for portability)
-            ${{ matrix.cc }} -Wall -Wextra -std=c11 -static -o cc-bash cc-bash.c 2>/dev/null || \
-            ${{ matrix.cc }} -Wall -Wextra -std=c11 -o cc-bash cc-bash.c
-          else
-            make CC=${{ matrix.cc }}
-          fi
+          VERSION=${GITHUB_REF#refs/tags/}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
 
-      - name: Package binary
+      - name: Build release
+        run: make release
+
+      - name: Create release archive
         run: |
-          mkdir -p dist
-          cp cc-bash dist/cc-bash-linux-${{ matrix.arch }}
-          cp cc-bashrc.template dist/
-          chmod +x dist/cc-bash-linux-${{ matrix.arch }}
+          mkdir -p release
+          cp build/release/smartterm release/ 2>/dev/null || cp smartterm release/ 2>/dev/null || true
+          cp README.md CHANGELOG.md LICENSE release/ 2>/dev/null || true
+          tar -czvf smartterm-prototype-${{ steps.version.outputs.version }}-linux-amd64.tar.gz -C release .
+          sha256sum smartterm-prototype-${{ steps.version.outputs.version }}-linux-amd64.tar.gz > smartterm-prototype-${{ steps.version.outputs.version }}-linux-amd64.tar.gz.sha256
 
-      - name: Upload artifact
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: cc-bash-linux-${{ matrix.arch }}
-          path: dist/cc-bash-linux-${{ matrix.arch }}
+          name: release-binaries
+          path: |
+            *.tar.gz
+            *.sha256
 
-  build-macos:
-    runs-on: macos-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Install dependencies
-        run: |
-          brew install readline
-
-      - name: Build cc-bash
-        run: |
-          make CC=clang
-
-      - name: Package binary
-        run: |
-          mkdir -p dist
-          cp cc-bash dist/cc-bash-macos-arm64
-          chmod +x dist/cc-bash-macos-arm64
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: cc-bash-macos-arm64
-          path: dist/cc-bash-macos-arm64
-
-  create-release:
-    needs: [build-linux, build-macos]
+  release:
+    name: Create Release
+    needs: build
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      - name: Download all artifacts
+      - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
-          path: artifacts
+          name: release-binaries
+          path: ./release-binaries
 
-      - name: Prepare release assets
+      - name: Determine prerelease
+        id: prerelease
         run: |
-          mkdir -p release
-          cp artifacts/cc-bash-linux-x86_64/cc-bash-linux-x86_64 release/
-          cp artifacts/cc-bash-linux-arm64/cc-bash-linux-arm64 release/ 2>/dev/null || echo "ARM64 build skipped"
-          cp artifacts/cc-bash-macos-arm64/cc-bash-macos-arm64 release/
-          cp cc-bashrc.template release/
-          cp install.sh release/
-          chmod +x release/*
-
-          # Create checksums
-          cd release
-          sha256sum * > checksums.txt
+          if [[ "$GITHUB_REF" == *"-rc"* ]]; then
+            echo "is_prerelease=true" >> $GITHUB_OUTPUT
+          else
+            echo "is_prerelease=false" >> $GITHUB_OUTPUT
+          fi
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          files: |
-            release/cc-bash-linux-x86_64
-            release/cc-bash-linux-arm64
-            release/cc-bash-macos-arm64
-            release/cc-bashrc.template
-            release/install.sh
-            release/checksums.txt
-          body: |
-            ## cc-bash Release
-
-            ### Installation
-
-            **Quick install (Linux/macOS):**
-            ```bash
-            curl -fsSL https://raw.githubusercontent.com/jcaldwell-labs/smartterm-prototype/master/install.sh | bash
-            ```
-
-            **Or download binary directly:**
-            - Linux x86_64: `cc-bash-linux-x86_64`
-            - Linux ARM64: `cc-bash-linux-arm64`
-            - macOS ARM64: `cc-bash-macos-arm64`
-
-            **From source:**
-            ```bash
-            git clone https://github.com/jcaldwell-labs/smartterm-prototype.git
-            cd smartterm-prototype
-            make && sudo make install
-            ```
-
-            ### Checksums
-            See `checksums.txt` for SHA256 checksums of all binaries.
+          files: ./release-binaries/*
           draft: false
-          prerelease: false
+          prerelease: ${{ steps.prerelease.outputs.is_prerelease }}
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
