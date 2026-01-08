@@ -1,9 +1,9 @@
-# CLAUDE.md - AI Assistant Guide for SmartTerm Prototype
+# CLAUDE.md - AI Assistant Guide for cc-bash
 
-> **Purpose**: This document provides AI assistants with comprehensive context about the SmartTerm POC codebase, its architecture, development workflows, and conventions.
+> **Purpose**: This document provides AI assistants with comprehensive context about the cc-bash project, its architecture, development workflows, and conventions.
 
-**Last Updated**: 2025-11-17
-**Project Status**: POC Complete, Decision Made (Path B→A)
+**Last Updated**: 2026-01-07
+**Project Status**: Active Development
 
 ---
 
@@ -14,38 +14,40 @@
 3. [Architecture & Design](#architecture--design)
 4. [Development Workflows](#development-workflows)
 5. [Key Conventions](#key-conventions)
-6. [Implementation Decision](#implementation-decision)
-7. [Common Tasks](#common-tasks)
-8. [Important Context](#important-context)
-9. [References](#references)
+6. [Common Tasks](#common-tasks)
+7. [Project History](#project-history)
+8. [References](#references)
 
 ---
 
 ## Project Overview
 
-### What is SmartTerm?
+### What is cc-bash?
 
-SmartTerm is a **proof of concept** for a terminal UI library that provides:
-- Scrolling output region (no prompt duplication)
-- Context-aware input with color coding
-- Fixed status bar
-- Integration of ncurses + readline
+cc-bash is a **Claude Code-style bash wrapper** that provides a structured terminal interface for command execution:
 
-**This is NOT a production library** - it's a ~250 LOC prototype to validate the architecture before deciding whether to build a full library.
+- Commands execute in bash by default (no prefix needed)
+- Colored output: commands (cyan), stdout (white), stderr (red)
+- Fixed status bar showing cwd, exit code, and time
+- PTY-based execution for automatic color support
+- Command history with persistence
+- Tab completion for commands and file paths
+- Ctrl+R fuzzy history search
+- Extensibility via aliases, snippets, workflows, plugins, and themes
 
-### Project Goals
+### Two Versions
 
-1. **Validate Architecture**: Prove that ncurses + readline can coexist
-2. **Test Concepts**: Output buffer, context awareness, status bar
-3. **Inform Decision**: Gather data to decide between 5 possible paths forward
-4. **Enable Adventure Engine**: Provide UI foundation for text adventure game
+| Version          | Language | AI Integration   | Dependencies                           |
+| ---------------- | -------- | ---------------- | -------------------------------------- |
+| `cc-bash`        | C        | No               | libutil (forkpty)                      |
+| `cc-bash-sdk.py` | Python   | Yes (Claude SDK) | claude-agent-sdk, prompt_toolkit, rich |
 
 ### Current Status
 
-- ✅ POC implementation complete (smartterm_poc.c)
-- ✅ Architecture validated successfully
-- ✅ Decision made: **Path B→A** (ship adventure engine first, library later)
-- ⏳ Next step: Extract POC for adventure engine use
+- **C version**: ~3300 LOC, feature-complete
+- **Python version**: Claude AI integration for @ask, @explain, @fix, @cmd
+- **Test suite**: 170 unit tests + static analysis
+- **CI/CD**: GitHub Actions for build, test, and release
 
 ---
 
@@ -55,99 +57,117 @@ SmartTerm is a **proof of concept** for a terminal UI library that provides:
 
 ```
 smartterm-prototype/
-├── smartterm_poc.c       # Main POC implementation (~250 LOC)
-├── Makefile              # Build system (gcc + ncurses + readline)
-├── .gitignore            # Standard C project ignores
-├── README.md             # POC documentation & testing guide
-├── DECISION.md           # Implementation path decision & tracking
-├── NEXT-STEPS.md         # Detailed opportunity cost analysis
-├── SESSION-SUMMARY.md    # Session notes & findings
-└── CLAUDE.md            # This file (AI assistant guide)
+├── cc-bash.c              # Main C implementation (~3300 LOC)
+├── cc-bash-sdk.py         # Python + Claude SDK version
+├── cc-bashrc.template     # Sample configuration file
+├── Makefile               # Build system
+├── install.sh             # Installation script
+├── smartterm_poc.c        # Original POC (legacy, ~250 LOC)
+│
+├── tests/
+│   ├── test_unit.c        # Unit tests (170 tests)
+│   ├── test_framework.h   # Test framework header
+│   ├── framework.c        # Test framework implementation
+│   └── test_cc_bash.sh    # Static analysis tests
+│
+├── docs/
+│   ├── README.md          # Docs index
+│   ├── ARCHITECTURE.md    # Architecture documentation
+│   ├── SMARTTERM-API.md   # Legacy library API reference
+│   ├── guides/            # User guides
+│   ├── tutorials/         # Tutorials
+│   └── examples/          # Doc examples
+│
+├── lib/                   # Legacy smartterm library (v1.0)
+│   └── smartterm/         # Modular library implementation
+│       ├── smartterm_core.c
+│       ├── smartterm_output.c
+│       ├── smartterm_input.c
+│       ├── smartterm_render.c
+│       ├── smartterm_theme.c
+│       ├── smartterm_status.c
+│       ├── smartterm_scroll.c
+│       ├── smartterm_search.c
+│       ├── smartterm_export.c
+│       ├── smartterm_keyhandler.c
+│       └── smartterm_internal.h
+│
+├── include/
+│   └── smartterm.h        # Legacy library public API
+│
+├── examples/              # Legacy library examples
+│   ├── repl.c
+│   ├── chat_client.c
+│   ├── log_viewer.c
+│   └── headless_demo.c
+│
+├── .github/
+│   └── workflows/
+│       ├── ci.yml         # CI pipeline
+│       └── release.yml    # Release automation
+│
+├── README.md              # User-facing documentation
+├── CONTRIBUTING.md        # Contribution guidelines
+├── CHANGELOG.md           # Version history
+├── SECURITY.md            # Security policy
+├── VISION.md              # Project vision
+└── llms.txt               # LLM context file
 ```
 
 ### Key Files Explained
 
-#### `smartterm_poc.c` (266 lines)
-**Purpose**: Single-file proof of concept implementation
+#### `cc-bash.c` (~3300 lines)
 
-**Key Components**:
-- `OutputBuffer` struct - stores output lines without prompt duplication
-- `ContextType` enum - tracks input context (NORMAL, COMMAND, COMMENT, SPECIAL, SEARCH)
-- `init_ui()` / `cleanup_ui()` - ncurses setup/teardown
-- `render_output()` - display output buffer with context-based coloring
-- `render_status()` - fixed status bar at bottom
-- `readline_with_ncurses()` - suspend/resume wrapper for readline integration
-- `main()` - event loop with command handling
+**Purpose**: Main C implementation of the Claude Code-style bash wrapper
 
-**Context Markers**:
-- `>` or no prefix - Normal input (white)
-- `!` - System command (yellow)
-- `#` - Comment (green)
-- `@` - Special action (cyan)
-- `/` - Search (magenta)
+**Key Sections**:
 
-#### `Makefile` (40 lines)
-**Purpose**: Simple build system
+- **Lines 1-100**: Header comments, includes, ANSI color definitions
+- **Lines 100-200**: Theme configuration structures
+- **Lines 200-400**: Configuration parsing (aliases, snippets, workflows, plugins)
+- **Lines 400-600**: History management and fuzzy search
+- **Lines 600-1000**: Input handling (raw terminal mode, key processing)
+- **Lines 1000-1500**: Tab completion
+- **Lines 1500-2000**: Command execution (PTY-based with forkpty)
+- **Lines 2000-2500**: Built-in commands (@help, @clear, @edit, @reload, etc.)
+- **Lines 2500-3000**: Plugin system and hooks
+- **Lines 3000-3300**: Main loop and initialization
+
+**Key Functions**:
+
+- `execute_command()` - PTY-based command execution with color support
+- `read_input()` - Raw terminal input with line editing
+- `handle_key()` - Key event processing
+- `fuzzy_search_history()` - Ctrl+R implementation
+- `expand_alias()` - Alias expansion
+- `run_workflow()` - Multi-step workflow execution
+- `load_config()` - Parse ~/.cc-bashrc
+- `load_plugins()` - Load ~/.cc-bash/plugins/
+
+#### `cc-bash-sdk.py` (~300 lines)
+
+**Purpose**: Python version with Claude AI integration
+
+**AI Commands**:
+
+- `@ask <question>` - Ask Claude anything
+- `@explain` - Explain last command output
+- `@fix` - Suggest fix for last error
+- `@cmd <description>` - Generate command from natural language
+
+#### `Makefile`
 
 **Targets**:
-- `make` or `make all` - Build binary
-- `make run` - Build and execute
-- `make clean` - Remove artifacts
-- `make test` - Show testing instructions
-- `make help` - Display available targets
 
-**Build Configuration**:
-- Compiler: gcc with `-Wall -Wextra -std=c11`
-- Dependencies: `-lncurses -lreadline`
-
-#### `README.md` (255 lines)
-**Purpose**: User-facing documentation
-
-**Contents**:
-- What the POC demonstrates
-- Build prerequisites (Debian/Ubuntu, macOS)
-- Testing guide (6 test scenarios)
-- Architecture diagram
-- Known limitations
-- Learnings and surprises
-
-#### `DECISION.md` (179 lines)
-**Purpose**: Track implementation path decision
-
-**Contains**:
-- Decision point context
-- 5 available paths with estimates
-- Chosen path: **B→A** (ship first, refactor later)
-- Rationale and timeline commitments
-- Milestone tracking
-- Retrospective placeholders
-
-#### `NEXT-STEPS.md` (503 lines)
-**Purpose**: Comprehensive opportunity cost analysis
-
-**Analyzes**:
-- Path A: Full library (3-4 weeks, 45-60 hours)
-- Path B: Use POC as-is (1-2 days, 7-9 hours)
-- Path C: Pivot to different approach (1-2 weeks)
-- Path B→A: Ship first, library later (recommended)
-- Path A+B: Incremental development
-
-**Includes**:
-- Break-even calculations
-- Risk assessments
-- Decision framework (5 key questions)
-- Concrete next actions for each path
-
-#### `SESSION-SUMMARY.md` (458 lines)
-**Purpose**: Session notes and findings
-
-**Documents**:
-- What was created
-- Key findings from POC
-- Architecture validation
-- Learnings and surprises
-- Time investment summary
-- Success criteria
+- `make` / `make all` - Build cc-bash
+- `make run` - Build and run
+- `make test` - Run unit tests + static analysis
+- `make test-unit` - Run only unit tests
+- `make install` - Install to /usr/local/bin
+- `make uninstall` - Remove installation
+- `make poc` - Build original smartterm POC
+- `make clean` - Remove binaries
+- `make help` - Show help
 
 ---
 
@@ -156,169 +176,165 @@ smartterm-prototype/
 ### Three-Region Layout
 
 ```
-┌──────────────────────────────────┐
-│     Output Window (scrolling)    │  ← OutputBuffer, no prompt duplication
-│  Line 1                          │
-│  Line 2                          │
-│  ...                             │
-│  Line N                          │
-├──────────────────────────────────┤
-│  Status Bar (info)               │  ← Fixed info display
-├──────────────────────────────────┤
-│  (readline input area)           │  ← Input handled by readline
-│  > _                             │     (appears below window)
-└──────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────┐
+│                        Output Area (scrolling)                        │
+│  $ ls -la                                                            │
+│  total 24                                                            │
+│  drwxr-xr-x 3 user user 4096 Jan 7 .                                │
+│  -rw-r--r-- 1 user user 1234 Jan 7 main.c                           │
+│  ...                                                                 │
+├──────────────────────────────────────────────────────────────────────┤
+│ $ _                                                    (prompt area) │
+├──────────────────────────────────────────────────────────────────────┤
+│  ~/projects/myapp                              [exit: 0] 14:30:00   │
+│ ──────────────────────────────────────────────────────────────────── │
+└──────────────────────────────────────────────────────────────────────┘
+   └── Status bar (fixed, shows cwd, exit code, time)
 ```
 
 ### Key Design Decisions
 
-1. **Output Buffer Separate from Display**
-   - Store lines in array (no ncurses dependency)
-   - Render buffer to window on demand
-   - Enables scrollback, search, export
-   - Prevents prompt duplication
+1. **ANSI Escape Codes (Not ncurses)**
+   - Direct ANSI sequences for portability
+   - No library dependencies for terminal control
+   - Output stays visible at all times
+   - Why not ncurses: must suspend during readline, causing flicker
 
-2. **readline Suspends ncurses**
-   - ncurses paused during input (`endwin()`)
-   - readline handles editing
-   - ncurses resumes for display (`reset_prog_mode()`)
+2. **PTY-Based Command Execution** (Issue #22)
+   - Uses `forkpty()` for pseudo-terminal allocation
+   - Commands see a real terminal (isatty() returns true)
+   - Automatic color output from ls, grep, etc.
+   - Proper signal handling for Ctrl+C
 
-3. **Context as Prefix**
-   - Store context marker with each line
-   - Render with appropriate color
-   - Easy to extend to more contexts
+3. **Raw Terminal Mode**
+   - Character-by-character input via termios
+   - Custom line editing (no readline dependency)
+   - Full control over key handling
+   - Enables Ctrl+R fuzzy search
 
-4. **Status Bar as Separate Window**
-   - Fixed position (always visible)
-   - Independent update cycle
-   - Shows app state and info
+4. **Configuration System**
+   - `~/.cc-bashrc` for user configuration
+   - Aliases, snippets, workflows, themes
+   - Plugin system with hooks
+   - Runtime reload with @reload
 
-### Data Structures
+### Data Flow
 
-```c
-// Output buffer - core data structure
-typedef struct {
-    char **lines;        // Array of output lines
-    int count;          // Current line count
-    int capacity;       // Max lines (1000)
-    int scroll_offset;  // For scrollback (not implemented)
-} OutputBuffer;
-
-// Context types for color coding
-typedef enum {
-    CTX_NORMAL,    // Default (white)
-    CTX_COMMAND,   // ! prefix (yellow)
-    CTX_COMMENT,   // # prefix (green)
-    CTX_SPECIAL,   // @ prefix (cyan)
-    CTX_SEARCH     // / prefix (magenta)
-} ContextType;
+```
+User Input → Raw Terminal → Key Handler → Command Parser
+                                              ↓
+                    ┌─────────────────────────┴──────────────────────────┐
+                    ↓                         ↓                          ↓
+              @ Command               # Comment                    Shell Command
+              (internal)              (display only)               (execute)
+                    ↓                         ↓                          ↓
+              Handle builtin           Display in yellow          PTY execution
+                    ↓                         ↓                          ↓
+              Update state            Add to history              Capture output
+                    ↓                         ↓                          ↓
+                    └─────────────────────────┴──────────────────────────┘
+                                              ↓
+                                    Render output + status bar
 ```
 
-### Color Scheme
+### Special Prefixes
 
-| Context | Prefix | Color | COLOR_PAIR |
-|---------|--------|-------|------------|
-| Normal | `>` or none | White | 1 |
-| Command | `!` | Yellow | 2 |
-| Comment | `#` | Green | 3 |
-| Special | `@` | Cyan | 4 |
-| Search | `/` | Magenta | 5 |
+| Prefix | Type             | Behavior                        |
+| ------ | ---------------- | ------------------------------- |
+| (none) | Shell command    | Execute in bash                 |
+| `#`    | Comment/note     | Display in yellow, not executed |
+| `@`    | Internal command | Handle as builtin               |
 
-### Known Limitations
+### Internal @ Commands
 
-**Intentionally Not Implemented** (POC scope):
-- ❌ Tab completion (readline supports it, not wired up)
-- ❌ True multi-line expanding input
-- ❌ Persistent history file
-- ❌ Configurable themes
-- ❌ Custom key bindings
-- ❌ Full API surface
-- ❌ Production error handling
-- ❌ Memory safety checks
-- ❌ Comprehensive documentation
+| Command       | Shortcut | Description                    |
+| ------------- | -------- | ------------------------------ |
+| `@help`       | `@h`     | Show help                      |
+| `@clear`      | `@c`     | Clear screen                   |
+| `@quit`       | `@q`     | Exit cc-bash                   |
+| `@edit`       | `@e`     | Edit config in $EDITOR         |
+| `@reload`     | `@r`     | Reload configuration           |
+| `@alias`      | -        | List/add aliases               |
+| `@alias save` | -        | Save session aliases to config |
+| `@snippet`    | -        | List/run snippets              |
+| `@workflow`   | -        | List/run workflows             |
+| `@theme`      | -        | Display current theme          |
+| `@hooks`      | -        | List registered hooks          |
+| `@plugins`    | -        | List loaded plugins            |
 
-**Core Concept Proven**:
-- ✅ Output buffer without prompt duplication
-- ✅ Context-aware coloring
-- ✅ Status bar
-- ✅ ncurses + readline integration
+### Keyboard Shortcuts
+
+| Key          | Action                           |
+| ------------ | -------------------------------- |
+| `Ctrl+R`     | Fuzzy history search             |
+| `Ctrl+C`     | Cancel input / interrupt command |
+| `Ctrl+D`     | Exit (on empty line)             |
+| `Up/Down`    | Navigate history                 |
+| `Left/Right` | Move cursor                      |
+| `Tab`        | Command/file completion          |
+| `PgUp/PgDn`  | Scroll output buffer             |
+| `Esc`        | Cancel search mode               |
 
 ---
 
 ## Development Workflows
 
-### Building the POC
+### Building
 
 ```bash
-# Install dependencies (Debian/Ubuntu)
-sudo apt-get install libncurses-dev libreadline-dev
+# Install dependencies (Ubuntu/Debian)
+sudo apt-get install build-essential
 
-# Install dependencies (macOS)
-brew install ncurses readline
-
-# Build
+# Build cc-bash
 make
 
 # Build and run
 make run
 
-# Clean artifacts
-make clean
+# Build original POC (requires ncurses + readline)
+sudo apt-get install libncurses-dev libreadline-dev
+make poc
 ```
 
-### Testing the POC
+### Testing
 
-**Test 1: Basic Output**
-```
-> hello
-Echo [NORMAL]: hello
-```
-Verify: No prompt duplication, clean history
+```bash
+# Run all tests (unit + static analysis)
+make test
 
-**Test 2: Context Detection**
-```
-> !system command
-Echo [CMD]: system command
-```
-Verify: Colors change based on context
+# Run only unit tests (170 tests)
+make test-unit
 
-**Test 3: Commands**
+# View test output
+./test_unit
 ```
-> help
-Available commands:
-  help    - Show this help
-  ...
+
+### Installation
+
+```bash
+# System-wide install
+sudo make install
+
+# User-local install (no sudo)
+make install PREFIX=$HOME/.local
+
+# Uninstall
+sudo make uninstall
 ```
-Verify: Output scrolls properly
-
-**Test 4: History & Editing**
-- Up/Down arrows: Navigate history
-- Ctrl+A: Beginning of line
-- Ctrl+E: End of line
-- Ctrl+K: Kill to end
-- Ctrl+U: Kill entire line
-
-**Test 5: Scrolling**
-Enter many commands to verify old lines scroll off top
 
 ### Git Workflow
 
-**Current Branch**: `claude/claude-md-mi3opz4monq14xm7-011dWrWja2WYnrVXZweJGhpK`
+**Branch naming**:
 
-**Commit Conventions**:
-- Use clear, descriptive messages
+- Feature branches: `feature/<description>`
+- Bug fixes: `fix/<description>`
+- Claude sessions: `claude/<session-id>`
+
+**Commit conventions**:
+
+- Use conventional commits: `feat:`, `fix:`, `docs:`, `refactor:`, `test:`
 - Focus on "why" rather than "what"
-- Follow existing commit style (see `git log`)
-
-**Push Commands**:
-```bash
-# Always use -u flag
-git push -u origin claude/claude-md-mi3opz4monq14xm7-011dWrWja2WYnrVXZweJGhpK
-
-# Retry on network errors (up to 4 times with exponential backoff)
-```
-
-**Important**: Branch names must start with `claude/` and end with session ID for push to succeed.
+- Reference issues: `(#123)`
 
 ---
 
@@ -328,385 +344,243 @@ git push -u origin claude/claude-md-mi3opz4monq14xm7-011dWrWja2WYnrVXZweJGhpK
 
 1. **Naming**:
    - `snake_case` for functions and variables
-   - `PascalCase` for structs and enums
+   - `PascalCase` for structs and typedefs
    - `ALL_CAPS` for constants and defines
 
 2. **Formatting**:
    - 4-space indentation
    - K&R brace style
    - Compiler flags: `-Wall -Wextra -std=c11`
+   - Use `.clang-format` for consistency
 
 3. **Comments**:
-   - File header explains purpose
-   - Brief inline comments for non-obvious code
-   - No excessive commenting in POC
+   - File header with purpose and architecture overview
+   - Section headers with `/* ====== */` dividers
+   - Inline comments for non-obvious logic
 
-### Documentation Style
+4. **Error Handling**:
+   - Check return values of system calls
+   - Use `perror()` for system errors
+   - Graceful degradation where possible
 
-1. **Markdown Files**:
-   - Clear hierarchical structure (##, ###)
-   - Use tables for comparisons
-   - Include concrete examples
-   - Add visual diagrams with ASCII art
+### Configuration Format (~/.cc-bashrc)
 
-2. **Decision Documents**:
-   - Context before decision
-   - List alternatives with estimates
-   - Explain rationale
-   - Track milestones
-   - Include retrospective sections
+```bash
+# Aliases (command shortcuts)
+alias ll='ls -la'
+alias gs='git status'
 
-### Project Organization
+# Snippets (parameterized templates)
+snippet find-name='find . -name "$1"'
+snippet grep-r='grep -r "$1" .'
 
-1. **Single File POC**: Keep POC as one file for simplicity
-2. **Comprehensive Docs**: Detailed documentation compensates for POC simplicity
-3. **Decision Tracking**: Document decisions and reasoning
-4. **Opportunity Costs**: Analyze trade-offs explicitly
+# Workflows (multi-step sequences)
+workflow build='make clean && make && make test'
 
----
+# Theme colors
+theme.prompt=cyan
+theme.error=red
+theme.comment=yellow
 
-## Implementation Decision
+# Environment
+export EDITOR=vim
+```
 
-### Chosen Path: B→A (Ship First, Refactor Later)
+### Plugin Structure
 
-**Decision Date**: 2025-11-17
-
-**Rationale**:
-- Validate library need with real usage before investing 50+ hours
-- POC proves concept works technically
-- Don't yet know what features adventure engine actually needs
-- Get adventure engine working THIS WEEK vs next month
-- Gather real-world requirements from actual usage
-- Build library later with informed design (if needed at all)
-
-**Timeline Commitment**:
-
-- **Week 1 (Nov 17-24)**: Adventure engine MVP - 8-10 hours
-  - Extract POC to simple library (2-3 hours)
-  - Build core engine (parser, world system, basic commands) (5-7 hours)
-
-- **Week 2-3 (Nov 25-Dec 8)**: Content creation - 8-10 hours
-  - Create 2-3 adventure worlds with rich narrative
-  - Test gameplay and gather feedback
-
-- **Evaluation Point (Dec 8)**: Assess if library is needed
-  - Is POC code limiting development? → Consider Path A
-  - Is POC sufficient? → Continue with content focus
-  - Building more terminal apps? → Library justified
-
-### Milestones
-
-- [ ] Extract POC to smartterm_simple library (Target: Nov 17-18)
-- [ ] Adventure engine MVP with basic commands (Target: Nov 19-21)
-- [ ] First playable world with narrative (Target: Nov 22-24)
-- [ ] 2-3 additional worlds, gameplay testing (Target: Nov 25-Dec 1)
-- [ ] Evaluation - library needed? (Target: Dec 8)
-
-### Alternative Paths (Not Chosen)
-
-**Path A: Full Library** (3-4 weeks, 45-60 hours)
-- Professional `libsmartterm.a`
-- Reusable across multiple projects
-- Portfolio quality code
-- **Why Not**: Too much upfront investment without validation
-
-**Path B: Use POC As-Is** (1-2 days)
-- Extract and use immediately
-- No refactor planned
-- **Why Not**: Need to keep library option open
-
-**Path C: Pivot** (1-2 weeks)
-- Explore Haskell Brick or alternatives
-- **Why Not**: POC validates current approach
-
-**Path A+B: Iterative** (ongoing)
-- Improve incrementally
-- **Why Not**: Prefer validation checkpoint at Dec 8
+```
+~/.cc-bash/plugins/<name>/
+├── plugin.conf     # Required: manifest
+├── config.conf     # Optional: aliases/snippets/workflows
+└── hooks/          # Optional: event scripts
+    ├── on_startup.sh
+    ├── on_cd.sh
+    └── on_post_command.sh
+```
 
 ---
 
 ## Common Tasks
 
-### For AI Assistants: Key Tasks and How to Handle Them
+### Adding a New @ Command
 
-#### Task 1: Extract POC to Simple Library
+1. Add command name to help text in `show_help()`
+2. Add handler in the command dispatch section (~line 2200)
+3. Implement the handler function
+4. Add test case in `tests/test_unit.c`
 
-**When**: Week 1 of Path B→A (next immediate task)
+### Adding a New Hook Event
 
-**Steps**:
-1. Create `lib/` directory in adventure-engine project
-2. Split `smartterm_poc.c` into:
-   - `lib/smartterm_simple.h` - public API
-   - `lib/smartterm_simple.c` - implementation
-3. Extract core functions:
-   - `init_output_buffer()`, `add_output_line()`
-   - `init_ui()`, `cleanup_ui()`
-   - `render_output()`, `render_status()`
-   - `readline_with_ncurses()`
-4. Keep Makefile simple: build static library
-5. Document minimal API in header
+1. Define event type in the hooks enum
+2. Add parsing in `parse_hook_event()`
+3. Call `trigger_hook()` at appropriate point
+4. Document in README.md
 
-**Don't**:
-- Don't over-engineer
-- Don't add features beyond POC
-- Don't create elaborate build system
+### Modifying Theme System
 
-#### Task 2: Integrate with Adventure Engine
+1. Theme struct defined around line 100
+2. Color parsing in `parse_color_spec()`
+3. Default values in `init_theme()`
+4. Loading in `load_config()` → `parse_theme_line()`
 
-**When**: Week 1 of Path B→A (after extraction)
+### Debugging Tips
 
-**Steps**:
-1. Link against `libsmartterm_simple.a`
-2. Initialize UI on engine startup
-3. Use `add_output_line()` for game text
-4. Use context types for different message types
-5. Update status bar with game state
-6. Use `readline_with_ncurses()` for input
+```bash
+# Run with strace to debug system calls
+strace -f ./cc-bash 2>&1 | grep -E '(exec|fork|pty)'
 
-**Don't**:
-- Don't modify smartterm code for game-specific features
-- Don't tightly couple - keep clean interface
+# Check terminal capabilities
+tput colors
+echo $TERM
 
-#### Task 3: Document Pain Points
-
-**When**: Throughout adventure engine development
-
-**Steps**:
-1. Keep notes file: `SMARTTERM-LIMITATIONS.md`
-2. Document when POC code is limiting
-3. Note missing features that would help
-4. Track refactor/workaround time
-5. Use at Dec 8 evaluation point
-
-#### Task 4: Build Full Library (If Triggered)
-
-**When**: After Dec 8 evaluation, if needed
-
-**Steps**:
-1. Reference planning docs from session
-2. Create new `smartterm` repository
-3. Follow Path A from NEXT-STEPS.md
-4. Design API based on real usage learnings
-5. Implement incrementally
-6. Migrate adventure engine when stable
+# Test PTY allocation
+./cc-bash -c "ls --color=auto"  # Should show colors
+```
 
 ---
 
-## Important Context
+## Project History
 
-### Project Timeline
+### Evolution Timeline
 
-- **2025-11-17**: POC created and completed
-- **2025-11-17**: Decision made (Path B→A)
-- **Target Nov 17-24**: Adventure engine MVP
-- **Target Dec 8**: Evaluation checkpoint
+| Date       | Version | Milestone                                     |
+| ---------- | ------- | --------------------------------------------- |
+| 2025-11-17 | v0.1.0  | POC: ncurses + readline integration validated |
+| 2025-11-17 | v1.0.0  | libsmartterm extracted as full library        |
+| 2025-12    | -       | Pivot: Repurposed to cc-bash (ANSI-based)     |
+| 2025-12    | -       | Added aliases, snippets, workflows            |
+| 2025-12    | -       | Added plugin system and themes                |
+| 2026-01    | -       | PTY-based execution (Issue #22)               |
+| 2026-01    | -       | Ctrl+R fuzzy history search (Issue #23)       |
+| 2026-01    | -       | @edit, @reload, @alias save (Issue #24)       |
 
-### Related Projects
+### Why the Pivot?
 
-1. **terminal-stars**: Another jcaldwell-labs terminal game project
-2. **adventure-engine**: Previous version with work/private context pollution
-3. **jcaldwell-labs**: Portfolio of professional public repos
+The original POC used ncurses + readline. While the concept worked, the UX suffered:
 
-### Learnings from POC
+1. **ncurses must suspend during readline input** - This causes output to disappear while typing
+2. **Visible flicker** - The suspend/resume cycle is noticeable
+3. **Complexity** - Managing two terminal libraries is error-prone
 
-**What Works Well**:
-- ncurses + readline integration is clean
-- Output buffer design prevents prompt duplication
-- Context coloring is simple and effective
-- Status bar provides good UX
-- Single-file POC proved concept quickly
+The ANSI-based approach:
 
-**What Needs Improvement**:
-- Multi-line input: readline is single-line
-- Input area sizing: readline uses full terminal
-- Suspend/resume: flickers slightly
-- Memory management: no bounds checking
-- Error handling: minimal in POC
+- Keeps all output visible at all times
+- Uses raw termios for input (no readline dependency)
+- Simpler, more portable code
+- Better user experience
 
-**Surprising Discoveries**:
-- readline owns the terminal (hard to constrain)
-- Multi-line may need custom input handler
-- Context detection is trivially easy
-- Buffer management is straightforward
+### Legacy Components
 
-### Dependencies
+The following are retained for reference but not actively maintained:
 
-**System Libraries**:
-- `ncurses` / `libncurses-dev` - Terminal UI
-- `readline` / `libreadline-dev` - Input editing
-
-**Standard C Libraries**:
-- `stdio.h`, `stdlib.h`, `string.h`
-
-**C Standard**: C11 (`-std=c11`)
+- `smartterm_poc.c` - Original ncurses POC
+- `lib/smartterm/` - Full library implementation
+- `include/smartterm.h` - Library API
+- `examples/` - Library examples
+- `docs/SMARTTERM-API.md` - Library API reference
 
 ---
 
 ## References
 
-### Key Documentation Files
+### Key Documentation
 
-- `README.md` - User-facing POC documentation
-- `DECISION.md` - Implementation path decision tracking
-- `NEXT-STEPS.md` - Opportunity cost analysis (20 KB)
-- `SESSION-SUMMARY.md` - Session notes and findings
+| File                   | Description               |
+| ---------------------- | ------------------------- |
+| `README.md`            | User-facing documentation |
+| `CONTRIBUTING.md`      | Contribution guidelines   |
+| `CHANGELOG.md`         | Version history           |
+| `docs/ARCHITECTURE.md` | Detailed architecture     |
+| `llms.txt`             | LLM context file          |
 
 ### External Resources
 
-**ncurses**:
-- Man pages: `man ncurses`, `man curs_window`
-- Tutorial: https://tldp.org/HOWTO/NCURSES-Programming-HOWTO/
+**Terminal Programming**:
 
-**readline**:
-- Man pages: `man readline`, `man history`
-- GNU Manual: https://tiswww.case.edu/php/chet/readline/rltop.html
+- ANSI escape codes: https://en.wikipedia.org/wiki/ANSI_escape_code
+- termios: `man termios`, `man tcsetattr`
+- PTY: `man pty`, `man forkpty`
 
 **Build System**:
+
 - GNU Make: `man make`
-- gcc: `man gcc`
+- GCC: `man gcc`
 
-### Code Patterns to Reference
+### Code Patterns
 
-**Output Buffer Pattern** (smartterm_poc.c:47-73):
+**PTY-based Command Execution** (cc-bash.c):
+
 ```c
-void init_output_buffer() {
-    output.capacity = MAX_OUTPUT_LINES;
-    output.lines = malloc(sizeof(char*) * output.capacity);
-    output.count = 0;
+pid_t pid = forkpty(&master_fd, NULL, NULL, NULL);
+if (pid == 0) {
+    // Child: execute command
+    execl("/bin/sh", "sh", "-c", command, NULL);
+    _exit(127);
 }
-
-void add_output_line(const char *text, ContextType ctx) {
-    if (output.count >= output.capacity) {
-        // Drop oldest line
-        free(output.lines[0]);
-        memmove(output.lines, output.lines + 1,
-                sizeof(char*) * (output.capacity - 1));
-        output.count--;
-    }
-    // Store with context prefix
-    char prefix = (ctx == CTX_COMMAND) ? '!' : ...;
-    output.lines[output.count] = malloc(strlen(text) + 3);
-    snprintf(output.lines[output.count], len, "%c %s", prefix, text);
-    output.count++;
+// Parent: read output from master_fd
+while ((n = read(master_fd, buf, sizeof(buf))) > 0) {
+    write(STDOUT_FILENO, buf, n);
 }
+waitpid(pid, &status, 0);
 ```
 
-**ncurses + readline Integration** (smartterm_poc.c:162-175):
+**Raw Terminal Mode** (cc-bash.c):
+
 ```c
-char* readline_with_ncurses(const char *prompt) {
-    // Suspend ncurses
-    def_prog_mode();
-    endwin();
+struct termios raw;
+tcgetattr(STDIN_FILENO, &orig_termios);
+raw = orig_termios;
+raw.c_lflag &= ~(ECHO | ICANON | ISIG);
+raw.c_cc[VMIN] = 1;
+raw.c_cc[VTIME] = 0;
+tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
+```
 
-    // Use readline
-    char *input = readline(prompt);
+**Fuzzy History Search** (cc-bash.c):
 
-    // Resume ncurses
-    reset_prog_mode();
-    refresh();
-
-    return input;
-}
+```c
+// Ctrl+R triggers search mode
+// As user types, filter history entries
+// Display matches with highlighting
+// Enter selects, Esc cancels
 ```
 
 ---
 
-## For AI Assistants: Best Practices
+## For AI Assistants
 
-### When Working on This Project
+### Best Practices
 
-1. **Read DECISION.md First**: Understand current phase and next milestones
-2. **Respect POC Status**: Don't over-engineer or add speculative features
-3. **Follow Path B→A**: Focus on adventure engine, not library perfection
-4. **Document Limitations**: Track pain points for Dec 8 evaluation
-5. **Keep It Simple**: Resist urge to build full library now
+1. **Read cc-bash.c section headers** - The file is well-organized with clear sections
+2. **Run tests after changes** - `make test` catches regressions
+3. **Check README.md** - Keep user docs in sync with code
+4. **Follow conventional commits** - Makes CHANGELOG generation easier
+5. **Don't modify legacy lib/** - It's retained for reference only
 
-### When Extracting POC Code
+### When Adding Features
 
-1. **Minimal Changes**: Keep as close to original as possible
-2. **Simple API**: Don't create elaborate interfaces
-3. **Single Purpose**: UI only, no game logic
-4. **Easy to Replace**: Design for eventual library swap
+1. Check if similar functionality exists
+2. Follow existing patterns in the codebase
+3. Add unit tests in `tests/test_unit.c`
+4. Update `@help` output
+5. Document in README.md if user-facing
 
-### When Building Adventure Engine
+### When Fixing Bugs
 
-1. **Use Smartterm Simply**: Call init, add lines, cleanup
-2. **Don't Extend**: If you need features, document instead
-3. **Focus on Content**: Game narrative > UI polish
-4. **Track Friction**: Note when POC code is limiting
+1. Write a failing test first
+2. Fix the bug
+3. Verify test passes
+4. Check for similar issues elsewhere
 
-### When Evaluating at Dec 8
+### Key Areas to Understand
 
-1. **Review SMARTTERM-LIMITATIONS.md**: What was painful?
-2. **Count Projects**: How many terminal apps in pipeline?
-3. **Estimate Refactor**: POC fix-up vs library build cost?
-4. **Check Motivation**: Energy for 40-hour library project?
-5. **Decide Path**: Full library (A) or keep POC?
-
----
-
-## Decision Framework for Future Choices
-
-### Should We Build Full Library?
-
-**Ask These Questions**:
-
-1. **Is POC code limiting adventure engine development?**
-   - Missing features we need?
-   - Code quality blocking progress?
-   - Refactoring becoming painful?
-
-2. **Are we building additional terminal projects?**
-   - If yes → Library justified (reuse across projects)
-   - If no → Keep POC (one project doesn't justify library)
-
-3. **Has real usage revealed better requirements?**
-   - What features actually matter?
-   - What planning assumptions were wrong?
-   - What should library API look like?
-
-**Possible Outcomes**:
-- **Build Library (Path A)**: If building 2+ more terminal apps or POC is limiting
-- **Keep POC**: If sufficient and no other terminal projects planned
-- **Pivot**: If different approach emerges from usage experience
-
----
-
-## Appendix: Project History
-
-### Creation Session (2025-11-17)
-
-**Duration**: ~1 hour
-**Deliverables**:
-- POC implementation (250 LOC)
-- Makefile and build system
-- README with testing guide
-- NEXT-STEPS with opportunity analysis (20 KB)
-- DECISION tracking document
-- SESSION-SUMMARY with findings
-
-**Time Invested**: 1 hour
-**Time Saved**: 10-20 hours (validated before full investment)
-**ROI**: 10-20x (prevented building wrong thing)
-
-### Design Philosophy
-
-**POC-First Approach**:
-1. Build minimal proof of concept
-2. Validate architecture and feasibility
-3. Analyze opportunity costs
-4. Make informed decision
-5. Ship fast, iterate based on real usage
-
-**Why This Works**:
-- Low upfront investment
-- Real data over speculation
-- Maintains momentum
-- Reduces risk of over-engineering
-- Validates need before building
+- **Input handling**: ~lines 600-1000 in cc-bash.c
+- **Command execution**: ~lines 1500-2000
+- **Configuration**: ~lines 200-400
+- **Plugin system**: ~lines 2500-3000
 
 ---
 
 **End of CLAUDE.md**
 
-*This document should be updated as the project evolves, especially after the Dec 8 evaluation checkpoint.*
+_This document should be updated when significant changes are made to the project._
