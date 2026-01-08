@@ -2393,17 +2393,6 @@ static void print_multiline_display(const char* buf)
     }
 }
 
-/* Count newlines in a string (for multi-line detection) */
-static int count_newlines(const char* str)
-{
-    int count = 0;
-    while (*str) {
-        if (*str == '\n') count++;
-        str++;
-    }
-    return count;
-}
-
 /* Read a line with basic editing
  * Handles: backspace, left/right arrows, up/down for history, Tab completion,
  * PgUp/PgDn for scrollback, Ctrl+C, Ctrl+D.
@@ -2441,13 +2430,8 @@ static char* read_input(void)
                 /* Scroll current line to output area */
                 cursor_save();
                 cursor_move(prompt_row - 2, 1);
-                if (len > 0 && buf[len-1] == '\\') {
-                    /* Show line with continuation marker */
-                    printf("› %s\n", buf);
-                } else {
-                    /* Show line as-is (unclosed quote) */
-                    printf("› %s\n", buf);
-                }
+                /* Show line before continuation (backslash or unclosed quote) */
+                printf("› %s\n", buf);
                 cursor_restore();
 
                 /* Add newline to buffer and continue reading */
@@ -2528,6 +2512,7 @@ static char* read_input(void)
                         len = pos = strlen(buf);
                         prompt_col = draw_prompt();
                         print_multiline_display(buf);  /* Issue #25 */
+                        cursor_move(prompt_row, prompt_col + pos);
                         fflush(stdout);
                     }
                 } else if (c3 == 'B') {  /* Down arrow */
@@ -2542,6 +2527,7 @@ static char* read_input(void)
                     }
                     prompt_col = draw_prompt();
                     print_multiline_display(buf);  /* Issue #25 */
+                    cursor_move(prompt_row, prompt_col + pos);
                     fflush(stdout);
                 } else if (c3 == 'C') {  /* Right arrow */
                     if (pos < len) {

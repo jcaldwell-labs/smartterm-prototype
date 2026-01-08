@@ -1006,6 +1006,74 @@ void test_history_file_roundtrip(void)
     free_history();
 }
 
+void test_history_multiline_roundtrip(void)
+{
+    printf("\n[History Multi-line Roundtrip (Issue #25)]\n");
+
+    /* Create temp file */
+    char tmpfile[] = "/tmp/cc-bash-multiline-XXXXXX";
+    int fd = mkstemp(tmpfile);
+    if (fd < 0) {
+        printf("  \033[33mSKIP\033[0m: Could not create temp file\n");
+        return;
+    }
+    close(fd);
+
+    /* Write history with escaped newlines (simulating save_history behavior) */
+    FILE* fp = fopen(tmpfile, "w");
+    ASSERT_NOT_NULL(fp, "temp file opened for writing");
+    if (fp) {
+        /* Single-line command */
+        fprintf(fp, "ls -la\n");
+        /* Multi-line command with escaped newline: echo "hello\nworld" */
+        fprintf(fp, "echo \"hello\\x00world\"\n");
+        /* Multi-line command with backslash continuation */
+        fprintf(fp, "docker run \\\\x00  -v /host:/container \\\\x00  nginx\n");
+        fclose(fp);
+    }
+
+    /* Read history from file (simulating load_history behavior) */
+    free_history();
+    fp = fopen(tmpfile, "r");
+    ASSERT_NOT_NULL(fp, "temp file opened for reading");
+    if (fp) {
+        char line[1024];
+        while (fgets(line, sizeof(line), fp) && history_count < MAX_HISTORY) {
+            /* Remove trailing newline */
+            line[strcspn(line, "\n")] = '\0';
+            if (strlen(line) > 0) {
+                /* Unescape embedded newlines: \x00 -> \n */
+                char* p = line;
+                char* out = line;
+                while (*p) {
+                    if (p[0] == '\\' && p[1] == 'x' && p[2] == '0' && p[3] == '0') {
+                        *out++ = '\n';
+                        p += 4;
+                    } else {
+                        *out++ = *p++;
+                    }
+                }
+                *out = '\0';
+                history[history_count++] = strdup(line);
+            }
+        }
+        fclose(fp);
+    }
+
+    ASSERT(history_count == 3, "3 entries read from file");
+    ASSERT_STR_EQ(history[0], "ls -la", "single-line command correct");
+    ASSERT_STR_EQ(history[1], "echo \"hello\nworld\"", "multi-line string command correct");
+    ASSERT_STR_EQ(history[2], "docker run \\\n  -v /host:/container \\\n  nginx", "multi-line continuation command correct");
+
+    /* Verify newlines are embedded correctly */
+    ASSERT(strchr(history[1], '\n') != NULL, "embedded newline in history[1]");
+    ASSERT(strchr(history[2], '\n') != NULL, "embedded newline in history[2]");
+
+    /* Cleanup */
+    unlink(tmpfile);
+    free_history();
+}
+
 void test_config_file_roundtrip(void)
 {
     printf("\n[Config File Roundtrip]\n");
@@ -1902,6 +1970,7 @@ int main(void)
 
     /* File I/O tests */
     test_history_file_roundtrip();
+    test_history_multiline_roundtrip();
     test_config_file_roundtrip();
 
     /* Theme tests */
