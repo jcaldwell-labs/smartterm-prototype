@@ -1,10 +1,20 @@
 # SmartTerm / cc-bash Makefile
 
 CC = gcc
-CFLAGS = -Wall -Wextra -std=c11
+# Strict warnings to catch issues early (see CONTRIBUTING.md)
+CFLAGS = -Wall -Wextra -Wpedantic -Wunused -Wshadow -Wformat=2 -std=c11
+# Additional warnings for development (enable with: make STRICT=1)
+ifdef STRICT
+CFLAGS += -Werror
+endif
 LDFLAGS_POC = -lncurses -lreadline
 # -lutil provides forkpty() on Linux for PTY-based command execution (Issue #22)
 LDFLAGS_CCBASH = -lutil
+
+# Static analysis tool (install: apt install cppcheck / brew install cppcheck)
+CPPCHECK = cppcheck
+CPPCHECK_FLAGS = --enable=warning,style,performance,portability --error-exitcode=1 \
+                 --suppress=missingIncludeSystem --quiet
 
 # Original POC
 POC_TARGET = smartterm_poc
@@ -18,7 +28,7 @@ CCBASH_SRC = cc-bash.c
 TEST_UNIT_TARGET = test_unit
 TEST_UNIT_SRC = tests/test_unit.c
 
-.PHONY: all clean run poc cc-bash run-ccbash test test-unit help install uninstall
+.PHONY: all clean run poc cc-bash run-ccbash test test-unit help install uninstall lint check
 
 # Default: build cc-bash
 all: $(CCBASH_TARGET)
@@ -61,6 +71,24 @@ test: $(CCBASH_TARGET) $(TEST_UNIT_TARGET)
 test-unit: $(TEST_UNIT_TARGET)
 	@./$(TEST_UNIT_TARGET)
 
+# Static analysis with cppcheck
+lint:
+	@echo "Running static analysis..."
+	@if command -v $(CPPCHECK) >/dev/null 2>&1; then \
+		$(CPPCHECK) $(CPPCHECK_FLAGS) $(CCBASH_SRC) $(TEST_UNIT_SRC) && \
+		echo "Static analysis passed!"; \
+	else \
+		echo "Warning: cppcheck not found. Install with: apt install cppcheck"; \
+		echo "Skipping static analysis."; \
+	fi
+
+# Full quality check (run before committing)
+check: lint test
+	@echo ""
+	@echo "=========================================="
+	@echo "All quality checks passed!"
+	@echo "=========================================="
+
 # Installation directories
 PREFIX ?= /usr/local
 BINDIR = $(PREFIX)/bin
@@ -98,20 +126,26 @@ uninstall:
 help:
 	@echo "cc-bash: Claude Code-style bash wrapper"
 	@echo ""
-	@echo "Targets:"
+	@echo "Build Targets:"
 	@echo "  all       - Build cc-bash (default)"
 	@echo "  run       - Build and run cc-bash"
-	@echo "  test      - Run cc-bash test suite"
+	@echo "  clean     - Remove binaries"
+	@echo ""
+	@echo "Quality Targets:"
+	@echo "  check     - Run all quality checks (lint + test) [USE BEFORE COMMIT]"
+	@echo "  lint      - Run static analysis (cppcheck)"
+	@echo "  test      - Run full test suite (unit + static)"
+	@echo "  test-unit - Run unit tests only"
+	@echo ""
+	@echo "Install Targets:"
 	@echo "  install   - Install to $(PREFIX)/bin (use sudo)"
 	@echo "  uninstall - Remove from $(PREFIX)/bin"
+	@echo ""
+	@echo "Legacy Targets:"
 	@echo "  poc       - Build original smartterm POC"
 	@echo "  run-poc   - Run original smartterm POC"
-	@echo "  clean     - Remove binaries"
-	@echo "  help      - Show this help"
 	@echo ""
-	@echo "cc-bash features:"
-	@echo "  - Execute bash commands by default"
-	@echo "  - Colored output: commands (cyan), stdout (white), stderr (red)"
-	@echo "  - Status bar: cwd, exit code, time"
-	@echo "  - Command history (up/down arrows)"
-	@echo "  - Special prefixes: # (note), @ (internal command)"
+	@echo "Development workflow:"
+	@echo "  1. Make changes"
+	@echo "  2. Run 'make check' before committing"
+	@echo "  3. Or use git hooks: .githooks/pre-commit"

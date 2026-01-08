@@ -1,0 +1,79 @@
+#!/bin/bash
+# Pre-commit hook for cc-bash
+# Runs quality checks before allowing commit
+#
+# To enable: git config core.hooksPath .githooks
+# Or symlink: ln -sf ../../.githooks/pre-commit .git/hooks/pre-commit
+
+set -e
+
+echo "Running pre-commit quality checks..."
+echo ""
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+NC='\033[0m' # No Color
+
+# Track if we should block the commit
+BLOCK_COMMIT=0
+
+# 1. Check for debugging leftovers
+echo "Checking for debug statements..."
+if grep -rn "printf.*DEBUG\|fprintf.*stderr.*DEBUG\|// TODO\|// FIXME\|// XXX" cc-bash.c 2>/dev/null; then
+    echo -e "${YELLOW}Warning: Found debug/TODO comments${NC}"
+fi
+
+# 2. Build with strict warnings
+echo "Building with strict warnings..."
+if ! make clean >/dev/null 2>&1; then
+    echo -e "${RED}Failed to clean${NC}"
+    BLOCK_COMMIT=1
+fi
+
+if ! make STRICT=1 2>&1; then
+    echo -e "${RED}Build failed with strict warnings${NC}"
+    BLOCK_COMMIT=1
+else
+    echo -e "${GREEN}Build passed${NC}"
+fi
+
+# 3. Run static analysis (non-blocking if cppcheck not installed)
+echo ""
+echo "Running static analysis..."
+if command -v cppcheck >/dev/null 2>&1; then
+    if ! make lint 2>&1; then
+        echo -e "${RED}Static analysis found issues${NC}"
+        BLOCK_COMMIT=1
+    else
+        echo -e "${GREEN}Static analysis passed${NC}"
+    fi
+else
+    echo -e "${YELLOW}cppcheck not installed, skipping static analysis${NC}"
+    echo "Install with: apt install cppcheck"
+fi
+
+# 4. Run tests
+echo ""
+echo "Running tests..."
+if ! make test 2>&1 | tail -20; then
+    echo -e "${RED}Tests failed${NC}"
+    BLOCK_COMMIT=1
+else
+    echo -e "${GREEN}Tests passed${NC}"
+fi
+
+# Final result
+echo ""
+echo "=========================================="
+if [ $BLOCK_COMMIT -eq 1 ]; then
+    echo -e "${RED}Pre-commit checks FAILED${NC}"
+    echo "Fix the issues above before committing."
+    echo ""
+    echo "To bypass (not recommended): git commit --no-verify"
+    exit 1
+else
+    echo -e "${GREEN}All pre-commit checks passed!${NC}"
+    exit 0
+fi
