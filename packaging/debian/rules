@@ -1,0 +1,16 @@
+#!/usr/bin/make -f
+# Debian rules file for cc-bash
+
+%:
+	dh $@
+
+override_dh_auto_build:
+	$(MAKE)
+
+override_dh_auto_install:
+	install -D -m 755 cc-bash $(CURDIR)/debian/cc-bash/usr/bin/cc-bash
+	install -D -m 644 cc-bashrc.template $(CURDIR)/debian/cc-bash/usr/share/cc-bash/cc-bashrc.template
+	install -D -m 644 README.md $(CURDIR)/debian/cc-bash/usr/share/doc/cc-bash/README.md
+
+override_dh_auto_clean:
+	$(MAKE) clean || true

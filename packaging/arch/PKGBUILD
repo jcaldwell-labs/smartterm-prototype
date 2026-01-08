@@ -1,0 +1,44 @@
+# Maintainer: jcaldwell-labs <github.com/jcaldwell-labs>
+# AUR PKGBUILD for cc-bash
+# Claude Code-style bash wrapper with colored output and modern features
+
+pkgname=cc-bash
+pkgver=1.2.0
+pkgrel=1
+pkgdesc="Claude Code-style bash wrapper with colored output and status bar"
+arch=('x86_64' 'aarch64')
+url="https://github.com/jcaldwell-labs/smartterm-prototype"
+license=('MIT')
+depends=('glibc')
+makedepends=('gcc' 'make')
+source=("$pkgname-$pkgver.tar.gz::https://github.com/jcaldwell-labs/smartterm-prototype/archive/refs/tags/v$pkgver.tar.gz")
+# Note: Update sha256sum after v1.2.0 release is created
+sha256sums=('SKIP')
+
+build() {
+    cd "smartterm-prototype-$pkgver"
+    make
+}
+
+package() {
+    cd "smartterm-prototype-$pkgver"
+
+    # Install binary
+    install -Dm755 cc-bash "$pkgdir/usr/bin/cc-bash"
+
+    # Install sample config
+    install -Dm644 cc-bashrc.template "$pkgdir/usr/share/cc-bash/cc-bashrc.template"
+
+    # Install license
+    install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+
+    # Install documentation
+    install -Dm644 README.md "$pkgdir/usr/share/doc/$pkgname/README.md"
+}
+
+post_install() {
+    echo ">> To get started with cc-bash:"
+    echo ">>   cp /usr/share/cc-bash/cc-bashrc.template ~/.cc-bashrc"
+    echo ">>   mkdir -p ~/.cc-bash/plugins"
+    echo ">>   cc-bash"
+}

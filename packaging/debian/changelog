@@ -1,0 +1,17 @@
+cc-bash (1.2.0-1) unstable; urgency=medium
+
+  * Initial Debian packaging
+  * Homebrew formula for macOS/Linux
+  * AUR PKGBUILD for Arch Linux
+  * Updated documentation and roadmap
+
+ -- jcaldwell-labs <github.com/jcaldwell-labs>  Wed, 08 Jan 2026 00:00:00 +0000
+
+cc-bash (1.1.0-1) unstable; urgency=medium
+
+  * PTY-based command execution for automatic color support
+  * Ctrl+R fuzzy history search
+  * Persistent configuration commands (@edit, @reload, @alias save)
+  * Aliases, snippets, workflows, plugins, and themes
+
+ -- jcaldwell-labs <github.com/jcaldwell-labs>  Tue, 07 Jan 2026 00:00:00 +0000

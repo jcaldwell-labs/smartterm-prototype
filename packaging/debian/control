@@ -1,0 +1,24 @@
+Source: cc-bash
+Section: shells
+Priority: optional
+Maintainer: jcaldwell-labs <github.com/jcaldwell-labs>
+Build-Depends: debhelper-compat (= 13), gcc, make
+Standards-Version: 4.6.0
+Homepage: https://github.com/jcaldwell-labs/smartterm-prototype
+Vcs-Browser: https://github.com/jcaldwell-labs/smartterm-prototype
+Vcs-Git: https://github.com/jcaldwell-labs/smartterm-prototype.git
+Rules-Requires-Root: no
+
+Package: cc-bash
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Claude Code-style bash wrapper with colored output
+ cc-bash provides a Claude Code-inspired interface for interactive bash use:
+ .
+  - Commands execute in bash by default (no prefix needed)
+  - Colored output: commands (cyan), stdout (white), stderr (red)
+  - Status bar showing current directory, exit code, and time
+  - Command history with persistence
+  - Tab completion for commands and file paths
+  - Ctrl+R fuzzy history search
+  - Aliases, snippets, workflows, plugins, and themes

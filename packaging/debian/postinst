@@ -1,0 +1,19 @@
+#!/bin/sh
+set -e
+
+case "$1" in
+    configure)
+        echo ""
+        echo "cc-bash installed successfully!"
+        echo ""
+        echo "To get started:"
+        echo "  cp /usr/share/cc-bash/cc-bashrc.template ~/.cc-bashrc"
+        echo "  mkdir -p ~/.cc-bash/plugins"
+        echo "  cc-bash"
+        echo ""
+        ;;
+esac
+
+#DEBHELPER#
+
+exit 0

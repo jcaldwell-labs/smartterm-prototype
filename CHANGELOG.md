@@ -7,25 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-01-08
+
 ### Added
-- Headless demo with multi-format export (`examples/headless_demo.c`)
-- Non-interactive mode for CI/CD and documentation generation
-- Demo output samples in `demo_output/` (txt, ansi, md, html)
-- Convenience script `run_headless_demo.sh`
-- Test suite with test framework and basic API tests
-- GitHub Actions CI/CD workflow for automated testing
-- Issue and pull request templates
-- CONTRIBUTING.md with contribution guidelines
-- CHANGELOG.md for tracking project changes
-- Code formatting with clang-format configuration
-- Makefile targets for testing and formatting
+
+- Homebrew formula (`Formula/cc-bash.rb`) for macOS/Linux installation
+- AUR PKGBUILD (`packaging/arch/PKGBUILD`) for Arch Linux
+- Debian packaging files (`packaging/debian/`) for .deb builds
+- Updated README with package manager installation options
+- Updated CLAUDE.md to reflect current cc-bash project state
+- Updated VISION.md roadmap with completed milestones
+
+### Packaging
+
+- Homebrew: `brew tap jcaldwell-labs/cc-bash && brew install cc-bash`
+- AUR: `yay -S cc-bash` (pending AUR submission)
+- Debian: Build with `dpkg-buildpackage` (packaging files included)
+
+## [1.1.0] - 2026-01-07
+
+### Added
+
+- PTY-based command execution for automatic color support (#22)
+- Ctrl+R fuzzy history search (#23)
+- Persistent config commands: @edit, @reload, @alias save (#24)
+- Editor compatibility fixes (#26)
 
 ### Changed
-- Updated Makefile.lib with test, format, and improved help targets
+
+- Commands now run in pseudo-terminal, enabling colored output from ls, grep, etc.
 
 ## [1.0.0] - 2025-11-17
 
 ### Added
+
 - Production-ready library API extracted from POC
 - Thread-safe output buffer implementation
 - Context-aware message coloring system
@@ -41,6 +56,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Tab completion framework
 
 ### Library Structure
+
 - `include/smartterm.h` - Public API header
 - `lib/smartterm/` - Modular implementation:
   - `smartterm_core.c` - Core initialization and context management
@@ -56,16 +72,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `smartterm_internal.h` - Internal API
 
 ### Examples
+
 - `examples/repl.c` - Calculator REPL demonstrating basic usage
 - `examples/chat_client.c` - IRC-style chat showing thread-safe output
 - `examples/log_viewer.c` - Log monitoring with search and export
 
 ### Documentation
+
 - `docs/SMARTTERM-API.md` - Comprehensive API reference
 - `docs/ARCHITECTURE.md` - Architecture and design decisions
 - Updated README with features, installation, and quick start
 
 ### Build System
+
 - `Makefile.lib` - Library and examples build system
 - Support for building static library (`libsmartterm.a`)
 - Install target for system-wide installation
@@ -74,6 +93,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.1.0] - 2025-11-17
 
 ### Added - POC Phase
+
 - Initial proof of concept (`smartterm_poc.c`, ~250 LOC)
 - Validated core concepts:
   - Scrolling output buffer without prompt duplication
@@ -83,6 +103,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Three-region terminal layout
 
 ### Documentation - POC Phase
+
 - README with POC testing guide
 - DECISION.md documenting development path choices
 - NEXT-STEPS.md with opportunity cost analysis
@@ -90,10 +111,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CLAUDE.md with AI assistant guide
 
 ### Build System - POC Phase
+
 - Simple Makefile for POC
 - Build targets: all, run, clean, test, help
 
 ### Decision Framework
+
 - Analyzed 5 implementation paths (A through E)
 - Chose Path B→A: Ship first, validate, then refactor if needed
 - Documented opportunity costs and break-even analysis
@@ -102,6 +125,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Key Design Decisions
 
 ### Architecture
+
 - Output buffer separate from display (enables search, export, scrollback)
 - ncurses suspended during readline input (clean integration)
 - Context stored as metadata with output lines
@@ -109,6 +133,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Thread-safe operations with mutex locking
 
 ### API Design
+
 - Simple initialization with configuration struct
 - Opaque context handle for encapsulation
 - Formatted output functions (printf-style)
@@ -116,6 +141,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Extensible context types for user customization
 
 ### Implementation Choices
+
 - C11 standard for portability
 - Static library for easy integration
 - Minimal dependencies (ncurses, readline, pthread)
@@ -126,6 +152,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Development Philosophy
 
 SmartTerm follows a POC-first approach:
+
 1. Build minimal proof of concept
 2. Validate architecture and feasibility
 3. Analyze opportunity costs
@@ -133,6 +160,7 @@ SmartTerm follows a POC-first approach:
 5. Ship fast, iterate based on real usage
 
 This approach:
+
 - Reduces upfront investment
 - Validates concepts before full implementation
 - Maintains development momentum
@@ -155,6 +183,7 @@ This approach:
 The library API is significantly different from the POC. Key changes:
 
 **Initialization:**
+
 ```c
 // POC
 init_ui();
@@ -164,6 +193,7 @@ smartterm_ctx *ctx = smartterm_init(NULL);
 ```
 
 **Output:**
+
 ```c
 // POC
 add_output_line("message", CTX_NORMAL);
@@ -173,6 +203,7 @@ smartterm_write(ctx, "message", CTX_NORMAL);
 ```
 
 **Cleanup:**
+
 ```c
 // POC
 cleanup_ui();
@@ -194,4 +225,4 @@ See `docs/SMARTTERM-API.md` for complete migration guide.
 
 ---
 
-*This changelog follows the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format.*
+_This changelog follows the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format._

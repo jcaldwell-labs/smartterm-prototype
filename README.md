@@ -38,14 +38,40 @@ cc-bash provides a Claude Code-inspired interface for interactive bash use:
 
 ## Installation
 
-### Option 1: Install Script (Recommended)
+### Option 1: Homebrew (macOS/Linux)
+
+```bash
+# Add the tap and install
+brew tap jcaldwell-labs/cc-bash
+brew install cc-bash
+
+# Copy sample config
+cp $(brew --prefix)/share/cc-bash/cc-bashrc.template ~/.cc-bashrc
+mkdir -p ~/.cc-bash/plugins
+```
+
+### Option 2: AUR (Arch Linux)
+
+```bash
+# Using yay
+yay -S cc-bash
+
+# Or using paru
+paru -S cc-bash
+
+# Setup
+cp /usr/share/cc-bash/cc-bashrc.template ~/.cc-bashrc
+mkdir -p ~/.cc-bash/plugins
+```
+
+### Option 3: Install Script
 
 ```bash
 # One-command install (builds from source)
 curl -fsSL https://raw.githubusercontent.com/jcaldwell-labs/smartterm-prototype/master/install.sh | bash
 ```
 
-### Option 2: Download Pre-built Binary
+### Option 4: Download Pre-built Binary
 
 Download from [GitHub Releases](https://github.com/jcaldwell-labs/smartterm-prototype/releases):
 
@@ -60,11 +86,11 @@ mkdir -p ~/.cc-bash/plugins
 curl -fsSL https://raw.githubusercontent.com/jcaldwell-labs/smartterm-prototype/master/cc-bashrc.template -o ~/.cc-bashrc
 ```
 
-### Option 3: Build from Source
+### Option 5: Build from Source
 
 ```bash
 # Install dependencies (Ubuntu/Debian)
-sudo apt-get install libreadline-dev
+sudo apt-get install build-essential
 
 # Clone and build
 git clone https://github.com/jcaldwell-labs/smartterm-prototype.git
@@ -78,7 +104,7 @@ sudo make install
 ./cc-bash
 ```
 
-### Option 4: Local User Install (no sudo)
+### Option 6: Local User Install (no sudo)
 
 ```bash
 # Install to ~/.local/bin
