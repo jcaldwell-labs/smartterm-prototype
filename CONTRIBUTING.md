@@ -1,16 +1,34 @@
-# Contributing to SmartTerm
+# Contributing to cc-bash
 
-Thank you for your interest in contributing to SmartTerm! This document provides guidelines and instructions for contributing to the project.
+Thank you for your interest in contributing to cc-bash! This document provides guidelines and instructions for contributing to the project.
 
 ## Table of Contents
 
+- [Quick Start: Quality Workflow](#quick-start-quality-workflow)
 - [Code of Conduct](#code-of-conduct)
 - [Getting Started](#getting-started)
 - [Development Setup](#development-setup)
+- [Quality Checks](#quality-checks)
 - [Coding Standards](#coding-standards)
 - [Testing](#testing)
 - [Submitting Changes](#submitting-changes)
 - [Issue Guidelines](#issue-guidelines)
+
+---
+
+## Quick Start: Quality Workflow
+
+**TL;DR: Run `make check` before every commit.**
+
+```bash
+# Enable pre-commit hooks (one-time setup)
+git config core.hooksPath .githooks
+
+# Before committing, always run:
+make check
+```
+
+This runs static analysis and all tests, catching issues before they reach code review.
 
 ---
 
@@ -104,36 +122,70 @@ Key features implemented:
 - Event/hook system
 - Plugin system
 
-### Building the Library
+---
+
+## Quality Checks
+
+### Pre-Commit Hooks
+
+Enable automatic quality checks before every commit:
 
 ```bash
-# Build library
-make -f Makefile.lib lib
+# Option 1: Configure git (recommended)
+git config core.hooksPath .githooks
 
-# Build examples
-make -f Makefile.lib examples
-
-# Build POC
-make
-
-# Clean build artifacts
-make -f Makefile.lib clean
+# Option 2: Symlink
+ln -sf ../../.githooks/pre-commit .git/hooks/pre-commit
 ```
 
-### Running Examples
+The pre-commit hook runs:
+
+1. Build with strict warnings (`-Werror`)
+2. Static analysis (cppcheck)
+3. Full test suite
+
+### Manual Quality Checks
 
 ```bash
-# Calculator REPL
-./build/bin/repl
+# Full quality check (ALWAYS run before committing)
+make check
 
-# Chat client
-./build/bin/chat_client
+# Individual checks
+make lint        # Static analysis only
+make test        # Full test suite
+make test-unit   # Unit tests only
+make STRICT=1    # Build with -Werror
+```
 
-# Log viewer
-./build/bin/log_viewer
+### Self-Review Checklist
 
-# POC
-./smartterm_poc
+Before pushing, verify:
+
+- [ ] **No unused code** - Remove dead functions/variables
+- [ ] **No duplicate logic** - Combine identical code paths
+- [ ] **State consistency** - Update cursor position after display changes
+- [ ] **Test coverage** - New functions have tests
+- [ ] **Edge cases** - Document unhandled edge cases
+- [ ] **No debug code** - Remove printf debugging, TODO comments
+
+### Common Issues to Avoid
+
+| Issue                  | Prevention                                     |
+| ---------------------- | ---------------------------------------------- |
+| Unused functions       | Compile with `make STRICT=1`                   |
+| Duplicate code paths   | Review conditionals - do branches differ?      |
+| Missing cursor updates | After `print_*()` calls, check cursor position |
+| Missing tests          | Write tests before or with implementation      |
+| Platform issues        | Run `make lint` for portability warnings       |
+
+### Installing Static Analysis Tools
+
+```bash
+# Ubuntu/Debian
+sudo apt install cppcheck
+
+# macOS
+brew install cppcheck
 ```
 
 ---

@@ -302,12 +302,43 @@ make poc
 # Run all tests (unit + static analysis)
 make test
 
-# Run only unit tests (170 tests)
+# Run only unit tests (240+ tests)
 make test-unit
 
 # View test output
 ./test_unit
 ```
+
+### Quality Checks (IMPORTANT)
+
+**Always run `make check` before committing!**
+
+```bash
+# Full quality check - lint + all tests
+make check
+
+# Static analysis only
+make lint
+
+# Build with strict warnings (-Werror)
+make STRICT=1
+```
+
+**Enable pre-commit hooks** (one-time setup):
+
+```bash
+git config core.hooksPath .githooks
+```
+
+**Self-review checklist** before pushing:
+
+- [ ] No unused functions (removed `count_newlines` etc.)
+- [ ] No duplicate code paths (redundant if/else)
+- [ ] Cursor position updated after display changes
+- [ ] New functions have test coverage
+- [ ] Edge cases documented if not handled
+
+See `CONTRIBUTING.md` for detailed quality guidelines.
 
 ### Installation
 
@@ -350,7 +381,7 @@ sudo make uninstall
 2. **Formatting**:
    - 4-space indentation
    - K&R brace style
-   - Compiler flags: `-Wall -Wextra -std=c11`
+   - Compiler flags: `-Wall -Wextra -Wpedantic -Wunused -Wshadow -Wformat=2 -std=c11`
    - Use `.clang-format` for consistency
 
 3. **Comments**:
