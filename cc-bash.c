@@ -1234,7 +1234,10 @@ static void free_aliases(void)
  * Load/save command history from ~/.cc-bash-history
  */
 
-/* Load history from file */
+/* Load history from file
+ * Multi-line commands are stored with embedded newlines escaped as \x00
+ * (Issue #25: Multi-line input support)
+ */
 static void load_history(void)
 {
     char path[PATH_MAX];
@@ -1251,6 +1254,18 @@ static void load_history(void)
         /* Remove trailing newline */
         line[strcspn(line, "\n")] = '\0';
         if (strlen(line) > 0) {
+            /* Unescape embedded newlines: \x00 -> \n */
+            char* p = line;
+            char* out = line;
+            while (*p) {
+                if (p[0] == '\\' && p[1] == 'x' && p[2] == '0' && p[3] == '0') {
+                    *out++ = '\n';
+                    p += 4;
+                } else {
+                    *out++ = *p++;
+                }
+            }
+            *out = '\0';
             history[history_count++] = strdup(line);
         }
     }
@@ -1259,7 +1274,10 @@ static void load_history(void)
     fclose(fp);
 }
 
-/* Save history to file */
+/* Save history to file
+ * Multi-line commands have embedded newlines escaped as \x00
+ * (Issue #25: Multi-line input support)
+ */
 static void save_history(void)
 {
     char path[PATH_MAX];
@@ -1274,7 +1292,17 @@ static void save_history(void)
     /* Save last MAX_HISTORY entries */
     int start = (history_count > MAX_HISTORY) ? history_count - MAX_HISTORY : 0;
     for (int i = start; i < history_count; i++) {
-        fprintf(fp, "%s\n", history[i]);
+        /* Escape embedded newlines: \n -> \x00 */
+        const char* p = history[i];
+        while (*p) {
+            if (*p == '\n') {
+                fputs("\\x00", fp);
+            } else {
+                fputc(*p, fp);
+            }
+            p++;
+        }
+        fputc('\n', fp);
     }
 
     fclose(fp);
@@ -2268,11 +2296,120 @@ static int draw_search_prompt(void)
     return 19 + search_query_len;  /* Length of "(reverse-i-search)`" + query */
 }
 
+/* ============================================================================
+ * Multi-line Input Support - Issue #25
+ * ============================================================================
+ * Detects when input requires continuation (bash-like behavior):
+ * - Trailing backslash (\) for explicit continuation
+ * - Unclosed single quotes (')
+ * - Unclosed double quotes (")
+ * - Unclosed backticks (`)
+ *
+ * When continuation is needed, a secondary prompt ("> ") is shown and
+ * additional lines are appended to the input buffer.
+ */
+
+/* Check if input needs continuation
+ * Returns 1 if more input is needed, 0 if command is complete
+ */
+static int needs_continuation(const char* input)
+{
+    if (!input || !*input) return 0;
+
+    int len = strlen(input);
+
+    /* Check for trailing backslash (explicit continuation) */
+    if (len > 0 && input[len - 1] == '\\') {
+        /* Make sure it's not escaped (\\) */
+        int backslash_count = 0;
+        int i = len - 1;
+        while (i >= 0 && input[i] == '\\') {
+            backslash_count++;
+            i--;
+        }
+        /* Odd number of backslashes means continuation */
+        if (backslash_count % 2 == 1) {
+            return 1;
+        }
+    }
+
+    /* Count unescaped quotes */
+    int single_quotes = 0;
+    int double_quotes = 0;
+    int backticks = 0;
+    int in_single = 0;
+    int in_double = 0;
+
+    for (int i = 0; i < len; i++) {
+        char c = input[i];
+
+        /* Skip escaped characters in double quotes */
+        if (in_double && c == '\\' && i + 1 < len) {
+            i++;  /* Skip next character */
+            continue;
+        }
+
+        if (c == '\'' && !in_double) {
+            single_quotes++;
+            in_single = !in_single;
+        } else if (c == '"' && !in_single) {
+            double_quotes++;
+            in_double = !in_double;
+        } else if (c == '`' && !in_single && !in_double) {
+            backticks++;
+        }
+    }
+
+    /* Odd number of quotes means unclosed */
+    if (single_quotes % 2 == 1) return 1;
+    if (double_quotes % 2 == 1) return 1;
+    if (backticks % 2 == 1) return 1;
+
+    return 0;
+}
+
+/* Draw continuation prompt for multi-line input */
+static int draw_continuation_prompt(void)
+{
+    cursor_move(prompt_row, 1);
+    clear_line();
+    printf("%s> %s", theme.dim, RESET);
+    fflush(stdout);
+    return 3;  /* "> " is 2 chars + 1 for cursor position */
+}
+
+/* Print buffer with newlines shown as visual indicator (↵)
+ * Used for displaying multi-line commands in the input area
+ */
+static void print_multiline_display(const char* buf)
+{
+    while (*buf) {
+        if (*buf == '\n') {
+            printf("%s↵%s", theme.dim, RESET);
+        } else {
+            putchar(*buf);
+        }
+        buf++;
+    }
+}
+
+/* Count newlines in a string (for multi-line detection) */
+static int count_newlines(const char* str)
+{
+    int count = 0;
+    while (*str) {
+        if (*str == '\n') count++;
+        str++;
+    }
+    return count;
+}
+
 /* Read a line with basic editing
  * Handles: backspace, left/right arrows, up/down for history, Tab completion,
  * PgUp/PgDn for scrollback, Ctrl+C, Ctrl+D.
  * Returns NULL on EOF (Ctrl+D), otherwise returns the input buffer.
  * Note: Uses a static buffer - caller should not free or store the pointer.
+ * Supports multi-line input via continuation detection (Issue #25).
  */
 static char* read_input(void)
 {
@@ -2298,6 +2435,33 @@ static char* read_input(void)
         if (c == '\n' || c == '\r') {
             buf[len] = '\0';
             last_was_tab = 0;
+
+            /* Check if we need continuation (Issue #25) */
+            if (needs_continuation(buf)) {
+                /* Scroll current line to output area */
+                cursor_save();
+                cursor_move(prompt_row - 2, 1);
+                if (len > 0 && buf[len-1] == '\\') {
+                    /* Show line with continuation marker */
+                    printf("› %s\n", buf);
+                } else {
+                    /* Show line as-is (unclosed quote) */
+                    printf("› %s\n", buf);
+                }
+                cursor_restore();
+
+                /* Add newline to buffer and continue reading */
+                if (len < INPUT_BUF_SIZE - 2) {
+                    buf[len++] = '\n';
+                    buf[len] = '\0';
+                    pos = len;
+
+                    /* Show continuation prompt */
+                    prompt_col = draw_continuation_prompt();
+                    fflush(stdout);
+                    continue;
+                }
+            }
 
             /* Scroll the prompt into output area */
             cursor_save();
@@ -2328,7 +2492,7 @@ static char* read_input(void)
 
                 /* Redraw line with prompt */
                 prompt_col = draw_prompt();
-                printf("%s", buf);
+                print_multiline_display(buf);
                 cursor_move(prompt_row, prompt_col + pos);
                 fflush(stdout);
             }
@@ -2363,7 +2527,7 @@ static char* read_input(void)
                         strcpy(buf, history[history_pos]);
                         len = pos = strlen(buf);
                         prompt_col = draw_prompt();
-                        printf("%s", buf);
+                        print_multiline_display(buf);  /* Issue #25 */
                         fflush(stdout);
                     }
                 } else if (c3 == 'B') {  /* Down arrow */
@@ -2377,7 +2541,7 @@ static char* read_input(void)
                         len = pos = 0;
                     }
                     prompt_col = draw_prompt();
-                    printf("%s", buf);
+                    print_multiline_display(buf);  /* Issue #25 */
                     fflush(stdout);
                 } else if (c3 == 'C') {  /* Right arrow */
                     if (pos < len) {
@@ -2430,7 +2594,7 @@ static char* read_input(void)
                 search_query_len = 0;
                 search_match_count = 0;
                 prompt_col = draw_prompt();
-                printf("%s", buf);
+                print_multiline_display(buf);
                 cursor_move(prompt_row, prompt_col + pos);
                 fflush(stdout);
             } else {
@@ -2469,7 +2633,7 @@ static char* read_input(void)
                 search_query_len = 0;
                 search_match_count = 0;
                 prompt_col = draw_prompt();
-                printf("%s", buf);
+                print_multiline_display(buf);
                 cursor_move(prompt_row, prompt_col + pos);
                 fflush(stdout);
                 continue;
@@ -2487,7 +2651,7 @@ static char* read_input(void)
                 search_query_len = 0;
                 search_match_count = 0;
                 prompt_col = draw_prompt();
-                printf("%s", buf);
+                print_multiline_display(buf);
                 cursor_move(prompt_row, prompt_col + pos);
                 fflush(stdout);
                 continue;
@@ -2519,7 +2683,7 @@ static char* read_input(void)
             pos++;
             len++;
             cursor_move(prompt_row, prompt_col);
-            printf("%s", buf);
+            print_multiline_display(buf);
             cursor_move(prompt_row, prompt_col + pos);
             fflush(stdout);
         }

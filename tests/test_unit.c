@@ -684,6 +684,66 @@ static void update_search_matches(const char* query)
     }
 }
 
+/* Check if input needs continuation (Issue #25)
+ * Returns 1 if more input is needed, 0 if command is complete
+ * Detects: trailing backslash, unclosed quotes (single, double, backtick)
+ */
+static int needs_continuation(const char* input)
+{
+    if (!input || !*input) return 0;
+
+    int len = strlen(input);
+
+    /* Check for trailing backslash (explicit continuation) */
+    if (len > 0 && input[len - 1] == '\\') {
+        /* Make sure it's not escaped (\\) */
+        int backslash_count = 0;
+        int i = len - 1;
+        while (i >= 0 && input[i] == '\\') {
+            backslash_count++;
+            i--;
+        }
+        /* Odd number of backslashes means continuation */
+        if (backslash_count % 2 == 1) {
+            return 1;
+        }
+    }
+
+    /* Count unescaped quotes */
+    int single_quotes = 0;
+    int double_quotes = 0;
+    int backticks = 0;
+    int in_single = 0;
+    int in_double = 0;
+
+    for (int i = 0; i < len; i++) {
+        char c = input[i];
+
+        /* Skip escaped characters in double quotes */
+        if (in_double && c == '\\' && i + 1 < len) {
+            i++;  /* Skip next character */
+            continue;
+        }
+
+        if (c == '\'' && !in_double) {
+            single_quotes++;
+            in_single = !in_single;
+        } else if (c == '"' && !in_single) {
+            double_quotes++;
+            in_double = !in_double;
+        } else if (c == '`' && !in_single && !in_double) {
+            backticks++;
+        }
+    }
+
+    /* Odd number of quotes means unclosed */
+    if (single_quotes % 2 == 1) return 1;
+    if (double_quotes % 2 == 1) return 1;
+    if (backticks % 2 == 1) return 1;
+
+    return 0;
+}
+
 /* ============================================================================
  * Test Cases
  * ============================================================================ */
@@ -1696,6 +1756,104 @@ void test_search_matches_empty(void)
 }
 
 /* ============================================================================
+ * Multi-line Input Tests (Issue #25)
+ * ============================================================================ */
+
+void test_continuation_null_empty(void)
+{
+    printf("\n[Continuation: NULL/Empty Input]\n");
+    ASSERT(needs_continuation(NULL) == 0, "NULL returns no continuation");
+    ASSERT(needs_continuation("") == 0, "empty string returns no continuation");
+}
+
+void test_continuation_trailing_backslash(void)
+{
+    printf("\n[Continuation: Trailing Backslash]\n");
+    ASSERT(needs_continuation("echo hello\\") == 1, "trailing backslash needs continuation");
+    ASSERT(needs_continuation("ls \\") == 1, "simple command with backslash needs continuation");
+    ASSERT(needs_continuation("\\") == 1, "single backslash needs continuation");
+}
+
+void test_continuation_escaped_backslash(void)
+{
+    printf("\n[Continuation: Escaped Backslash]\n");
+    ASSERT(needs_continuation("echo \\\\") == 0, "double backslash is complete");
+    ASSERT(needs_continuation("echo \\\\\\") == 1, "triple backslash needs continuation");
+    ASSERT(needs_continuation("echo \\\\\\\\") == 0, "quad backslash is complete");
+    ASSERT(needs_continuation("path/to\\\\file") == 0, "escaped backslash in middle is complete");
+}
+
+void test_continuation_unclosed_single_quote(void)
+{
+    printf("\n[Continuation: Unclosed Single Quote]\n");
+    ASSERT(needs_continuation("echo 'hello") == 1, "unclosed single quote needs continuation");
+    ASSERT(needs_continuation("'") == 1, "single quote alone needs continuation");
+    ASSERT(needs_continuation("echo 'hello'") == 0, "closed single quote is complete");
+    ASSERT(needs_continuation("echo 'hello' 'world") == 1, "second unclosed quote needs continuation");
+}
+
+void test_continuation_unclosed_double_quote(void)
+{
+    printf("\n[Continuation: Unclosed Double Quote]\n");
+    ASSERT(needs_continuation("echo \"hello") == 1, "unclosed double quote needs continuation");
+    ASSERT(needs_continuation("\"") == 1, "double quote alone needs continuation");
+    ASSERT(needs_continuation("echo \"hello\"") == 0, "closed double quote is complete");
+    ASSERT(needs_continuation("echo \"hello\" \"world") == 1, "second unclosed quote needs continuation");
+}
+
+void test_continuation_unclosed_backtick(void)
+{
+    printf("\n[Continuation: Unclosed Backtick]\n");
+    ASSERT(needs_continuation("echo `date") == 1, "unclosed backtick needs continuation");
+    ASSERT(needs_continuation("`") == 1, "backtick alone needs continuation");
+    ASSERT(needs_continuation("echo `date`") == 0, "closed backtick is complete");
+    ASSERT(needs_continuation("echo `date` `time") == 1, "second unclosed backtick needs continuation");
+}
+
+void test_continuation_escaped_quotes(void)
+{
+    printf("\n[Continuation: Escaped Quotes]\n");
+    ASSERT(needs_continuation("echo \"hello\\\"world\"") == 0, "escaped double quote inside double quotes is complete");
+    ASSERT(needs_continuation("echo \"hello\\\"") == 1, "escaped quote doesn't close the string");
+    ASSERT(needs_continuation("echo 'hello\"world'") == 0, "double quote inside single quotes doesn't count");
+    ASSERT(needs_continuation("echo \"hello'world\"") == 0, "single quote inside double quotes doesn't count");
+}
+
+void test_continuation_mixed_quotes(void)
+{
+    printf("\n[Continuation: Mixed Quote Types]\n");
+    ASSERT(needs_continuation("echo \"it's fine\"") == 0, "single quote inside double quotes is complete");
+    ASSERT(needs_continuation("echo 'say \"hello\"'") == 0, "double quotes inside single quotes is complete");
+    ASSERT(needs_continuation("echo \"'open") == 1, "unclosed double with single inside needs continuation");
+    ASSERT(needs_continuation("git commit -m 'fix: issue #25'") == 0, "typical commit message is complete");
+}
+
+void test_continuation_complete_commands(void)
+{
+    printf("\n[Continuation: Complete Commands]\n");
+    ASSERT(needs_continuation("ls -la") == 0, "simple command is complete");
+    ASSERT(needs_continuation("echo hello world") == 0, "command with args is complete");
+    ASSERT(needs_continuation("cat file.txt | grep pattern") == 0, "pipe command is complete");
+    ASSERT(needs_continuation("if [ -f file ]; then echo yes; fi") == 0, "inline if is complete");
+    ASSERT(needs_continuation("for i in 1 2 3; do echo $i; done") == 0, "inline for is complete");
+}
+
+void test_continuation_realistic_cases(void)
+{
+    printf("\n[Continuation: Realistic Multi-line Cases]\n");
+    /* Simulating what happens after user presses enter with trailing backslash */
+    ASSERT(needs_continuation("docker run \\") == 1, "docker command with backslash needs continuation");
+    ASSERT(needs_continuation("curl -X POST \\") == 1, "curl command with backslash needs continuation");
+
+    /* Long string that user might paste */
+    ASSERT(needs_continuation("echo \"This is a long message that") == 1, "incomplete string paste needs continuation");
+
+    /* JSON-like content */
+    ASSERT(needs_continuation("echo '{\"key\":") == 1, "unclosed brace in single quotes needs continuation");
+    ASSERT(needs_continuation("echo '{\"key\": \"value\"}'") == 0, "complete JSON in quotes is complete");
+}
+
+/* ============================================================================
  * Main
  * ============================================================================ */
 
@@ -1777,6 +1935,18 @@ int main(void)
     test_search_matches_basic();
     test_search_matches_recency();
     test_search_matches_empty();
+
+    /* Multi-line input tests (Issue #25) */
+    test_continuation_null_empty();
+    test_continuation_trailing_backslash();
+    test_continuation_escaped_backslash();
+    test_continuation_unclosed_single_quote();
+    test_continuation_unclosed_double_quote();
+    test_continuation_unclosed_backtick();
+    test_continuation_escaped_quotes();
+    test_continuation_mixed_quotes();
+    test_continuation_complete_commands();
+    test_continuation_realistic_cases();
 
     /* Summary */
     printf("\n========================================\n");
