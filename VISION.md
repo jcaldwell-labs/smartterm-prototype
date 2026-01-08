@@ -37,15 +37,15 @@
 ### Our Advantages
 
 1. **No vendor lock-in** - Use any terminal, switch AI providers
-2. **Lightweight** - ~350 LOC C, ~280 LOC Python
-3. **Hackable** - Simple codebase, easy to extend
+2. **Feature-rich** - ~3300 LOC C with aliases, snippets, workflows, plugins, themes
+3. **Hackable** - Well-organized codebase, easy to extend
 4. **Works everywhere** - SSH sessions, containers, old terminals
 
 ---
 
 ## Roadmap
 
-### Phase 1: Solid Foundation (Complete)
+### Phase 1: Solid Foundation ✅ COMPLETE
 
 - [x] C implementation with ANSI regions
 - [x] Python + Claude SDK implementation
@@ -54,55 +54,73 @@
 - [x] Notes with `#` prefix
 - [x] Internal `@` commands
 
-### Phase 2: Polish & Blockers (~2-3 weeks)
+### Phase 2: Polish & Blockers ✅ COMPLETE
 
-Fix the known limitations from issue #14:
+All blockers from issue #14 resolved:
 
-| Issue | Description              | Priority |
-| ----- | ------------------------ | -------- |
-| #15   | Tab completion           | High     |
-| #16   | ANSI color passthrough   | High     |
-| #17   | `clear` command handling | Medium   |
-| #18   | Output scrollback access | Medium   |
+| Issue | Description              | Status                |
+| ----- | ------------------------ | --------------------- |
+| #15   | Tab completion           | ✅ Complete           |
+| #16   | ANSI color passthrough   | ✅ Complete (PTY #22) |
+| #17   | `clear` command handling | ✅ Complete           |
+| #18   | Output scrollback access | ✅ Complete           |
 
-Additional polish:
+Additional polish completed:
 
-- [ ] Persistent history file
-- [ ] Exit code display in prompt
-- [ ] Better resize handling
-- [ ] Configuration file (~/.cc-bashrc)
+- [x] Persistent history file (~/.cc-bash-history)
+- [x] Exit code display in status bar
+- [x] Terminal resize handling
+- [x] Configuration file (~/.cc-bashrc)
 
-### Phase 3: Differentiation (~4-6 weeks)
+### Phase 3: Differentiation ✅ COMPLETE
 
-Features that set us apart:
+All differentiating features implemented:
 
-| Feature       | Description                               |
-| ------------- | ----------------------------------------- |
-| `@workflow`   | Save and replay command sequences         |
-| `@snippet`    | Reusable command templates with variables |
-| `@alias`      | Custom command shortcuts                  |
-| Plugin system | Load extensions dynamically (#8)          |
-| Themes        | Customizable colors and status bar (#11)  |
+| Feature       | Description                               | Status      |
+| ------------- | ----------------------------------------- | ----------- |
+| `@workflow`   | Save and replay command sequences         | ✅ Complete |
+| `@snippet`    | Reusable command templates with variables | ✅ Complete |
+| `@alias`      | Custom command shortcuts                  | ✅ Complete |
+| Plugin system | Load extensions dynamically               | ✅ Complete |
+| Themes        | Customizable colors and status bar        | ✅ Complete |
 
-### Phase 4: Advanced (~8+ weeks)
+Additional Phase 3 features:
+
+- [x] @edit - Edit config in $EDITOR (#24)
+- [x] @reload - Reload configuration at runtime (#24)
+- [x] @alias save - Persist session aliases (#24)
+
+### Phase 4: Advanced 🔄 IN PROGRESS
 
 Long-term features for power users:
 
-| Feature              | Description                                |
-| -------------------- | ------------------------------------------ |
-| Multiple AI backends | Ollama, OpenAI, local models               |
-| Block navigation     | Jump between command blocks (Ctrl+Up/Down) |
-| Command search       | Fuzzy search through history               |
-| Shared workflows     | Export/import workflow files               |
-| Tool integrations    | Git status, docker, kubectl in status bar  |
+| Feature              | Description                                | Status            |
+| -------------------- | ------------------------------------------ | ----------------- |
+| Command search       | Fuzzy search through history (Ctrl+R)      | ✅ Complete (#23) |
+| PTY execution        | Automatic color support for commands       | ✅ Complete (#22) |
+| Multi-line input     | Support for multi-line command editing     | 🔄 Open (#25)     |
+| Multiple AI backends | Ollama, OpenAI, local models               | ⏳ Planned        |
+| Block navigation     | Jump between command blocks (Ctrl+Up/Down) | ⏳ Planned        |
+| Shared workflows     | Export/import workflow files               | ⏳ Planned        |
+| Tool integrations    | Git status, docker, kubectl in status bar  | ⏳ Planned        |
+
+### Phase 5: Distribution & Community 📋 PLANNED
+
+| Goal               | Description                    | Status      |
+| ------------------ | ------------------------------ | ----------- |
+| Homebrew formula   | `brew install cc-bash`         | ⏳ Planned  |
+| APT package        | Debian/Ubuntu package          | ⏳ Planned  |
+| AUR package        | Arch Linux package             | ⏳ Planned  |
+| GitHub Releases    | Pre-built binaries             | ✅ Complete |
+| Documentation site | GitHub Pages or dedicated docs | ⏳ Planned  |
 
 ---
 
 ## Design Principles
 
-### 1. Simplicity First
+### 1. Organized Complexity
 
-Keep the core small. cc-bash should remain understandable by reading the source in one sitting (~300-500 LOC).
+The codebase has grown to ~3300 LOC but remains well-organized with clear section headers. Each major feature (input, execution, plugins, etc.) is self-contained.
 
 ### 2. Progressive Enhancement
 
@@ -146,25 +164,26 @@ The C version should work without network. AI features are in the Python version
 
 ## Success Metrics
 
-### Short-term (3 months)
+### Short-term (3 months) - Progress
 
-- [ ] All Phase 2 blockers resolved
+- [x] All Phase 2 blockers resolved ✅
+- [x] Phase 3 features complete ✅
 - [ ] 100+ GitHub stars
 - [ ] 5+ contributors
 - [ ] Published to package managers (brew, apt)
 
 ### Medium-term (6 months)
 
-- [ ] Phase 3 features complete
 - [ ] Active community (Discord/discussions)
 - [ ] Featured in developer blogs/newsletters
 - [ ] Multiple AI backend support
+- [ ] Multi-line input support (#25)
 
 ### Long-term (12 months)
 
 - [ ] 1000+ GitHub stars
-- [ ] Phase 4 features in progress
-- [ ] Plugin ecosystem with 10+ plugins
+- [ ] Phase 4 & 5 features complete
+- [ ] Plugin ecosystem with 10+ community plugins
 - [ ] Corporate adoption stories
 
 ---
@@ -187,10 +206,11 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 **Immediate needs:**
 
-- Fix blockers #15-18
+- Multi-line input support (#25)
+- Package manager distribution (brew, apt, AUR)
 - Test on different terminals/platforms
-- Documentation improvements
-- Plugin system design (#8)
+- Multiple AI backend support (Ollama, OpenAI)
+- Community building and outreach
 
 ---
 
@@ -203,4 +223,4 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 ---
 
-_Last updated: 2026-01-06_
+_Last updated: 2026-01-07_
