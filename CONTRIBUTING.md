@@ -93,7 +93,7 @@ When working on cc-bash, keep in mind:
 
 Key source files:
 
-- `cc-bash.c` - Main implementation (~3200 lines)
+- `cc-bash.c` - Main implementation (~3300 lines)
 - `tests/test_unit.c` - Unit tests (193 tests)
 - `tests/test_cc_bash.sh` - Static analysis tests (12 tests)
 

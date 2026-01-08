@@ -40,6 +40,7 @@
 
 #include <dirent.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <limits.h>
 #include <signal.h>
 #include <stdio.h>
@@ -50,6 +51,13 @@
 #include <sys/wait.h>
 #include <termios.h>
 #include <unistd.h>
+
+/* PTY support for proper color output - Issue #22 */
+#ifdef __APPLE__
+#include <util.h>      /* macOS: forkpty() */
+#else
+#include <pty.h>       /* Linux: forkpty() */
+#endif
 
 /* ============================================================================
  * ANSI Escape Code Definitions
@@ -1499,77 +1507,144 @@ static void print_output(const char* text, int is_stderr)
  */
 static int execute_command(const char* cmd)
 {
-    int stdout_pipe[2], stderr_pipe[2];
-    if (pipe(stdout_pipe) < 0 || pipe(stderr_pipe) < 0) {
-        print_output("Error: Failed to create pipes", 1);
-        return -1;
-    }
+    /*
+     * Issue #22 - PTY-based command execution for proper color support
+     *
+     * Using forkpty() instead of pipe()+fork() so that child processes
+     * detect isatty(stdout) == true and enable colors automatically.
+     * This eliminates the need for --color=always flags on programs like
+     * ls, grep, bat, glow, etc.
+     */
 
-    pid_t pid = fork();
+    /* Set up terminal attributes for the PTY */
+    struct termios term_attrs;
+    memset(&term_attrs, 0, sizeof(term_attrs));
+    cfmakeraw(&term_attrs);
+    term_attrs.c_oflag |= OPOST;  /* Enable output processing for newlines */
+    term_attrs.c_lflag |= ISIG;   /* Enable signals (Ctrl+C, etc.) */
+
+    /* Set up window size for the PTY */
+    struct winsize ws;
+    ws.ws_row = output_rows;      /* Use output area height */
+    ws.ws_col = term_cols;
+    ws.ws_xpixel = 0;
+    ws.ws_ypixel = 0;
+
+    int master_fd;
+    pid_t pid = forkpty(&master_fd, NULL, &term_attrs, &ws);
+
     if (pid < 0) {
-        print_output("Error: Failed to fork", 1);
-        close(stdout_pipe[0]); close(stdout_pipe[1]);
-        close(stderr_pipe[0]); close(stderr_pipe[1]);
+        print_output("Error: Failed to fork PTY", 1);
         return -1;
     }
 
     if (pid == 0) {
-        /* Child */
-        close(stdout_pipe[0]);
-        close(stderr_pipe[0]);
-        dup2(stdout_pipe[1], STDOUT_FILENO);
-        dup2(stderr_pipe[1], STDERR_FILENO);
-        close(stdout_pipe[1]);
-        close(stderr_pipe[1]);
+        /* Child process - running in PTY slave */
 
         /*
-         * Issue #16 - ANSI Color Passthrough:
-         * Set environment variables to encourage color output from child processes.
-         * TERM=xterm-256color tells programs the terminal supports 256 colors.
-         * COLORTERM=truecolor indicates 24-bit color support.
-         * CLICOLOR_FORCE=1 forces color output even when not connected to a TTY.
-         * FORCE_COLOR=1 is respected by Node.js and many npm packages.
-         *
-         * Note: This doesn't make pipes into TTYs, so programs using isatty()
-         * may still disable colors. For such programs, use:
-         *   - ls --color=always
-         *   - glow -s dark (or set GLAMOUR_STYLE=dark)
-         *   - grep --color=always
-         *   - bat --color=always
+         * Set environment variables for color support.
+         * With PTY, isatty() returns true, so most programs auto-enable colors.
+         * These env vars provide extra hints for maximum compatibility.
          */
-        setenv("TERM", "xterm-256color", 0);  /* Don't override if already set */
+        setenv("TERM", "xterm-256color", 0);
         setenv("COLORTERM", "truecolor", 0);
-        setenv("CLICOLOR_FORCE", "1", 1);     /* Force this one */
-        setenv("FORCE_COLOR", "1", 1);        /* Node.js and npm packages */
+        setenv("CLICOLOR", "1", 1);
+        setenv("CLICOLOR_FORCE", "1", 1);
+        setenv("FORCE_COLOR", "1", 1);
 
         execl("/bin/sh", "sh", "-c", cmd, NULL);
         _exit(127);
     }
 
-    /* Parent */
-    close(stdout_pipe[1]);
-    close(stderr_pipe[1]);
+    /* Parent process - read from PTY master */
+    char buf[4096];
+    char line_buf[4096];
+    int line_pos = 0;
+    ssize_t n;
 
-    FILE* stdout_fp = fdopen(stdout_pipe[0], "r");
-    FILE* stderr_fp = fdopen(stderr_pipe[0], "r");
-
-    char line[4096];
-
-    while (fgets(line, sizeof(line), stdout_fp)) {
-        line[strcspn(line, "\n")] = '\0';
-        print_output(line, 0);
-    }
-
-    while (fgets(line, sizeof(line), stderr_fp)) {
-        line[strcspn(line, "\n")] = '\0';
-        print_output(line, 1);
-    }
-
-    fclose(stdout_fp);
-    fclose(stderr_fp);
+    /* Set master fd to non-blocking for better responsiveness */
+    int flags = fcntl(master_fd, F_GETFL, 0);
+    fcntl(master_fd, F_SETFL, flags | O_NONBLOCK);
 
     int status;
-    waitpid(pid, &status, 0);
+    int child_done = 0;
+
+    while (!child_done) {
+        /* Check if child has exited */
+        pid_t result = waitpid(pid, &status, WNOHANG);
+        if (result == pid) {
+            child_done = 1;
+        } else if (result < 0 && errno != EINTR) {
+            break;
+        }
+
+        /* Read available output from PTY */
+        n = read(master_fd, buf, sizeof(buf) - 1);
+        if (n > 0) {
+            buf[n] = '\0';
+
+            /* Process output character by character to handle lines */
+            for (ssize_t i = 0; i < n; i++) {
+                char c = buf[i];
+
+                if (c == '\n' || c == '\r') {
+                    if (line_pos > 0) {
+                        line_buf[line_pos] = '\0';
+                        print_output(line_buf, 0);
+                        line_pos = 0;
+                    }
+                } else if (line_pos < (int)sizeof(line_buf) - 1) {
+                    line_buf[line_pos++] = c;
+                }
+            }
+        } else if (n < 0 && errno != EAGAIN && errno != EINTR) {
+            /* Error reading from PTY */
+            break;
+        } else if (n == 0) {
+            /* EOF on PTY */
+            break;
+        }
+
+        /* Small sleep to avoid busy-waiting when no data available */
+        if (n <= 0 && !child_done) {
+            usleep(1000);  /* 1ms */
+        }
+    }
+
+    /* Flush any remaining partial line */
+    if (line_pos > 0) {
+        line_buf[line_pos] = '\0';
+        print_output(line_buf, 0);
+    }
+
+    /* Final read to catch any remaining output */
+    while ((n = read(master_fd, buf, sizeof(buf) - 1)) > 0) {
+        buf[n] = '\0';
+        line_pos = 0;
+        for (ssize_t i = 0; i < n; i++) {
+            char c = buf[i];
+            if (c == '\n' || c == '\r') {
+                if (line_pos > 0) {
+                    line_buf[line_pos] = '\0';
+                    print_output(line_buf, 0);
+                    line_pos = 0;
+                }
+            } else if (line_pos < (int)sizeof(line_buf) - 1) {
+                line_buf[line_pos++] = c;
+            }
+        }
+        if (line_pos > 0) {
+            line_buf[line_pos] = '\0';
+            print_output(line_buf, 0);
+        }
+    }
+
+    close(master_fd);
+
+    /* Make sure we've reaped the child */
+    if (!child_done) {
+        waitpid(pid, &status, 0);
+    }
 
     return WIFEXITED(status) ? WEXITSTATUS(status) : -1;
 }

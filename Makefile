@@ -3,7 +3,8 @@
 CC = gcc
 CFLAGS = -Wall -Wextra -std=c11
 LDFLAGS_POC = -lncurses -lreadline
-LDFLAGS_CCBASH =
+# -lutil provides forkpty() on Linux for PTY-based command execution (Issue #22)
+LDFLAGS_CCBASH = -lutil
 
 # Original POC
 POC_TARGET = smartterm_poc

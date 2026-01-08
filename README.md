@@ -190,6 +190,7 @@ Built-in commands:
 ### Command Execution
 
 - All input executes as bash commands by default
+- **Full color support** - PTY-based execution means `ls`, `grep`, `bat` show colors automatically
 - stdout displayed in white/default color
 - stderr displayed in red
 - Exit codes shown in status bar
