@@ -16,6 +16,25 @@
 #include <string.h>
 #include <unistd.h>
 #include <limits.h>
+#include <ctype.h>
+
+/* Fallback strcasestr for platforms without GNU extensions (e.g., macOS) */
+#if defined(__APPLE__) || (!defined(__GLIBC__) && !defined(strcasestr))
+static char* my_strcasestr(const char* haystack, const char* needle) {
+    if (!*needle) return (char*)haystack;
+    for (const char* p = haystack; *p; p++) {
+        const char* h = p;
+        const char* n = needle;
+        while (*h && *n && tolower((unsigned char)*h) == tolower((unsigned char)*n)) {
+            h++;
+            n++;
+        }
+        if (!*n) return (char*)p;
+    }
+    return NULL;
+}
+#define strcasestr my_strcasestr
+#endif
 
 /* Test framework */
 static int tests_run = 0;
