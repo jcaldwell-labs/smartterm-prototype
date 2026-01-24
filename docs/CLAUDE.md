@@ -57,60 +57,54 @@ cc-bash is a **Claude Code-style bash wrapper** that provides a structured termi
 
 ```
 smartterm-prototype/
-├── cc-bash.c              # Main C implementation (~3300 LOC)
-├── cc-bash-sdk.py         # Python + Claude SDK version
-├── cc-bashrc.template     # Sample configuration file
-├── Makefile               # Build system
-├── install.sh             # Installation script
-├── smartterm_poc.c        # Original POC (legacy, ~250 LOC)
+├── src/                   # Source files
+│   ├── cc-bash.c          # Main C implementation (~3300 LOC)
+│   ├── cc-bash-sdk.py     # Python + Claude SDK version
+│   └── requirements.txt   # Python dependencies
 │
 ├── tests/
-│   ├── test_unit.c        # Unit tests (170 tests)
+│   ├── test_unit.c        # Unit tests (240 tests)
 │   ├── test_framework.h   # Test framework header
 │   ├── framework.c        # Test framework implementation
 │   └── test_cc_bash.sh    # Static analysis tests
 │
+├── config/
+│   └── cc-bashrc.template # Sample configuration file
+│
+├── scripts/
+│   ├── install.sh         # Installation script
+│   └── run_headless_demo.sh
+│
 ├── docs/
 │   ├── README.md          # Docs index
 │   ├── ARCHITECTURE.md    # Architecture documentation
-│   ├── SMARTTERM-API.md   # Legacy library API reference
-│   ├── guides/            # User guides
-│   ├── tutorials/         # Tutorials
-│   └── examples/          # Doc examples
+│   ├── CONFIGURATION.md   # Configuration guide
+│   ├── QUICKREF.md        # Quick reference
+│   ├── CLAUDE.md          # AI assistant guide (this file)
+│   ├── SUPPORT.md         # Getting help
+│   └── VISION.md          # Project roadmap
 │
-├── lib/                   # Legacy smartterm library (v1.0)
-│   └── smartterm/         # Modular library implementation
-│       ├── smartterm_core.c
-│       ├── smartterm_output.c
-│       ├── smartterm_input.c
-│       ├── smartterm_render.c
-│       ├── smartterm_theme.c
-│       ├── smartterm_status.c
-│       ├── smartterm_scroll.c
-│       ├── smartterm_search.c
-│       ├── smartterm_export.c
-│       ├── smartterm_keyhandler.c
-│       └── smartterm_internal.h
+├── gallery/               # Demo GIFs and screenshots
+│   ├── cc-bash-demo.gif
+│   └── cc-bash-showcase.gif
 │
-├── include/
-│   └── smartterm.h        # Legacy library public API
-│
-├── examples/              # Legacy library examples
-│   ├── repl.c
-│   ├── chat_client.c
-│   ├── log_viewer.c
-│   └── headless_demo.c
+├── packaging/
+│   ├── homebrew/          # Homebrew formula
+│   ├── arch/              # AUR package
+│   └── debian/            # Debian package
 │
 ├── .github/
 │   └── workflows/
 │       ├── ci.yml         # CI pipeline
 │       └── release.yml    # Release automation
 │
+├── Makefile               # Build system
 ├── README.md              # User-facing documentation
 ├── CONTRIBUTING.md        # Contribution guidelines
 ├── CHANGELOG.md           # Version history
+├── CODE_OF_CONDUCT.md     # Community guidelines
 ├── SECURITY.md            # Security policy
-└── llms.txt               # LLM context file
+└── LICENSE                # MIT license
 ```
 
 ### Key Files Explained

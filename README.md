@@ -482,21 +482,24 @@ The current ANSI-based approach keeps all output visible at all times.
 
 ```
 smartterm-prototype/
-├── cc-bash.c              # C implementation (~2700 LOC)
-├── cc-bash-sdk.py         # Python + Claude SDK implementation
-├── cc-bashrc.template     # Sample configuration file
-├── install.sh             # Installation script
-├── Makefile               # Build configuration
-├── tests/
-│   ├── test_unit.c        # Unit tests (170 tests)
+├── src/                   # Source files
+│   ├── cc-bash.c          # C implementation (~3300 LOC)
+│   └── cc-bash-sdk.py     # Python + Claude SDK version
+├── tests/                 # Test files
+│   ├── test_unit.c        # Unit tests (240 tests)
 │   └── test_cc_bash.sh    # Static analysis tests
-├── .github/
+├── config/                # Configuration templates
+│   └── cc-bashrc.template # Sample configuration
+├── scripts/               # Utility scripts
+│   └── install.sh         # Installation script
+├── docs/                  # Documentation
+├── gallery/               # Demo GIFs and screenshots
+├── packaging/             # Package configs (Homebrew, AUR, Debian)
+├── .github/               # GitHub Actions
 │   └── workflows/
-│       ├── ci.yml         # CI pipeline (build, test, lint)
+│       ├── ci.yml         # CI pipeline
 │       └── release.yml    # Release automation
-├── lib/                   # SmartTerm library (legacy)
-├── include/               # Library headers (legacy)
-└── examples/              # Example applications (legacy)
+└── Makefile               # Build configuration
 ```
 
 ### User Files

@@ -155,10 +155,10 @@ mkdir -p "$CONFIG_DIR/plugins"
 
 if [ ! -f "$CONFIG_FILE" ]; then
     # Try to copy template
-    if [ -f "cc-bashrc.template" ]; then
-        cp "cc-bashrc.template" "$CONFIG_FILE"
-    elif [ -f "$TEMP_DIR/cc-bashrc.template" ] 2>/dev/null; then
-        cp "$TEMP_DIR/cc-bashrc.template" "$CONFIG_FILE"
+    if [ -f "config/cc-bashrc.template" ]; then
+        cp "config/cc-bashrc.template" "$CONFIG_FILE"
+    elif [ -f "$TEMP_DIR/config/cc-bashrc.template" ] 2>/dev/null; then
+        cp "$TEMP_DIR/config/cc-bashrc.template" "$CONFIG_FILE"
     else
         # Create minimal config
         cat > "$CONFIG_FILE" << 'ENDCONFIG'
