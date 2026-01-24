@@ -2,78 +2,27 @@
 
 **A simple terminal wrapper that executes bash commands by default with colored output**
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![CI](https://github.com/jcaldwell-labs/smartterm-prototype/actions/workflows/ci.yml/badge.svg)](https://github.com/jcaldwell-labs/smartterm-prototype/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/jcaldwell-labs/smartterm-prototype)](https://github.com/jcaldwell-labs/smartterm-prototype/releases)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![C Standard](https://img.shields.io/badge/C-C11-blue.svg)](https://en.cppreference.com/w/c/11)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
 ---
 
-## Two Versions Available
+## What is cc-bash?
 
-| Version          | Language | AI Integration   | Dependencies                           |
-| ---------------- | -------- | ---------------- | -------------------------------------- |
-| `cc-bash`        | C        | No               | libreadline                            |
-| `cc-bash-sdk.py` | Python   | Yes (Claude SDK) | claude-agent-sdk, prompt_toolkit, rich |
-
----
-
-## Overview
-
-cc-bash provides a Claude Code-inspired interface for interactive bash use:
-
-- Commands execute in bash by default (no `!` prefix needed)
-- Colored output: commands (cyan), stdout (white), stderr (red)
-- Status bar showing current directory, exit code, and time
-- Command history with persistence (~/.cc-bash-history)
-- Tab completion for commands and file paths
-- **Aliases** - command shortcuts (`alias ll='ls -la'`)
-- **Snippets** - parameterized templates (`snippet greet='echo Hello, $1!'`)
-- **Workflows** - multi-step command sequences (`workflow build='make && make test'`)
-- **Plugins** - extensible via shell-script hooks
-- **Themes** - customizable colors
-- Notes with `#` prefix (displayed, not executed)
-- Internal commands with `@` prefix
+- **Bash-first**: Commands run in bash by default - no `!` prefix needed
+- **Visual feedback**: Colored output (cyan commands, white stdout, red stderr) with a status bar
+- **Smart input**: Tab completion, fuzzy history search (Ctrl+R), persistent history
+- **Extensible**: Aliases, snippets, workflows, plugins, and themes
+- **Two flavors**: Pure C version (fast, minimal) or Python + Claude AI version
 
 ---
 
-## Installation
+## Quick Install
 
-### Option 1: Homebrew (macOS/Linux)
-
-```bash
-# Add the tap and install
-brew tap jcaldwell-labs/cc-bash
-brew install cc-bash
-
-# Copy sample config
-cp $(brew --prefix)/share/cc-bash/cc-bashrc.template ~/.cc-bashrc
-mkdir -p ~/.cc-bash/plugins
-```
-
-### Option 2: AUR (Arch Linux)
-
-```bash
-# Using yay
-yay -S cc-bash
-
-# Or using paru
-paru -S cc-bash
-
-# Setup
-cp /usr/share/cc-bash/cc-bashrc.template ~/.cc-bashrc
-mkdir -p ~/.cc-bash/plugins
-```
-
-### Option 3: Install Script
-
-```bash
-# One-command install (builds from source)
-curl -fsSL https://raw.githubusercontent.com/jcaldwell-labs/smartterm-prototype/master/install.sh | bash
-```
-
-### Option 4: Download Pre-built Binary
-
-Download from [GitHub Releases](https://github.com/jcaldwell-labs/smartterm-prototype/releases):
+### Download Pre-built Binary (Recommended)
 
 ```bash
 # Linux x86_64
@@ -81,12 +30,15 @@ curl -fsSL https://github.com/jcaldwell-labs/smartterm-prototype/releases/latest
 chmod +x cc-bash
 sudo mv cc-bash /usr/local/bin/
 
-# Create config
+# Create config directory
 mkdir -p ~/.cc-bash/plugins
 curl -fsSL https://raw.githubusercontent.com/jcaldwell-labs/smartterm-prototype/master/cc-bashrc.template -o ~/.cc-bashrc
 ```
 
-### Option 5: Build from Source
+<details>
+<summary><strong>Other installation methods</strong></summary>
+
+### Build from Source
 
 ```bash
 # Install dependencies (Ubuntu/Debian)
@@ -104,10 +56,9 @@ sudo make install
 ./cc-bash
 ```
 
-### Option 6: Local User Install (no sudo)
+### Local User Install (no sudo)
 
 ```bash
-# Install to ~/.local/bin
 make
 make install PREFIX=$HOME/.local
 
@@ -115,9 +66,72 @@ make install PREFIX=$HOME/.local
 export PATH="$HOME/.local/bin:$PATH"
 ```
 
+### Homebrew (macOS/Linux)
+
+```bash
+brew tap jcaldwell-labs/cc-bash
+brew install cc-bash
+cp $(brew --prefix)/share/cc-bash/cc-bashrc.template ~/.cc-bashrc
+mkdir -p ~/.cc-bash/plugins
+```
+
+### AUR (Arch Linux)
+
+```bash
+yay -S cc-bash
+cp /usr/share/cc-bash/cc-bashrc.template ~/.cc-bashrc
+mkdir -p ~/.cc-bash/plugins
+```
+
+### Install Script
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/jcaldwell-labs/smartterm-prototype/master/install.sh | bash
+```
+
+</details>
+
 ---
 
-## Quick Start (Python + AI Version)
+## Quick Start
+
+```
+cc-bash: Claude Code-style bash wrapper
+Type @help for help, @quit or exit to quit
+
+ ~/projects/myapp                                    [exit: 0] 14:30:00
+────────────────────────────────────────────────────────────────────────
+$ ls -la
+$ ls -la
+total 24
+drwxr-xr-x 3 user user 4096 Dec 30 14:30 .
+-rw-r--r-- 1 user user 1234 Dec 30 14:30 main.c
+
+ ~/projects/myapp                                    [exit: 0] 14:30:05
+────────────────────────────────────────────────────────────────────────
+$ # This is a note - it won't execute
+# This is a note - it won't execute
+
+$ @help
+cc-bash: Claude Code-style bash wrapper
+
+Commands are executed in bash by default.
+
+Special prefixes:
+  # comment  - Add a note (yellow, not executed)
+  @clear     - Clear screen
+  @help      - Show this help
+  @quit      - Exit cc-bash
+
+Built-in commands:
+  cd [path]  - Change directory
+  exit       - Exit cc-bash
+```
+
+<details>
+<summary><strong>Python + AI Version Quick Start</strong></summary>
+
+The Python version includes Claude AI integration:
 
 ```bash
 # Create virtual environment
@@ -132,8 +146,6 @@ python cc-bash-sdk.py
 ```
 
 ### AI Commands
-
-The Python version includes Claude AI integration:
 
 | Command              | Description                                  |
 | -------------------- | -------------------------------------------- |
@@ -172,42 +184,7 @@ Asking Claude for fix...
 ╰───────────────────────────────────────────────────────╯
 ```
 
----
-
-## Usage (C Version)
-
-```
-cc-bash: Claude Code-style bash wrapper
-Type @help for help, @quit or exit to quit
-
- ~/projects/myapp                                    [exit: 0] 14:30:00
-────────────────────────────────────────────────────────────────────────
-$ ls -la
-$ ls -la
-total 24
-drwxr-xr-x 3 user user 4096 Dec 30 14:30 .
--rw-r--r-- 1 user user 1234 Dec 30 14:30 main.c
-
- ~/projects/myapp                                    [exit: 0] 14:30:05
-────────────────────────────────────────────────────────────────────────
-$ # This is a note - it won't execute
-# This is a note - it won't execute
-
-$ @help
-cc-bash: Claude Code-style bash wrapper
-
-Commands are executed in bash by default.
-
-Special prefixes:
-  # comment  - Add a note (yellow, not executed)
-  @clear     - Clear screen
-  @help      - Show this help
-  @quit      - Exit cc-bash
-
-Built-in commands:
-  cd [path]  - Change directory
-  exit       - Exit cc-bash
-```
+</details>
 
 ---
 
@@ -221,20 +198,6 @@ Built-in commands:
 - stderr displayed in red
 - Exit codes shown in status bar
 
-### Status Bar
-
-- Current working directory (truncated if long)
-- Last command exit code
-- Current time
-- Reverse video for visibility
-
-### Special Prefixes
-
-| Prefix | Action                                           |
-| ------ | ------------------------------------------------ |
-| `#`    | Note/comment - displayed in yellow, not executed |
-| `@`    | Internal command (help, clear, quit)             |
-
 ### Keyboard Shortcuts
 
 | Key          | Action                                              |
@@ -247,14 +210,6 @@ Built-in commands:
 | `Tab`        | Complete command/file (double-Tab for options)      |
 | `PgUp/PgDn`  | Scroll output buffer                                |
 | `Esc`        | Cancel search mode                                  |
-
-### Built-in Commands
-
-| Command     | Action                                    |
-| ----------- | ----------------------------------------- |
-| `cd [path]` | Change directory (supports `~` expansion) |
-| `exit`      | Exit cc-bash                              |
-| `quit`      | Exit cc-bash                              |
 
 ### Internal @ Commands
 
@@ -344,6 +299,9 @@ export PAGER=less
 
 ---
 
+<details>
+<summary><strong>Plugins</strong></summary>
+
 ## Plugins
 
 Plugins extend cc-bash with custom hooks, commands, aliases, and workflows.
@@ -391,25 +349,10 @@ hook.post_command=hooks/on_post_command.sh
 echo "[$(date)] cd: $CCBASH_OLD_CWD -> $CCBASH_NEW_CWD" >> ~/.cc-bash/cd.log
 ```
 
----
+</details>
 
-## Building
-
-```bash
-# Build cc-bash (default)
-make
-
-# Build and run
-make run
-
-# Clean
-make clean
-
-# Show help
-make help
-```
-
----
+<details>
+<summary><strong>Design Philosophy</strong></summary>
 
 ## Design Philosophy
 
@@ -418,7 +361,7 @@ cc-bash takes a **simple approach** using ANSI escape codes instead of ncurses:
 1. **Output stays visible** - No TUI that hides when you type
 2. **Readline for input** - Command history, line editing
 3. **ANSI colors** - Works in any terminal
-4. **Minimal dependencies** - Just readline
+4. **Minimal dependencies** - Just libutil for PTY support
 
 ### Why Not ncurses?
 
@@ -430,13 +373,35 @@ An earlier POC used ncurses + readline integration. While the concept worked, th
 
 The current ANSI-based approach keeps all output visible at all times.
 
----
+### Three-Region Layout
+
+```
+┌──────────────────────────────────────────────────────────────────────┐
+│                        Output Area (scrolling)                        │
+│  $ ls -la                                                            │
+│  total 24                                                            │
+│  drwxr-xr-x 3 user user 4096 Jan 7 .                                │
+│  -rw-r--r-- 1 user user 1234 Jan 7 main.c                           │
+│  ...                                                                 │
+├──────────────────────────────────────────────────────────────────────┤
+│ $ _                                                    (prompt area) │
+├──────────────────────────────────────────────────────────────────────┤
+│  ~/projects/myapp                              [exit: 0] 14:30:00   │
+│ ──────────────────────────────────────────────────────────────────── │
+└──────────────────────────────────────────────────────────────────────┘
+   └── Status bar (fixed, shows cwd, exit code, time)
+```
+
+</details>
+
+<details>
+<summary><strong>Project Structure</strong></summary>
 
 ## Project Structure
 
 ```
 smartterm-prototype/
-├── cc-bash.c              # C implementation (~2700 LOC)
+├── cc-bash.c              # C implementation (~3300 LOC)
 ├── cc-bash-sdk.py         # Python + Claude SDK implementation
 ├── cc-bashrc.template     # Sample configuration file
 ├── install.sh             # Installation script
@@ -461,7 +426,17 @@ smartterm-prototype/
 ~/.cc-bash/plugins/        # Plugin directory
 ```
 
----
+### Two Versions Available
+
+| Version          | Language | AI Integration   | Dependencies                           |
+| ---------------- | -------- | ---------------- | -------------------------------------- |
+| `cc-bash`        | C        | No               | libutil (forkpty)                      |
+| `cc-bash-sdk.py` | Python   | Yes (Claude SDK) | claude-agent-sdk, prompt_toolkit, rich |
+
+</details>
+
+<details>
+<summary><strong>History</strong></summary>
 
 ## History
 
@@ -476,6 +451,47 @@ This project evolved from "smartterm-prototype":
 
 See GitHub issue #14 for the repurposing discussion.
 
+</details>
+
+---
+
+## Building
+
+```bash
+# Build cc-bash (default)
+make
+
+# Build and run
+make run
+
+# Run tests
+make test
+
+# Full quality check
+make check
+
+# Clean
+make clean
+
+# Show all targets
+make help
+```
+
+---
+
+## Contributing
+
+We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+
+Quick start:
+
+```bash
+git clone https://github.com/jcaldwell-labs/smartterm-prototype.git
+cd smartterm-prototype
+make
+make check  # Run before committing
+```
+
 ---
 
 ## License
@@ -484,31 +500,16 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 ---
 
-## Related jcaldwell-labs Projects
+## Related Projects
 
 cc-bash is part of the [jcaldwell-labs](https://github.com/jcaldwell-labs) portfolio:
-
-### Terminal/TUI Projects
 
 | Project                                                            | Description                                   |
 | ------------------------------------------------------------------ | --------------------------------------------- |
 | [my-grid](https://github.com/jcaldwell-labs/my-grid)               | ASCII canvas editor with vim-style navigation |
 | [boxes-live](https://github.com/jcaldwell-labs/boxes-live)         | Real-time ASCII box drawing                   |
 | [terminal-stars](https://github.com/jcaldwell-labs/terminal-stars) | Starfield animation for terminals             |
-| [atari-style](https://github.com/jcaldwell-labs/atari-style)       | Retro visual effects for terminal apps        |
-
-### CLI Tools
-
-| Project                                                    | Description                               |
-| ---------------------------------------------------------- | ----------------------------------------- |
-| [my-context](https://github.com/jcaldwell-labs/my-context) | Context tracking for development sessions |
-| [fintrack](https://github.com/jcaldwell-labs/fintrack)     | Personal finance tracking CLI             |
-
-### Game Engines
-
-| Project                                                                      | Description                       |
-| ---------------------------------------------------------------------------- | --------------------------------- |
-| [adventure-engine-v2](https://github.com/jcaldwell-labs/adventure-engine-v2) | Multiplayer text adventure engine |
+| [my-context](https://github.com/jcaldwell-labs/my-context)         | Context tracking for development sessions     |
 
 ---
 
