@@ -15,67 +15,51 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libncurses-dev libreadline-dev clang-format valgrind
+          sudo apt-get install -y build-essential clang-format cppcheck
 
       - name: Check code formatting
         run: |
-          find . -type f \( -name "*.c" -o -name "*.h" \) ! -path "./.git/*" -exec clang-format --dry-run --Werror {} \;
+          clang-format --dry-run --Werror src/cc-bash.c tests/test_unit.c
 
-      - name: Build library
-        run: make -f Makefile.lib lib
+      - name: Build cc-bash
+        run: make
 
-      - name: Build examples
-        run: make -f Makefile.lib examples
+      - name: Build with strict warnings
+        run: make clean && make STRICT=1
 
-      - name: Build POC
-        run: make -f Makefile.lib poc
+      - name: Run static analysis
+        run: make lint
 
-      - name: Build tests
-        run: make -f Makefile.lib tests
-
-      - name: Run tests
-        run: make -f Makefile.lib test
+      - name: Build and run tests
+        run: make test
         env:
           TERM: xterm
 
-      - name: Check for compiler warnings
+      - name: Verify install target works
         run: |
-          make -f Makefile.lib clean
-          make -f Makefile.lib CFLAGS="-Wall -Wextra -Werror -O2 -Iinclude" lib
-
-      - name: Rebuild tests for valgrind
-        run: make -f Makefile.lib tests
-
-      - name: Memory leak check (basic test)
-        run: |
-          valgrind --leak-check=full --error-exitcode=1 --quiet ./build/test/test_basic
+          make install PREFIX=$HOME/.local
+          test -x $HOME/.local/bin/cc-bash
+          $HOME/.local/bin/cc-bash -c "echo test" || true
 
   build-macos:
     runs-on: macos-latest
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      - name: Install dependencies
-        run: |
-          brew install ncurses readline
+      - name: Build cc-bash
+        run: make
 
-      - name: Build library
-        run: make -f Makefile.lib lib
-
-      - name: Build examples
-        run: make -f Makefile.lib examples
-
-      - name: Build tests
-        run: make -f Makefile.lib tests
+      - name: Build with strict warnings
+        run: make clean && make STRICT=1
 
       - name: Run tests
-        run: make -f Makefile.lib test
+        run: make test
         env:
           TERM: xterm

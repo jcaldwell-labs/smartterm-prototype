@@ -35,7 +35,7 @@
 
 /* Feature test macros - must come before any includes */
 #define _POSIX_C_SOURCE 200809L
-#define _GNU_SOURCE     /* Linux: enables SIGWINCH and other extensions */
+#define _GNU_SOURCE      /* Linux: enables SIGWINCH and other extensions */
 #define _DARWIN_C_SOURCE /* macOS: enables SIGWINCH */
 
 #include <dirent.h>
@@ -54,9 +54,9 @@
 
 /* PTY support for proper color output - Issue #22 */
 #ifdef __APPLE__
-#include <util.h>      /* macOS: forkpty() */
+#include <util.h> /* macOS: forkpty() */
 #else
-#include <pty.h>       /* Linux: forkpty() */
+#include <pty.h> /* Linux: forkpty() */
 #endif
 
 /* ============================================================================
@@ -67,16 +67,16 @@
  *
  * Default values - these are used as fallbacks when theme is not configured.
  */
-#define RESET   "\033[0m"
-#define BOLD    "\033[1m"
-#define DIM     "\033[2m"
-#define RED     "\033[31m"
-#define GREEN   "\033[32m"
-#define YELLOW  "\033[33m"
-#define CYAN    "\033[36m"
-#define BLUE    "\033[34m"
+#define RESET "\033[0m"
+#define BOLD "\033[1m"
+#define DIM "\033[2m"
+#define RED "\033[31m"
+#define GREEN "\033[32m"
+#define YELLOW "\033[33m"
+#define CYAN "\033[36m"
+#define BLUE "\033[34m"
 #define MAGENTA "\033[35m"
-#define WHITE   "\033[37m"
+#define WHITE "\033[37m"
 
 /* ============================================================================
  * Theme Configuration
@@ -92,23 +92,23 @@
  * Modifiers: bold, dim (can be combined with color)
  */
 typedef struct {
-    char prompt[32];    /* Prompt symbol color (default: none) */
-    char error[32];     /* Error/stderr color (default: red) */
-    char comment[32];   /* Comment (#) color (default: yellow) */
-    char dim[32];       /* Dim text color (default: dim gray) */
-    char header[32];    /* Help headers color (default: cyan) */
-    char status[32];    /* Status bar color (default: bold) */
-    char scroll[32];    /* Scroll indicator color (default: cyan) */
+    char prompt[32];  /* Prompt symbol color (default: none) */
+    char error[32];   /* Error/stderr color (default: red) */
+    char comment[32]; /* Comment (#) color (default: yellow) */
+    char dim[32];     /* Dim text color (default: dim gray) */
+    char header[32];  /* Help headers color (default: cyan) */
+    char status[32];  /* Status bar color (default: bold) */
+    char scroll[32];  /* Scroll indicator color (default: cyan) */
 } Theme;
 
 static Theme theme = {
-    .prompt = "",           /* No color by default */
-    .error = "\033[31m",    /* Red */
-    .comment = "\033[33m",  /* Yellow */
-    .dim = "\033[2m",       /* Dim */
-    .header = "\033[36m",   /* Cyan */
-    .status = "\033[1m",    /* Bold */
-    .scroll = "\033[36m"    /* Cyan */
+    .prompt = "",          /* No color by default */
+    .error = "\033[31m",   /* Red */
+    .comment = "\033[33m", /* Yellow */
+    .dim = "\033[2m",      /* Dim */
+    .header = "\033[36m",  /* Cyan */
+    .status = "\033[1m",   /* Bold */
+    .scroll = "\033[36m"   /* Cyan */
 };
 
 /* Buffer and history size limits */
@@ -125,7 +125,7 @@ static Theme theme = {
 #define MAX_HOOKS 20
 #define MAX_PLUGINS 20
 #define MAX_PLUGIN_COMMANDS 10
-#define MAX_PLUGIN_HOOKS 7   /* One per event type */
+#define MAX_PLUGIN_HOOKS 7 /* One per event type */
 #define CONFIG_LINE_SIZE 1024
 #define HISTORY_FILE ".cc-bash-history"
 #define PLUGIN_DIR ".cc-bash/plugins"
@@ -151,11 +151,11 @@ typedef enum {
 /* Event data passed to handlers */
 typedef struct {
     EventType type;
-    const char* command;      /* For PRE/POST_COMMAND, ALIAS/SNIPPET_EXPAND */
-    const char* expanded;     /* For ALIAS/SNIPPET_EXPAND: the expanded form */
-    int exit_code;            /* For POST_COMMAND */
-    const char* old_cwd;      /* For CD: previous directory */
-    const char* new_cwd;      /* For CD: new directory */
+    const char* command;  /* For PRE/POST_COMMAND, ALIAS/SNIPPET_EXPAND */
+    const char* expanded; /* For ALIAS/SNIPPET_EXPAND: the expanded form */
+    int exit_code;        /* For POST_COMMAND */
+    const char* old_cwd;  /* For CD: previous directory */
+    const char* new_cwd;  /* For CD: new directory */
 } Event;
 
 /* Event handler function type */
@@ -185,8 +185,8 @@ static char cwd[PATH_MAX];
 
 /* Layout: output_rows + separator + prompt_rows + separator + status_rows */
 static int output_rows;
-static int prompt_row;      /* Single row for prompt */
-static int status_start;    /* Where status begins */
+static int prompt_row;   /* Single row for prompt */
+static int status_start; /* Where status begins */
 
 /* History */
 static char* history[MAX_HISTORY];
@@ -194,12 +194,12 @@ static int history_count = 0;
 static int history_pos = 0;
 
 /* History search state (Ctrl+R) - Issue #23 */
-static int search_mode = 0;           /* 1 = in search mode */
-static char search_query[256];        /* Current search query */
+static int search_mode = 0;    /* 1 = in search mode */
+static char search_query[256]; /* Current search query */
 static int search_query_len = 0;
-static int search_match_indices[MAX_HISTORY];  /* Indices of matching history entries */
-static int search_match_count = 0;    /* Number of matches */
-static int search_match_pos = 0;      /* Current position in matches (0 = most recent) */
+static int search_match_indices[MAX_HISTORY]; /* Indices of matching history entries */
+static int search_match_count = 0;            /* Number of matches */
+static int search_match_pos = 0;              /* Current position in matches (0 = most recent) */
 
 /* Output buffer for scrollback */
 typedef struct {
@@ -208,15 +208,15 @@ typedef struct {
 } OutputLine;
 
 static OutputLine output_buffer[MAX_OUTPUT_LINES];
-static int output_count = 0;      /* Total lines stored */
-static int output_start = 0;      /* Start index (circular) */
-static int scroll_offset = 0;     /* 0 = at bottom, positive = scrolled up */
+static int output_count = 0;  /* Total lines stored */
+static int output_start = 0;  /* Start index (circular) */
+static int scroll_offset = 0; /* 0 = at bottom, positive = scrolled up */
 
 /* Aliases - loaded from ~/.cc-bashrc or added via @alias */
 typedef struct {
     char* name;
     char* command;
-    int from_session;  /* 1 if added via @alias (not from config), 0 if from config */
+    int from_session; /* 1 if added via @alias (not from config), 0 if from config */
 } Alias;
 
 static Alias aliases[MAX_ALIASES];
@@ -238,9 +238,9 @@ static int snippet_count = 0;
  */
 typedef struct {
     char* name;
-    char* steps[MAX_WORKFLOW_STEPS];  /* Individual commands */
+    char* steps[MAX_WORKFLOW_STEPS]; /* Individual commands */
     int step_count;
-    int stop_on_error;                /* 1 = stop on first failure (&&), 0 = continue (;) */
+    int stop_on_error; /* 1 = stop on first failure (&&), 0 = continue (;) */
 } Workflow;
 
 static Workflow workflows[MAX_WORKFLOWS];
@@ -264,9 +264,9 @@ static int workflow_count = 0;
 
 /* Plugin command - custom @ command provided by plugin */
 typedef struct {
-    char* name;          /* Command name (after @) */
-    char* script_path;   /* Path to shell script */
-    char* description;   /* Help text */
+    char* name;        /* Command name (after @) */
+    char* script_path; /* Path to shell script */
+    char* description; /* Help text */
 } PluginCommand;
 
 /* Plugin - loaded from plugin directory */
@@ -274,11 +274,11 @@ typedef struct {
     char* name;
     char* version;
     char* description;
-    char* path;                              /* Plugin directory path */
+    char* path; /* Plugin directory path */
     int enabled;
     PluginCommand commands[MAX_PLUGIN_COMMANDS];
     int command_count;
-    char* hook_scripts[MAX_PLUGIN_HOOKS];    /* Script paths indexed by EventType */
+    char* hook_scripts[MAX_PLUGIN_HOOKS]; /* Script paths indexed by EventType */
 } Plugin;
 
 static Plugin plugins[MAX_PLUGINS];
@@ -301,10 +301,11 @@ static int hook_count = 0;
  * Returns hook ID (>= 0) on success, -1 if hooks array is full
  * Note: Part of public API for plugins, may not be called in main program
  */
-__attribute__((unused))
-static int register_hook(EventType type, EventHandler handler, void* user_data)
+__attribute__((unused)) static int register_hook(EventType type, EventHandler handler,
+                                                 void* user_data)
 {
-    if (hook_count >= MAX_HOOKS) return -1;
+    if (hook_count >= MAX_HOOKS)
+        return -1;
 
     hooks[hook_count].type = type;
     hooks[hook_count].handler = handler;
@@ -317,8 +318,7 @@ static int register_hook(EventType type, EventHandler handler, void* user_data)
 /* Unregister a hook by ID
  * Note: Part of public API for plugins, may not be called in main program
  */
-__attribute__((unused))
-static void unregister_hook(int hook_id)
+__attribute__((unused)) static void unregister_hook(int hook_id)
 {
     if (hook_id >= 0 && hook_id < hook_count) {
         hooks[hook_id].active = 0;
@@ -345,56 +345,48 @@ static void emit_event(const Event* event)
 /* Helper: Create and emit a simple event */
 static void emit_simple_event(EventType type)
 {
-    Event event = {
-        .type = type,
-        .command = NULL,
-        .expanded = NULL,
-        .exit_code = 0,
-        .old_cwd = NULL,
-        .new_cwd = NULL
-    };
+    Event event = {.type = type,
+                   .command = NULL,
+                   .expanded = NULL,
+                   .exit_code = 0,
+                   .old_cwd = NULL,
+                   .new_cwd = NULL};
     emit_event(&event);
 }
 
 /* Helper: Emit command event (PRE or POST) */
 static void emit_command_event(EventType type, const char* command, int exit_code)
 {
-    Event event = {
-        .type = type,
-        .command = command,
-        .expanded = NULL,
-        .exit_code = exit_code,
-        .old_cwd = NULL,
-        .new_cwd = NULL
-    };
+    Event event = {.type = type,
+                   .command = command,
+                   .expanded = NULL,
+                   .exit_code = exit_code,
+                   .old_cwd = NULL,
+                   .new_cwd = NULL};
     emit_event(&event);
 }
 
 /* Helper: Emit CD event */
 static void emit_cd_event(const char* old_dir, const char* new_dir)
 {
-    Event event = {
-        .type = EVENT_CD,
-        .command = NULL,
-        .expanded = NULL,
-        .exit_code = 0,
-        .old_cwd = old_dir,
-        .new_cwd = new_dir
-    };
+    Event event = {.type = EVENT_CD,
+                   .command = NULL,
+                   .expanded = NULL,
+                   .exit_code = 0,
+                   .old_cwd = old_dir,
+                   .new_cwd = new_dir};
     emit_event(&event);
 }
 
 /* Helper: Emit alias/snippet expand event */
 static void emit_expand_event(EventType type, const char* original, const char* expanded)
 {
-    Event event = {
-        .type = type,
-        .command = original,
-        .expanded = expanded,
-        .exit_code = 0,
-        .old_cwd = NULL,
-        .new_cwd = NULL
-    };
+    Event event = {.type = type,
+                   .command = original,
+                   .expanded = expanded,
+                   .exit_code = 0,
+                   .old_cwd = NULL,
+                   .new_cwd = NULL};
     emit_event(&event);
 }
 
@@ -402,14 +394,22 @@ static void emit_expand_event(EventType type, const char* original, const char* 
 static const char* event_type_name(EventType type)
 {
     switch (type) {
-        case EVENT_STARTUP:        return "STARTUP";
-        case EVENT_SHUTDOWN:       return "SHUTDOWN";
-        case EVENT_PRE_COMMAND:    return "PRE_COMMAND";
-        case EVENT_POST_COMMAND:   return "POST_COMMAND";
-        case EVENT_CD:             return "CD";
-        case EVENT_ALIAS_EXPAND:   return "ALIAS_EXPAND";
-        case EVENT_SNIPPET_EXPAND: return "SNIPPET_EXPAND";
-        default:                   return "UNKNOWN";
+    case EVENT_STARTUP:
+        return "STARTUP";
+    case EVENT_SHUTDOWN:
+        return "SHUTDOWN";
+    case EVENT_PRE_COMMAND:
+        return "PRE_COMMAND";
+    case EVENT_POST_COMMAND:
+        return "POST_COMMAND";
+    case EVENT_CD:
+        return "CD";
+    case EVENT_ALIAS_EXPAND:
+        return "ALIAS_EXPAND";
+    case EVENT_SNIPPET_EXPAND:
+        return "SNIPPET_EXPAND";
+    default:
+        return "UNKNOWN";
     }
 }
 
@@ -436,22 +436,34 @@ static void get_term_size(void)
      * - Separator: 1 line
      * - Output area: rest
      */
-    status_start = term_rows - 1;  /* Last 2 lines for status */
-    prompt_row = term_rows - 4;    /* Prompt row */
-    output_rows = prompt_row - 2;  /* Output area (above first separator) */
+    status_start = term_rows - 1; /* Last 2 lines for status */
+    prompt_row = term_rows - 4;   /* Prompt row */
+    output_rows = prompt_row - 2; /* Output area (above first separator) */
 }
 
 /* Save cursor position */
-static void cursor_save(void) { printf("\033[s"); }
+static void cursor_save(void)
+{
+    printf("\033[s");
+}
 
 /* Restore cursor position */
-static void cursor_restore(void) { printf("\033[u"); }
+static void cursor_restore(void)
+{
+    printf("\033[u");
+}
 
 /* Move cursor to row, col (1-based) */
-static void cursor_move(int row, int col) { printf("\033[%d;%dH", row, col); }
+static void cursor_move(int row, int col)
+{
+    printf("\033[%d;%dH", row, col);
+}
 
 /* Clear entire line */
-static void clear_line(void) { printf("\033[2K"); }
+static void clear_line(void)
+{
+    printf("\033[2K");
+}
 
 /* ============================================================================
  * Configuration and Aliases
@@ -476,7 +488,7 @@ static const char* parse_color(const char* name)
     buf[0] = '\0';
 
     if (!name || strlen(name) == 0) {
-        return buf;  /* Empty = no color */
+        return buf; /* Empty = no color */
     }
 
     /* Make a copy for tokenizing */
@@ -548,7 +560,8 @@ static void set_theme_color(const char* field, const char* value)
  */
 static void add_alias(const char* name, const char* command, int from_session)
 {
-    if (alias_count >= MAX_ALIASES) return;
+    if (alias_count >= MAX_ALIASES)
+        return;
 
     /* Check for existing alias with same name and replace */
     for (int i = 0; i < alias_count; i++) {
@@ -602,7 +615,8 @@ static void clear_aliases(void)
 /* Add a snippet */
 static void add_snippet(const char* name, const char* template)
 {
-    if (snippet_count >= MAX_SNIPPETS) return;
+    if (snippet_count >= MAX_SNIPPETS)
+        return;
 
     /* Check for existing snippet with same name and replace */
     for (int i = 0; i < snippet_count; i++) {
@@ -636,7 +650,8 @@ static const char* get_snippet(const char* name)
 static char* expand_snippet(const char* template, char** args, int arg_count)
 {
     char* result = malloc(INPUT_BUF_SIZE);
-    if (!result) return NULL;
+    if (!result)
+        return NULL;
 
     char* out = result;
     const char* in = template;
@@ -645,7 +660,7 @@ static char* expand_snippet(const char* template, char** args, int arg_count)
     while (*in && remaining > 0) {
         if (*in == '$' && in[1] >= '1' && in[1] <= '9') {
             /* Found $N placeholder */
-            int arg_idx = in[1] - '1';  /* Convert '1'-'9' to 0-8 */
+            int arg_idx = in[1] - '1'; /* Convert '1'-'9' to 0-8 */
             if (arg_idx < arg_count && args[arg_idx]) {
                 size_t arg_len = strlen(args[arg_idx]);
                 if (arg_len <= remaining) {
@@ -654,7 +669,7 @@ static char* expand_snippet(const char* template, char** args, int arg_count)
                     remaining -= arg_len;
                 }
             }
-            in += 2;  /* Skip $N */
+            in += 2; /* Skip $N */
         } else {
             *out++ = *in++;
             remaining--;
@@ -691,7 +706,8 @@ static void free_snippets(void)
  */
 static void add_workflow(const char* name, const char* commands)
 {
-    if (workflow_count >= MAX_WORKFLOWS) return;
+    if (workflow_count >= MAX_WORKFLOWS)
+        return;
 
     /* Check for existing workflow with same name and replace */
     int idx = -1;
@@ -712,11 +728,12 @@ static void add_workflow(const char* name, const char* commands)
     }
 
     workflows[idx].step_count = 0;
-    workflows[idx].stop_on_error = 1;  /* Default: stop on error (&&) */
+    workflows[idx].stop_on_error = 1; /* Default: stop on error (&&) */
 
     /* Make a copy for tokenizing */
     char* cmd_copy = strdup(commands);
-    if (!cmd_copy) return;
+    if (!cmd_copy)
+        return;
 
     /* Detect separator type: && or ; */
     if (strstr(cmd_copy, "&&")) {
@@ -726,11 +743,13 @@ static void add_workflow(const char* name, const char* commands)
         char* step = strtok_r(cmd_copy, "&", &saveptr);
         while (step && workflows[idx].step_count < MAX_WORKFLOW_STEPS) {
             /* Skip empty tokens (from &&) */
-            while (*step == '&' || *step == ' ') step++;
+            while (*step == '&' || *step == ' ')
+                step++;
             if (*step) {
                 /* Trim trailing spaces */
                 char* end = step + strlen(step) - 1;
-                while (end > step && *end == ' ') *end-- = '\0';
+                while (end > step && *end == ' ')
+                    *end-- = '\0';
                 if (*step) {
                     workflows[idx].steps[workflows[idx].step_count++] = strdup(step);
                 }
@@ -744,10 +763,12 @@ static void add_workflow(const char* name, const char* commands)
         char* step = strtok_r(cmd_copy, ";", &saveptr);
         while (step && workflows[idx].step_count < MAX_WORKFLOW_STEPS) {
             /* Trim leading/trailing spaces */
-            while (*step == ' ') step++;
+            while (*step == ' ')
+                step++;
             if (*step) {
                 char* end = step + strlen(step) - 1;
-                while (end > step && *end == ' ') *end-- = '\0';
+                while (end > step && *end == ' ')
+                    *end-- = '\0';
                 if (*step) {
                     workflows[idx].steps[workflows[idx].step_count++] = strdup(step);
                 }
@@ -817,66 +838,67 @@ static void free_plugins(void)
 static void parse_plugin_config(const char* filepath, const char* plugin_path)
 {
     FILE* fp = fopen(filepath, "r");
-    if (!fp) return;
+    if (!fp)
+        return;
 
     char line[CONFIG_LINE_SIZE];
     while (fgets(line, sizeof(line), fp)) {
         line[strcspn(line, "\n")] = '\0';
 
         char* p = line;
-        while (*p == ' ' || *p == '\t') p++;
-        if (*p == '\0' || *p == '#') continue;
+        while (*p == ' ' || *p == '\t')
+            p++;
+        if (*p == '\0' || *p == '#')
+            continue;
 
         /* Handle alias, snippet, workflow - same syntax as main config */
         if (strncmp(p, "alias ", 6) == 0) {
             p += 6;
-            while (*p == ' ') p++;
+            while (*p == ' ')
+                p++;
             char* eq = strchr(p, '=');
             if (eq) {
                 *eq = '\0';
                 char* name = p;
                 char* cmd = eq + 1;
                 size_t cmd_len = strlen(cmd);
-                if (cmd_len >= 2 &&
-                    ((cmd[0] == '\'' && cmd[cmd_len-1] == '\'') ||
-                     (cmd[0] == '"' && cmd[cmd_len-1] == '"'))) {
-                    cmd[cmd_len-1] = '\0';
+                if (cmd_len >= 2 && ((cmd[0] == '\'' && cmd[cmd_len - 1] == '\'') ||
+                                     (cmd[0] == '"' && cmd[cmd_len - 1] == '"'))) {
+                    cmd[cmd_len - 1] = '\0';
                     cmd++;
                 }
-                add_alias(name, cmd, 0);  /* from config file */
+                add_alias(name, cmd, 0); /* from config file */
             }
-        }
-        else if (strncmp(p, "snippet ", 8) == 0) {
+        } else if (strncmp(p, "snippet ", 8) == 0) {
             p += 8;
-            while (*p == ' ') p++;
+            while (*p == ' ')
+                p++;
             char* eq = strchr(p, '=');
             if (eq) {
                 *eq = '\0';
                 char* name = p;
                 char* tmpl = eq + 1;
                 size_t tmpl_len = strlen(tmpl);
-                if (tmpl_len >= 2 &&
-                    ((tmpl[0] == '\'' && tmpl[tmpl_len-1] == '\'') ||
-                     (tmpl[0] == '"' && tmpl[tmpl_len-1] == '"'))) {
-                    tmpl[tmpl_len-1] = '\0';
+                if (tmpl_len >= 2 && ((tmpl[0] == '\'' && tmpl[tmpl_len - 1] == '\'') ||
+                                      (tmpl[0] == '"' && tmpl[tmpl_len - 1] == '"'))) {
+                    tmpl[tmpl_len - 1] = '\0';
                     tmpl++;
                 }
                 add_snippet(name, tmpl);
             }
-        }
-        else if (strncmp(p, "workflow ", 9) == 0) {
+        } else if (strncmp(p, "workflow ", 9) == 0) {
             p += 9;
-            while (*p == ' ') p++;
+            while (*p == ' ')
+                p++;
             char* eq = strchr(p, '=');
             if (eq) {
                 *eq = '\0';
                 char* name = p;
                 char* cmds = eq + 1;
                 size_t cmds_len = strlen(cmds);
-                if (cmds_len >= 2 &&
-                    ((cmds[0] == '\'' && cmds[cmds_len-1] == '\'') ||
-                     (cmds[0] == '"' && cmds[cmds_len-1] == '"'))) {
-                    cmds[cmds_len-1] = '\0';
+                if (cmds_len >= 2 && ((cmds[0] == '\'' && cmds[cmds_len - 1] == '\'') ||
+                                      (cmds[0] == '"' && cmds[cmds_len - 1] == '"'))) {
+                    cmds[cmds_len - 1] = '\0';
                     cmds++;
                 }
                 add_workflow(name, cmds);
@@ -884,21 +906,23 @@ static void parse_plugin_config(const char* filepath, const char* plugin_path)
         }
     }
 
-    (void)plugin_path;  /* For future use */
+    (void)plugin_path; /* For future use */
     fclose(fp);
 }
 
 /* Load a single plugin from a directory */
 static int load_plugin(const char* plugin_dir)
 {
-    if (plugin_count >= MAX_PLUGINS) return -1;
+    if (plugin_count >= MAX_PLUGINS)
+        return -1;
 
     /* Check for plugin.conf */
     char manifest_path[PATH_MAX];
     snprintf(manifest_path, sizeof(manifest_path), "%s/plugin.conf", plugin_dir);
 
     FILE* fp = fopen(manifest_path, "r");
-    if (!fp) return -1;  /* No manifest, not a valid plugin */
+    if (!fp)
+        return -1; /* No manifest, not a valid plugin */
 
     Plugin* p = &plugins[plugin_count];
     memset(p, 0, sizeof(Plugin));
@@ -911,22 +935,24 @@ static int load_plugin(const char* plugin_dir)
         line[strcspn(line, "\n")] = '\0';
 
         char* ptr = line;
-        while (*ptr == ' ' || *ptr == '\t') ptr++;
-        if (*ptr == '\0' || *ptr == '#') continue;
+        while (*ptr == ' ' || *ptr == '\t')
+            ptr++;
+        if (*ptr == '\0' || *ptr == '#')
+            continue;
 
         /* Parse key=value */
         char* eq = strchr(ptr, '=');
-        if (!eq) continue;
+        if (!eq)
+            continue;
         *eq = '\0';
         char* key = ptr;
         char* val = eq + 1;
 
         /* Strip quotes from value */
         size_t val_len = strlen(val);
-        if (val_len >= 2 &&
-            ((val[0] == '\'' && val[val_len-1] == '\'') ||
-             (val[0] == '"' && val[val_len-1] == '"'))) {
-            val[val_len-1] = '\0';
+        if (val_len >= 2 && ((val[0] == '\'' && val[val_len - 1] == '\'') ||
+                             (val[0] == '"' && val[val_len - 1] == '"'))) {
+            val[val_len - 1] = '\0';
             val++;
         }
 
@@ -978,8 +1004,10 @@ static int load_plugin(const char* plugin_dir)
         const char* last_slash = strrchr(plugin_dir, '/');
         p->name = strdup(last_slash ? last_slash + 1 : plugin_dir);
     }
-    if (!p->version) p->version = strdup("1.0");
-    if (!p->description) p->description = strdup("");
+    if (!p->version)
+        p->version = strdup("1.0");
+    if (!p->description)
+        p->description = strdup("");
 
     /* Load plugin's config.conf for aliases/snippets/workflows */
     char config_path[PATH_MAX];
@@ -996,23 +1024,27 @@ static int load_plugin(const char* plugin_dir)
 static void load_plugins(void)
 {
     const char* home = getenv("HOME");
-    if (!home) return;
+    if (!home)
+        return;
 
     char plugins_dir[PATH_MAX];
     snprintf(plugins_dir, sizeof(plugins_dir), "%s/%s", home, PLUGIN_DIR);
 
     DIR* dir = opendir(plugins_dir);
-    if (!dir) return;  /* Plugin directory doesn't exist, that's fine */
+    if (!dir)
+        return; /* Plugin directory doesn't exist, that's fine */
 
     struct dirent* entry;
     while ((entry = readdir(dir)) != NULL) {
         /* Skip . and .. */
-        if (entry->d_name[0] == '.') continue;
+        if (entry->d_name[0] == '.')
+            continue;
 
         /* Build full path - use larger buffer to satisfy compiler analysis */
         char plugin_path[PATH_MAX + 256];
         int len = snprintf(plugin_path, sizeof(plugin_path), "%s/%s", plugins_dir, entry->d_name);
-        if (len < 0 || (size_t)len >= PATH_MAX) continue;  /* Skip if truncated or too long */
+        if (len < 0 || (size_t)len >= PATH_MAX)
+            continue; /* Skip if truncated or too long */
 
         /* Check if it's a directory */
         struct stat st;
@@ -1028,8 +1060,10 @@ static void load_plugins(void)
 static void execute_plugin_hooks(EventType type, const Event* event)
 {
     for (int i = 0; i < plugin_count; i++) {
-        if (!plugins[i].enabled) continue;
-        if (!plugins[i].hook_scripts[type]) continue;
+        if (!plugins[i].enabled)
+            continue;
+        if (!plugins[i].hook_scripts[type])
+            continue;
 
         /* Build command with event data as environment variables */
         char cmd[INPUT_BUF_SIZE * 2];
@@ -1039,14 +1073,11 @@ static void execute_plugin_hooks(EventType type, const Event* event)
         if (type == EVENT_PRE_COMMAND || type == EVENT_POST_COMMAND) {
             snprintf(cmd, sizeof(cmd),
                      "CCBASH_COMMAND='%s' CCBASH_EXIT_CODE=%d /bin/sh '%s' 2>/dev/null",
-                     event->command ? event->command : "",
-                     event->exit_code,
-                     script);
+                     event->command ? event->command : "", event->exit_code, script);
         } else if (type == EVENT_CD) {
             snprintf(cmd, sizeof(cmd),
                      "CCBASH_OLD_CWD='%s' CCBASH_NEW_CWD='%s' /bin/sh '%s' 2>/dev/null",
-                     event->old_cwd ? event->old_cwd : "",
-                     event->new_cwd ? event->new_cwd : "",
+                     event->old_cwd ? event->old_cwd : "", event->new_cwd ? event->new_cwd : "",
                      script);
         } else {
             snprintf(cmd, sizeof(cmd), "/bin/sh '%s' 2>/dev/null", script);
@@ -1061,7 +1092,8 @@ static void execute_plugin_hooks(EventType type, const Event* event)
 static PluginCommand* find_plugin_command(const char* name)
 {
     for (int i = 0; i < plugin_count; i++) {
-        if (!plugins[i].enabled) continue;
+        if (!plugins[i].enabled)
+            continue;
         for (int j = 0; j < plugins[i].command_count; j++) {
             if (strcmp(plugins[i].commands[j].name, name) == 0) {
                 return &plugins[i].commands[j];
@@ -1082,12 +1114,14 @@ static void load_config(void)
 {
     char config_path[PATH_MAX];
     const char* home = getenv("HOME");
-    if (!home) return;
+    if (!home)
+        return;
 
     snprintf(config_path, sizeof(config_path), "%s/.cc-bashrc", home);
 
     FILE* fp = fopen(config_path, "r");
-    if (!fp) return;  /* Config file doesn't exist, that's fine */
+    if (!fp)
+        return; /* Config file doesn't exist, that's fine */
 
     char line[CONFIG_LINE_SIZE];
     while (fgets(line, sizeof(line), fp)) {
@@ -1096,13 +1130,16 @@ static void load_config(void)
 
         /* Skip empty lines and comments */
         char* p = line;
-        while (*p == ' ' || *p == '\t') p++;
-        if (*p == '\0' || *p == '#') continue;
+        while (*p == ' ' || *p == '\t')
+            p++;
+        if (*p == '\0' || *p == '#')
+            continue;
 
         /* Handle 'alias name=command' */
         if (strncmp(p, "alias ", 6) == 0) {
             p += 6;
-            while (*p == ' ') p++;
+            while (*p == ' ')
+                p++;
 
             char* eq = strchr(p, '=');
             if (eq) {
@@ -1112,20 +1149,20 @@ static void load_config(void)
 
                 /* Strip quotes from command */
                 size_t cmd_len = strlen(cmd);
-                if (cmd_len >= 2 &&
-                    ((cmd[0] == '\'' && cmd[cmd_len-1] == '\'') ||
-                     (cmd[0] == '"' && cmd[cmd_len-1] == '"'))) {
-                    cmd[cmd_len-1] = '\0';
+                if (cmd_len >= 2 && ((cmd[0] == '\'' && cmd[cmd_len - 1] == '\'') ||
+                                     (cmd[0] == '"' && cmd[cmd_len - 1] == '"'))) {
+                    cmd[cmd_len - 1] = '\0';
                     cmd++;
                 }
 
-                add_alias(name, cmd, 0);  /* from config file */
+                add_alias(name, cmd, 0); /* from config file */
             }
         }
         /* Handle 'export VAR=value' */
         else if (strncmp(p, "export ", 7) == 0) {
             p += 7;
-            while (*p == ' ') p++;
+            while (*p == ' ')
+                p++;
 
             char* eq = strchr(p, '=');
             if (eq) {
@@ -1135,10 +1172,9 @@ static void load_config(void)
 
                 /* Strip quotes from value */
                 size_t val_len = strlen(val);
-                if (val_len >= 2 &&
-                    ((val[0] == '\'' && val[val_len-1] == '\'') ||
-                     (val[0] == '"' && val[val_len-1] == '"'))) {
-                    val[val_len-1] = '\0';
+                if (val_len >= 2 && ((val[0] == '\'' && val[val_len - 1] == '\'') ||
+                                     (val[0] == '"' && val[val_len - 1] == '"'))) {
+                    val[val_len - 1] = '\0';
                     val++;
                 }
 
@@ -1147,7 +1183,7 @@ static void load_config(void)
         }
         /* Handle 'theme.field=value' */
         else if (strncmp(p, "theme.", 6) == 0) {
-            p += 6;  /* Skip "theme." */
+            p += 6; /* Skip "theme." */
 
             char* eq = strchr(p, '=');
             if (eq) {
@@ -1157,10 +1193,9 @@ static void load_config(void)
 
                 /* Strip quotes from value */
                 size_t val_len = strlen(val);
-                if (val_len >= 2 &&
-                    ((val[0] == '\'' && val[val_len-1] == '\'') ||
-                     (val[0] == '"' && val[val_len-1] == '"'))) {
-                    val[val_len-1] = '\0';
+                if (val_len >= 2 && ((val[0] == '\'' && val[val_len - 1] == '\'') ||
+                                     (val[0] == '"' && val[val_len - 1] == '"'))) {
+                    val[val_len - 1] = '\0';
                     val++;
                 }
 
@@ -1170,7 +1205,8 @@ static void load_config(void)
         /* Handle 'snippet name=template' */
         else if (strncmp(p, "snippet ", 8) == 0) {
             p += 8;
-            while (*p == ' ') p++;
+            while (*p == ' ')
+                p++;
 
             char* eq = strchr(p, '=');
             if (eq) {
@@ -1180,10 +1216,9 @@ static void load_config(void)
 
                 /* Strip quotes from template */
                 size_t tmpl_len = strlen(tmpl);
-                if (tmpl_len >= 2 &&
-                    ((tmpl[0] == '\'' && tmpl[tmpl_len-1] == '\'') ||
-                     (tmpl[0] == '"' && tmpl[tmpl_len-1] == '"'))) {
-                    tmpl[tmpl_len-1] = '\0';
+                if (tmpl_len >= 2 && ((tmpl[0] == '\'' && tmpl[tmpl_len - 1] == '\'') ||
+                                      (tmpl[0] == '"' && tmpl[tmpl_len - 1] == '"'))) {
+                    tmpl[tmpl_len - 1] = '\0';
                     tmpl++;
                 }
 
@@ -1193,7 +1228,8 @@ static void load_config(void)
         /* Handle 'workflow name=cmd1 && cmd2' */
         else if (strncmp(p, "workflow ", 9) == 0) {
             p += 9;
-            while (*p == ' ') p++;
+            while (*p == ' ')
+                p++;
 
             char* eq = strchr(p, '=');
             if (eq) {
@@ -1203,10 +1239,9 @@ static void load_config(void)
 
                 /* Strip quotes from commands */
                 size_t cmds_len = strlen(cmds);
-                if (cmds_len >= 2 &&
-                    ((cmds[0] == '\'' && cmds[cmds_len-1] == '\'') ||
-                     (cmds[0] == '"' && cmds[cmds_len-1] == '"'))) {
-                    cmds[cmds_len-1] = '\0';
+                if (cmds_len >= 2 && ((cmds[0] == '\'' && cmds[cmds_len - 1] == '\'') ||
+                                      (cmds[0] == '"' && cmds[cmds_len - 1] == '"'))) {
+                    cmds[cmds_len - 1] = '\0';
                     cmds++;
                 }
 
@@ -1242,12 +1277,14 @@ static void load_history(void)
 {
     char path[PATH_MAX];
     const char* home = getenv("HOME");
-    if (!home) return;
+    if (!home)
+        return;
 
     snprintf(path, sizeof(path), "%s/%s", home, HISTORY_FILE);
 
     FILE* fp = fopen(path, "r");
-    if (!fp) return;
+    if (!fp)
+        return;
 
     char line[INPUT_BUF_SIZE];
     while (fgets(line, sizeof(line), fp) && history_count < MAX_HISTORY) {
@@ -1282,12 +1319,14 @@ static void save_history(void)
 {
     char path[PATH_MAX];
     const char* home = getenv("HOME");
-    if (!home) return;
+    if (!home)
+        return;
 
     snprintf(path, sizeof(path), "%s/%s", home, HISTORY_FILE);
 
     FILE* fp = fopen(path, "w");
-    if (!fp) return;
+    if (!fp)
+        return;
 
     /* Save last MAX_HISTORY entries */
     int start = (history_count > MAX_HISTORY) ? history_count - MAX_HISTORY : 0;
@@ -1319,7 +1358,8 @@ static void draw_separator(int row)
 {
     cursor_move(row, 1);
     printf("%s", theme.dim);
-    for (int i = 0; i < term_cols; i++) printf("─");
+    for (int i = 0; i < term_cols; i++)
+        printf("─");
     printf("%s", RESET);
     fflush(stdout);
 }
@@ -1330,7 +1370,8 @@ static void draw_status(void)
     char hostname[64];
     gethostname(hostname, sizeof(hostname));
     const char* user = getenv("USER");
-    if (!user) user = "user";
+    if (!user)
+        user = "user";
 
     /* Line 1: user@host:path */
     cursor_move(term_rows - 1, 1);
@@ -1358,8 +1399,8 @@ static void init_screen(void)
     printf("\033[2J");
 
     /* Draw separators */
-    draw_separator(prompt_row - 1);  /* Above prompt */
-    draw_separator(prompt_row + 1);  /* Below prompt */
+    draw_separator(prompt_row - 1); /* Above prompt */
+    draw_separator(prompt_row + 1); /* Below prompt */
 
     /* Draw status */
     draw_status();
@@ -1431,8 +1472,10 @@ static void redraw_output(void)
     int end_line = total_lines - scroll_offset;
     int start_line = end_line - visible_lines;
 
-    if (start_line < 0) start_line = 0;
-    if (end_line < 0) end_line = 0;
+    if (start_line < 0)
+        start_line = 0;
+    if (end_line < 0)
+        end_line = 0;
 
     /* Clear and redraw output area */
     for (int row = 1; row <= visible_lines; row++) {
@@ -1456,8 +1499,8 @@ static void redraw_output(void)
     cursor_move(term_rows, 1);
     clear_line();
     if (scroll_offset > 0) {
-        printf("  %s[Scrolled: %d/%d lines - PgDn to scroll down]%s",
-               theme.scroll, scroll_offset, total_lines, RESET);
+        printf("  %s[Scrolled: %d/%d lines - PgDn to scroll down]%s", theme.scroll, scroll_offset,
+               total_lines, RESET);
     } else {
         printf("  %s>> run bash commands (exit to quit)%s", theme.dim, RESET);
     }
@@ -1469,13 +1512,16 @@ static void redraw_output(void)
 static void scroll_output(int delta)
 {
     int max_scroll = output_count - output_rows;
-    if (max_scroll < 0) max_scroll = 0;
+    if (max_scroll < 0)
+        max_scroll = 0;
 
     scroll_offset += delta;
 
     /* Clamp to valid range */
-    if (scroll_offset < 0) scroll_offset = 0;
-    if (scroll_offset > max_scroll) scroll_offset = max_scroll;
+    if (scroll_offset < 0)
+        scroll_offset = 0;
+    if (scroll_offset > max_scroll)
+        scroll_offset = max_scroll;
 
     redraw_output();
 
@@ -1548,12 +1594,12 @@ static int execute_command(const char* cmd)
     struct termios term_attrs;
     memset(&term_attrs, 0, sizeof(term_attrs));
     cfmakeraw(&term_attrs);
-    term_attrs.c_oflag |= OPOST;  /* Enable output processing for newlines */
-    term_attrs.c_lflag |= ISIG;   /* Enable signals (Ctrl+C, etc.) */
+    term_attrs.c_oflag |= OPOST; /* Enable output processing for newlines */
+    term_attrs.c_lflag |= ISIG;  /* Enable signals (Ctrl+C, etc.) */
 
     /* Set up window size for the PTY */
     struct winsize ws;
-    ws.ws_row = output_rows;      /* Use output area height */
+    ws.ws_row = output_rows; /* Use output area height */
     ws.ws_col = term_cols;
     ws.ws_xpixel = 0;
     ws.ws_ypixel = 0;
@@ -1635,7 +1681,7 @@ static int execute_command(const char* cmd)
 
         /* Small sleep to avoid busy-waiting when no data available */
         if (n <= 0 && !child_done) {
-            usleep(1000);  /* 1ms */
+            usleep(1000); /* 1ms */
         }
     }
 
@@ -1798,8 +1844,8 @@ static void handle_clear(void)
     cursor_move(1, 1);
 
     /* Redraw the TUI frame to ensure it's intact */
-    draw_separator(prompt_row - 1);  /* Above prompt */
-    draw_separator(prompt_row + 1);  /* Below prompt */
+    draw_separator(prompt_row - 1); /* Above prompt */
+    draw_separator(prompt_row + 1); /* Below prompt */
     draw_status();
 
     /* Re-establish scroll region */
@@ -1868,7 +1914,7 @@ static int fuzzy_score(const char* query, const char* text)
         return 0;
     }
 
-    int score = 100;  /* Base score for substring match */
+    int score = 100; /* Base score for substring match */
     int match_pos = match - text;
 
     /* Bonus for match at start */
@@ -1922,8 +1968,10 @@ static void update_search_matches(void)
         int base_score = fuzzy_score(search_query, history[i]);
         if (base_score > 0) {
             /* Add recency bonus: most recent gets +50, decays */
-            int recency_bonus = 50 - ((history_count - 1 - i) * 50 / (history_count > 1 ? history_count - 1 : 1));
-            if (recency_bonus < 0) recency_bonus = 0;
+            int recency_bonus =
+                50 - ((history_count - 1 - i) * 50 / (history_count > 1 ? history_count - 1 : 1));
+            if (recency_bonus < 0)
+                recency_bonus = 0;
 
             scored[scored_count].index = i;
             scored[scored_count].score = base_score + recency_bonus;
@@ -2005,7 +2053,8 @@ static void completion_free(CompletionResult* cr)
 static int is_executable(const char* path)
 {
     struct stat st;
-    if (stat(path, &st) != 0) return 0;
+    if (stat(path, &st) != 0)
+        return 0;
     return (st.st_mode & S_IXUSR) || (st.st_mode & S_IXGRP) || (st.st_mode & S_IXOTH);
 }
 
@@ -2013,7 +2062,8 @@ static int is_executable(const char* path)
 static int is_directory(const char* path)
 {
     struct stat st;
-    if (stat(path, &st) != 0) return 0;
+    if (stat(path, &st) != 0)
+        return 0;
     return S_ISDIR(st.st_mode);
 }
 
@@ -2047,14 +2097,16 @@ static void complete_files(const char* prefix, CompletionResult* cr)
     }
 
     DIR* dir = opendir(dir_path);
-    if (!dir) return;
+    if (!dir)
+        return;
 
     size_t prefix_len = strlen(file_prefix);
     struct dirent* entry;
 
     while ((entry = readdir(dir)) != NULL) {
         /* Skip . and .. unless explicitly typed */
-        if (entry->d_name[0] == '.' && file_prefix[0] != '.') continue;
+        if (entry->d_name[0] == '.' && file_prefix[0] != '.')
+            continue;
 
         if (strncmp(entry->d_name, file_prefix, prefix_len) == 0) {
             char full_match[PATH_MAX];
@@ -2070,7 +2122,7 @@ static void complete_files(const char* prefix, CompletionResult* cr)
             }
 
             /* Add trailing slash for directories */
-            char check_path[PATH_MAX * 2];  /* Extra room to avoid truncation warning */
+            char check_path[PATH_MAX * 2]; /* Extra room to avoid truncation warning */
             if (strcmp(dir_path, ".") == 0) {
                 snprintf(check_path, sizeof(check_path), "%s", entry->d_name);
             } else {
@@ -2091,7 +2143,8 @@ static void complete_files(const char* prefix, CompletionResult* cr)
 static void complete_commands(const char* prefix, CompletionResult* cr)
 {
     const char* path_env = getenv("PATH");
-    if (!path_env) return;
+    if (!path_env)
+        return;
 
     size_t prefix_len = strlen(prefix);
     char* path_copy = strdup(path_env);
@@ -2166,8 +2219,8 @@ static void get_word_at_cursor(const char* buf, int pos, char* word, int* word_s
 }
 
 /* Perform tab completion - returns number of matches */
-static int do_completion(const char* buf, int pos, int is_double_tab,
-                         char* completion, int* word_start)
+static int do_completion(const char* buf, int pos, int is_double_tab, char* completion,
+                         int* word_start)
 {
     char word[PATH_MAX];
     get_word_at_cursor(buf, pos, word, word_start);
@@ -2293,7 +2346,7 @@ static int draw_search_prompt(void)
     fflush(stdout);
 
     /* Return cursor position at end of query for editing */
-    return 19 + search_query_len;  /* Length of "(reverse-i-search)`" + query */
+    return 19 + search_query_len; /* Length of "(reverse-i-search)`" + query */
 }
 
 /* ============================================================================
@@ -2314,7 +2367,8 @@ static int draw_search_prompt(void)
  */
 static int needs_continuation(const char* input)
 {
-    if (!input || !*input) return 0;
+    if (!input || !*input)
+        return 0;
 
     int len = strlen(input);
 
@@ -2345,7 +2399,7 @@ static int needs_continuation(const char* input)
 
         /* Skip escaped characters in double quotes */
         if (in_double && c == '\\' && i + 1 < len) {
-            i++;  /* Skip next character */
+            i++; /* Skip next character */
             continue;
         }
 
@@ -2361,9 +2415,12 @@ static int needs_continuation(const char* input)
     }
 
     /* Odd number of quotes means unclosed */
-    if (single_quotes % 2 == 1) return 1;
-    if (double_quotes % 2 == 1) return 1;
-    if (backticks % 2 == 1) return 1;
+    if (single_quotes % 2 == 1)
+        return 1;
+    if (double_quotes % 2 == 1)
+        return 1;
+    if (backticks % 2 == 1)
+        return 1;
 
     return 0;
 }
@@ -2375,7 +2432,7 @@ static int draw_continuation_prompt(void)
     clear_line();
     printf("%s> %s", theme.dim, RESET);
     fflush(stdout);
-    return 3;  /* "> " is 2 chars + 1 for cursor position */
+    return 3; /* "> " is 2 chars + 1 for cursor position */
 }
 
 /* Print buffer with newlines shown as visual indicator (↵)
@@ -2403,10 +2460,10 @@ static void print_multiline_display(const char* buf)
 static char* read_input(void)
 {
     static char buf[INPUT_BUF_SIZE];
-    static int last_was_tab = 0;  /* Track double-tab for completions */
+    static int last_was_tab = 0; /* Track double-tab for completions */
     int pos = 0;
     int len = 0;
-    int prompt_col;  /* Column after prompt (varies with exit code) */
+    int prompt_col; /* Column after prompt (varies with exit code) */
 
     buf[0] = '\0';
 
@@ -2417,7 +2474,7 @@ static char* read_input(void)
     while (1) {
         int c = getchar();
 
-        if (c == EOF || c == 4) {  /* Ctrl+D */
+        if (c == EOF || c == 4) { /* Ctrl+D */
             return NULL;
         }
 
@@ -2488,9 +2545,9 @@ static char* read_input(void)
         /* Reset tab tracking for non-tab keys */
         last_was_tab = 0;
 
-        if (c == 127 || c == 8) {  /* Backspace */
+        if (c == 127 || c == 8) { /* Backspace */
             if (pos > 0) {
-                memmove(&buf[pos-1], &buf[pos], len - pos + 1);
+                memmove(&buf[pos - 1], &buf[pos], len - pos + 1);
                 pos--;
                 len--;
                 cursor_move(prompt_row, prompt_col);
@@ -2501,21 +2558,21 @@ static char* read_input(void)
             continue;
         }
 
-        if (c == 27) {  /* Escape sequence */
+        if (c == 27) { /* Escape sequence */
             int c2 = getchar();
             if (c2 == '[') {
                 int c3 = getchar();
-                if (c3 == 'A') {  /* Up arrow - history */
+                if (c3 == 'A') { /* Up arrow - history */
                     if (history_pos > 0) {
                         history_pos--;
                         strcpy(buf, history[history_pos]);
                         len = pos = strlen(buf);
                         prompt_col = draw_prompt();
-                        print_multiline_display(buf);  /* Issue #25 */
+                        print_multiline_display(buf); /* Issue #25 */
                         cursor_move(prompt_row, prompt_col + pos);
                         fflush(stdout);
                     }
-                } else if (c3 == 'B') {  /* Down arrow */
+                } else if (c3 == 'B') { /* Down arrow */
                     if (history_pos < history_count - 1) {
                         history_pos++;
                         strcpy(buf, history[history_pos]);
@@ -2526,16 +2583,16 @@ static char* read_input(void)
                         len = pos = 0;
                     }
                     prompt_col = draw_prompt();
-                    print_multiline_display(buf);  /* Issue #25 */
+                    print_multiline_display(buf); /* Issue #25 */
                     cursor_move(prompt_row, prompt_col + pos);
                     fflush(stdout);
-                } else if (c3 == 'C') {  /* Right arrow */
+                } else if (c3 == 'C') { /* Right arrow */
                     if (pos < len) {
                         pos++;
                         cursor_move(prompt_row, prompt_col + pos);
                         fflush(stdout);
                     }
-                } else if (c3 == 'D') {  /* Left arrow */
+                } else if (c3 == 'D') { /* Left arrow */
                     if (pos > 0) {
                         pos--;
                         cursor_move(prompt_row, prompt_col + pos);
@@ -2550,14 +2607,14 @@ static char* read_input(void)
                     if (c4 == '~') {
                         /* Regular PgUp/PgDn */
                         if (c3 == '5') {
-                            scroll_output(SCROLL_PAGE_SIZE);  /* PgUp - scroll up */
+                            scroll_output(SCROLL_PAGE_SIZE); /* PgUp - scroll up */
                         } else {
                             scroll_output(-SCROLL_PAGE_SIZE); /* PgDn - scroll down */
                         }
                     } else if (c4 == ';') {
                         /* Modifier present (e.g., Shift) */
-                        int c5 = getchar();  /* modifier number */
-                        int c6 = getchar();  /* should be ~ */
+                        int c5 = getchar(); /* modifier number */
+                        int c6 = getchar(); /* should be ~ */
                         if (c5 == '2' && c6 == '~') {
                             /* Shift+PgUp/PgDn - larger jump */
                             if (c3 == '5') {
@@ -2572,7 +2629,7 @@ static char* read_input(void)
             continue;
         }
 
-        if (c == 3) {  /* Ctrl+C */
+        if (c == 3) { /* Ctrl+C */
             if (search_mode) {
                 /* Exit search mode without selecting */
                 search_mode = 0;
@@ -2592,7 +2649,7 @@ static char* read_input(void)
             continue;
         }
 
-        if (c == 18) {  /* Ctrl+R - history search */
+        if (c == 18) { /* Ctrl+R - history search */
             if (!search_mode) {
                 /* Enter search mode */
                 search_mode = 1;
@@ -2613,7 +2670,7 @@ static char* read_input(void)
 
         /* Handle search mode input */
         if (search_mode) {
-            if (c == 27) {  /* Escape - exit search without selecting */
+            if (c == 27) { /* Escape - exit search without selecting */
                 search_mode = 0;
                 search_query[0] = '\0';
                 search_query_len = 0;
@@ -2625,7 +2682,7 @@ static char* read_input(void)
                 continue;
             }
 
-            if (c == '\n' || c == '\r') {  /* Enter - accept selection */
+            if (c == '\n' || c == '\r') { /* Enter - accept selection */
                 const char* selection = get_search_selection();
                 if (selection) {
                     strncpy(buf, selection, INPUT_BUF_SIZE - 1);
@@ -2643,7 +2700,7 @@ static char* read_input(void)
                 continue;
             }
 
-            if (c == 127 || c == 8) {  /* Backspace in search */
+            if (c == 127 || c == 8) { /* Backspace in search */
                 if (search_query_len > 0) {
                     search_query[--search_query_len] = '\0';
                     update_search_matches();
@@ -2664,7 +2721,7 @@ static char* read_input(void)
 
         /* Regular character */
         if (len < INPUT_BUF_SIZE - 1 && c >= 32 && c < 127) {
-            memmove(&buf[pos+1], &buf[pos], len - pos + 1);
+            memmove(&buf[pos + 1], &buf[pos], len - pos + 1);
             buf[pos] = c;
             pos++;
             len++;
@@ -2771,41 +2828,34 @@ int main(void)
         /* Process */
         if (strcmp(input, "exit") == 0 || strcmp(input, "quit") == 0) {
             running = 0;
-        }
-        else if (strncmp(input, "cd", 2) == 0 &&
-                 (input[2] == '\0' || input[2] == ' ')) {
+        } else if (strncmp(input, "cd", 2) == 0 && (input[2] == '\0' || input[2] == ' ')) {
             const char* path = (input[2] == ' ') ? input + 3 : NULL;
             last_exit = handle_cd(path);
-        }
-        else if (strcmp(input, "clear") == 0) {
+        } else if (strcmp(input, "clear") == 0) {
             /* Issue #17: Intercept 'clear' as builtin to preserve TUI frame */
             handle_clear();
             last_exit = 0;
-        }
-        else if (input[0] == '#') {
+        } else if (input[0] == '#') {
             /* Comment - just show it */
             char msg[INPUT_BUF_SIZE + 64];
             snprintf(msg, sizeof(msg), "%s%s%s", theme.comment, input, RESET);
             print_output(msg, 0);
-        }
-        else if (input[0] == '@') {
+        } else if (input[0] == '@') {
             /* @ commands - internal shell commands */
-            const char* cmd = input + 1;  /* Skip the @ */
+            const char* cmd = input + 1; /* Skip the @ */
             if (strcmp(cmd, "help") == 0 || strcmp(cmd, "h") == 0) {
                 print_help();
                 last_exit = 0;
-            }
-            else if (strcmp(cmd, "clear") == 0 || strcmp(cmd, "c") == 0) {
+            } else if (strcmp(cmd, "clear") == 0 || strcmp(cmd, "c") == 0) {
                 handle_clear();
                 last_exit = 0;
-            }
-            else if (strcmp(cmd, "quit") == 0 || strcmp(cmd, "q") == 0) {
+            } else if (strcmp(cmd, "quit") == 0 || strcmp(cmd, "q") == 0) {
                 running = 0;
-            }
-            else if (strncmp(cmd, "alias", 5) == 0) {
+            } else if (strncmp(cmd, "alias", 5) == 0) {
                 /* @alias - list, add, or save aliases */
                 const char* arg = cmd + 5;
-                while (*arg == ' ') arg++;
+                while (*arg == ' ')
+                    arg++;
 
                 if (*arg == '\0') {
                     /* List all aliases */
@@ -2815,15 +2865,17 @@ int main(void)
                     } else {
                         char msg[CONFIG_LINE_SIZE];
                         for (int i = 0; i < alias_count; i++) {
-                            snprintf(msg, sizeof(msg), "alias %s='%s'%s",
-                                     aliases[i].name, aliases[i].command,
-                                     aliases[i].from_session ? " *" : "");
+                            snprintf(msg, sizeof(msg), "alias %s='%s'%s", aliases[i].name,
+                                     aliases[i].command, aliases[i].from_session ? " *" : "");
                             print_output(msg, 0);
                         }
                         /* Show legend if any session aliases */
                         int has_session = 0;
                         for (int i = 0; i < alias_count; i++) {
-                            if (aliases[i].from_session) { has_session = 1; break; }
+                            if (aliases[i].from_session) {
+                                has_session = 1;
+                                break;
+                            }
                         }
                         if (has_session) {
                             print_output("", 0);
@@ -2843,7 +2895,8 @@ int main(void)
                         /* Count session aliases */
                         int session_count = 0;
                         for (int i = 0; i < alias_count; i++) {
-                            if (aliases[i].from_session) session_count++;
+                            if (aliases[i].from_session)
+                                session_count++;
                         }
 
                         if (session_count == 0) {
@@ -2852,7 +2905,8 @@ int main(void)
                             FILE* fp = fopen(config_path, "a");
                             if (!fp) {
                                 char msg[PATH_MAX + 64];
-                                snprintf(msg, sizeof(msg), "Error: Cannot open %s for writing", config_path);
+                                snprintf(msg, sizeof(msg), "Error: Cannot open %s for writing",
+                                         config_path);
                                 print_output(msg, 1);
                                 last_exit = 1;
                             } else {
@@ -2864,15 +2918,16 @@ int main(void)
 
                                 for (int i = 0; i < alias_count; i++) {
                                     if (aliases[i].from_session) {
-                                        fprintf(fp, "alias %s='%s'\n", aliases[i].name, aliases[i].command);
-                                        aliases[i].from_session = 0;  /* Mark as saved */
+                                        fprintf(fp, "alias %s='%s'\n", aliases[i].name,
+                                                aliases[i].command);
+                                        aliases[i].from_session = 0; /* Mark as saved */
                                     }
                                 }
                                 fclose(fp);
 
                                 char msg[PATH_MAX + 64];
-                                snprintf(msg, sizeof(msg), "Saved %d alias%s to %s",
-                                         session_count, session_count == 1 ? "" : "es", config_path);
+                                snprintf(msg, sizeof(msg), "Saved %d alias%s to %s", session_count,
+                                         session_count == 1 ? "" : "es", config_path);
                                 print_output(msg, 0);
                             }
                         }
@@ -2892,17 +2947,18 @@ int main(void)
                             size_t cmd_len = strlen(cmd_val);
                             char cmd_clean[CONFIG_LINE_SIZE];
                             if (cmd_len >= 2 &&
-                                ((cmd_val[0] == '\'' && cmd_val[cmd_len-1] == '\'') ||
-                                 (cmd_val[0] == '"' && cmd_val[cmd_len-1] == '"'))) {
+                                ((cmd_val[0] == '\'' && cmd_val[cmd_len - 1] == '\'') ||
+                                 (cmd_val[0] == '"' && cmd_val[cmd_len - 1] == '"'))) {
                                 strncpy(cmd_clean, cmd_val + 1, cmd_len - 2);
                                 cmd_clean[cmd_len - 2] = '\0';
                             } else {
                                 strncpy(cmd_clean, cmd_val, sizeof(cmd_clean) - 1);
                                 cmd_clean[sizeof(cmd_clean) - 1] = '\0';
                             }
-                            add_alias(name, cmd_clean, 1);  /* from session */
+                            add_alias(name, cmd_clean, 1); /* from session */
                             char msg[CONFIG_LINE_SIZE + 256 + 64];
-                            snprintf(msg, sizeof(msg), "alias %s='%s' (session only, use @alias save to persist)",
+                            snprintf(msg, sizeof(msg),
+                                     "alias %s='%s' (session only, use @alias save to persist)",
                                      name, cmd_clean);
                             print_output(msg, 0);
                         }
@@ -2911,8 +2967,7 @@ int main(void)
                     }
                 }
                 last_exit = 0;
-            }
-            else if (strcmp(cmd, "theme") == 0) {
+            } else if (strcmp(cmd, "theme") == 0) {
                 /* @theme - show current theme colors */
                 char buf[256];
                 print_output("", 0);
@@ -2943,11 +2998,11 @@ int main(void)
                 print_output("Modifiers: bold dim (combine with space: 'bold cyan')", 0);
                 print_output("", 0);
                 last_exit = 0;
-            }
-            else if (strncmp(cmd, "snippet", 7) == 0) {
+            } else if (strncmp(cmd, "snippet", 7) == 0) {
                 /* @snippet - list or run snippets */
                 const char* arg = cmd + 7;
-                while (*arg == ' ') arg++;
+                while (*arg == ' ')
+                    arg++;
 
                 if (*arg == '\0') {
                     /* List all snippets */
@@ -2964,9 +3019,8 @@ int main(void)
                         snprintf(msg, sizeof(msg), "%sSnippets:%s", theme.status, RESET);
                         print_output(msg, 0);
                         for (int i = 0; i < snippet_count; i++) {
-                            snprintf(msg, sizeof(msg), "  %s%s%s = %s",
-                                     theme.header, snippets[i].name, RESET,
-                                     snippets[i].template);
+                            snprintf(msg, sizeof(msg), "  %s%s%s = %s", theme.header,
+                                     snippets[i].name, RESET, snippets[i].template);
                             print_output(msg, 0);
                         }
                     }
@@ -2974,19 +3028,21 @@ int main(void)
                 } else {
                     /* Run snippet: @snippet name arg1 arg2 ... */
                     char snippet_name[256];
-                    char* args[9] = {NULL};  /* $1 through $9 */
+                    char* args[9] = {NULL}; /* $1 through $9 */
                     int arg_count = 0;
 
                     /* Parse snippet name and arguments */
                     const char* p = arg;
                     char* dst = snippet_name;
-                    while (*p && *p != ' ' && (size_t)(dst - snippet_name) < sizeof(snippet_name) - 1) {
+                    while (*p && *p != ' ' &&
+                           (size_t)(dst - snippet_name) < sizeof(snippet_name) - 1) {
                         *dst++ = *p++;
                     }
                     *dst = '\0';
 
                     /* Skip space and parse arguments */
-                    while (*p == ' ') p++;
+                    while (*p == ' ')
+                        p++;
 
                     /* Tokenize remaining arguments */
                     if (*p) {
@@ -3025,7 +3081,8 @@ int main(void)
                         }
                     } else {
                         char msg[512];
-                        snprintf(msg, sizeof(msg), "%sUnknown snippet: %s%s", theme.error, snippet_name, RESET);
+                        snprintf(msg, sizeof(msg), "%sUnknown snippet: %s%s", theme.error,
+                                 snippet_name, RESET);
                         print_output(msg, 1);
                         last_exit = 1;
                     }
@@ -3035,8 +3092,7 @@ int main(void)
                         free(args[i]);
                     }
                 }
-            }
-            else if (strcmp(cmd, "hooks") == 0) {
+            } else if (strcmp(cmd, "hooks") == 0) {
                 /* @hooks - list registered event hooks (for debugging/introspection) */
                 char buf[256];
                 print_output("", 0);
@@ -3048,8 +3104,8 @@ int main(void)
                     print_output("  No hooks registered.", 0);
                 } else {
                     for (int i = 0; i < hook_count; i++) {
-                        snprintf(buf, sizeof(buf), "  [%d] %s%s%s %s",
-                                 i, theme.header, event_type_name(hooks[i].type), RESET,
+                        snprintf(buf, sizeof(buf), "  [%d] %s%s%s %s", i, theme.header,
+                                 event_type_name(hooks[i].type), RESET,
                                  hooks[i].active ? "(active)" : "(inactive)");
                         print_output(buf, 0);
                     }
@@ -3067,11 +3123,11 @@ int main(void)
                 print_output("  SNIPPET_EXPAND - Snippet was expanded", 0);
                 print_output("", 0);
                 last_exit = 0;
-            }
-            else if (strncmp(cmd, "workflow", 8) == 0) {
+            } else if (strncmp(cmd, "workflow", 8) == 0) {
                 /* @workflow - list or run workflows */
                 const char* arg = cmd + 8;
-                while (*arg == ' ') arg++;
+                while (*arg == ' ')
+                    arg++;
 
                 if (*arg == '\0') {
                     /* List all workflows */
@@ -3080,7 +3136,9 @@ int main(void)
                         print_output("", 0);
                         print_output("Add to ~/.cc-bashrc:", 0);
                         print_output("  workflow build='make clean && make && make test'", 0);
-                        print_output("  workflow deploy='git add . && git commit -m \"deploy\" && git push'", 0);
+                        print_output(
+                            "  workflow deploy='git add . && git commit -m \"deploy\" && git push'",
+                            0);
                         print_output("", 0);
                         print_output("Usage: @workflow name [--dry-run]", 0);
                     } else {
@@ -3088,15 +3146,15 @@ int main(void)
                         snprintf(msg, sizeof(msg), "%sWorkflows:%s", theme.status, RESET);
                         print_output(msg, 0);
                         for (int i = 0; i < workflow_count; i++) {
-                            snprintf(msg, sizeof(msg), "  %s%s%s (%d steps, %s)",
-                                     theme.header, workflows[i].name, RESET,
-                                     workflows[i].step_count,
-                                     workflows[i].stop_on_error ? "stop on error" : "continue on error");
+                            snprintf(msg, sizeof(msg), "  %s%s%s (%d steps, %s)", theme.header,
+                                     workflows[i].name, RESET, workflows[i].step_count,
+                                     workflows[i].stop_on_error ? "stop on error"
+                                                                : "continue on error");
                             print_output(msg, 0);
                             /* Show steps indented */
                             for (int j = 0; j < workflows[i].step_count; j++) {
-                                snprintf(msg, sizeof(msg), "    %s%d.%s %s",
-                                         theme.dim, j + 1, RESET, workflows[i].steps[j]);
+                                snprintf(msg, sizeof(msg), "    %s%d.%s %s", theme.dim, j + 1,
+                                         RESET, workflows[i].steps[j]);
                                 print_output(msg, 0);
                             }
                         }
@@ -3110,13 +3168,15 @@ int main(void)
                     /* Parse name and optional --dry-run flag */
                     const char* p = arg;
                     char* dst = workflow_name;
-                    while (*p && *p != ' ' && (size_t)(dst - workflow_name) < sizeof(workflow_name) - 1) {
+                    while (*p && *p != ' ' &&
+                           (size_t)(dst - workflow_name) < sizeof(workflow_name) - 1) {
                         *dst++ = *p++;
                     }
                     *dst = '\0';
 
                     /* Check for --dry-run flag */
-                    while (*p == ' ') p++;
+                    while (*p == ' ')
+                        p++;
                     if (strncmp(p, "--dry-run", 9) == 0) {
                         dry_run = 1;
                     }
@@ -3126,11 +3186,12 @@ int main(void)
                     if (wf) {
                         char msg[INPUT_BUF_SIZE + 128];
                         if (dry_run) {
-                            snprintf(msg, sizeof(msg), "%s[dry-run] Workflow: %s%s", theme.dim, wf->name, RESET);
+                            snprintf(msg, sizeof(msg), "%s[dry-run] Workflow: %s%s", theme.dim,
+                                     wf->name, RESET);
                             print_output(msg, 0);
                             for (int j = 0; j < wf->step_count; j++) {
-                                snprintf(msg, sizeof(msg), "  %s%d.%s %s",
-                                         theme.dim, j + 1, RESET, wf->steps[j]);
+                                snprintf(msg, sizeof(msg), "  %s%d.%s %s", theme.dim, j + 1, RESET,
+                                         wf->steps[j]);
                                 print_output(msg, 0);
                             }
                             last_exit = 0;
@@ -3142,8 +3203,8 @@ int main(void)
 
                             int workflow_failed = 0;
                             for (int j = 0; j < wf->step_count; j++) {
-                                snprintf(msg, sizeof(msg), "%s[%d/%d]%s %s",
-                                         theme.status, j + 1, wf->step_count, RESET, wf->steps[j]);
+                                snprintf(msg, sizeof(msg), "%s[%d/%d]%s %s", theme.status, j + 1,
+                                         wf->step_count, RESET, wf->steps[j]);
                                 print_output(msg, 0);
 
                                 /* Emit pre-command event */
@@ -3159,12 +3220,15 @@ int main(void)
                                     workflow_failed = 1;
                                     last_exit = step_exit;
                                     if (wf->stop_on_error) {
-                                        snprintf(msg, sizeof(msg), "%s✗ Step %d failed (exit %d), stopping workflow%s",
-                                                 theme.error, j + 1, step_exit, RESET);
+                                        snprintf(
+                                            msg, sizeof(msg),
+                                            "%s✗ Step %d failed (exit %d), stopping workflow%s",
+                                            theme.error, j + 1, step_exit, RESET);
                                         print_output(msg, 1);
                                         break;
                                     } else {
-                                        snprintf(msg, sizeof(msg), "%s⚠ Step %d failed (exit %d), continuing...%s",
+                                        snprintf(msg, sizeof(msg),
+                                                 "%s⚠ Step %d failed (exit %d), continuing...%s",
                                                  theme.comment, j + 1, step_exit, RESET);
                                         print_output(msg, 0);
                                     }
@@ -3180,13 +3244,13 @@ int main(void)
                         }
                     } else {
                         char msg[512];
-                        snprintf(msg, sizeof(msg), "%sUnknown workflow: %s%s", theme.error, workflow_name, RESET);
+                        snprintf(msg, sizeof(msg), "%sUnknown workflow: %s%s", theme.error,
+                                 workflow_name, RESET);
                         print_output(msg, 1);
                         last_exit = 1;
                     }
                 }
-            }
-            else if (strcmp(cmd, "plugins") == 0) {
+            } else if (strcmp(cmd, "plugins") == 0) {
                 /* @plugins - list loaded plugins */
                 char msg[CONFIG_LINE_SIZE];
                 if (plugin_count == 0) {
@@ -3203,14 +3267,12 @@ int main(void)
                     print_output(msg, 0);
                     print_output("", 0);
                     for (int i = 0; i < plugin_count; i++) {
-                        snprintf(msg, sizeof(msg), "  %s%s%s v%s %s",
-                                 theme.header, plugins[i].name, RESET,
-                                 plugins[i].version,
-                                 plugins[i].enabled ? "" : "(disabled)");
+                        snprintf(msg, sizeof(msg), "  %s%s%s v%s %s", theme.header, plugins[i].name,
+                                 RESET, plugins[i].version, plugins[i].enabled ? "" : "(disabled)");
                         print_output(msg, 0);
                         if (plugins[i].description && strlen(plugins[i].description) > 0) {
-                            snprintf(msg, sizeof(msg), "    %s%s%s",
-                                     theme.dim, plugins[i].description, RESET);
+                            snprintf(msg, sizeof(msg), "    %s%s%s", theme.dim,
+                                     plugins[i].description, RESET);
                             print_output(msg, 0);
                         }
                         /* Show commands */
@@ -3225,7 +3287,8 @@ int main(void)
                         /* Show hooks */
                         int has_hooks = 0;
                         for (int j = 0; j < MAX_PLUGIN_HOOKS; j++) {
-                            if (plugins[i].hook_scripts[j]) has_hooks = 1;
+                            if (plugins[i].hook_scripts[j])
+                                has_hooks = 1;
                         }
                         if (has_hooks) {
                             print_output("    Hooks:", 0);
@@ -3243,8 +3306,7 @@ int main(void)
                     }
                 }
                 last_exit = 0;
-            }
-            else if (strcmp(cmd, "edit") == 0 || strcmp(cmd, "e") == 0) {
+            } else if (strcmp(cmd, "edit") == 0 || strcmp(cmd, "e") == 0) {
                 /* @edit - open config file in editor */
                 const char* home = getenv("HOME");
                 if (!home) {
@@ -3271,7 +3333,7 @@ int main(void)
                                    access("/usr/local/bin/nano", X_OK) == 0) {
                             editor = "nano";
                         } else {
-                            editor = "vi";  /* Last resort */
+                            editor = "vi"; /* Last resort */
                         }
                     }
 
@@ -3280,7 +3342,9 @@ int main(void)
                         FILE* fp = fopen(config_path, "w");
                         if (fp) {
                             fprintf(fp, "# cc-bash configuration file\n");
-                            fprintf(fp, "# See: https://github.com/jcaldwell-labs/smartterm-prototype\n\n");
+                            fprintf(
+                                fp,
+                                "# See: https://github.com/jcaldwell-labs/smartterm-prototype\n\n");
                             fprintf(fp, "# Aliases\n");
                             fprintf(fp, "# alias ll='ls -la'\n");
                             fprintf(fp, "# alias gs='git status'\n\n");
@@ -3288,7 +3352,8 @@ int main(void)
                             fprintf(fp, "# snippet greet='echo Hello, $1!'\n\n");
                             fprintf(fp, "# Workflows (multi-step commands)\n");
                             fprintf(fp, "# workflow build='make clean && make && make test'\n\n");
-                            fprintf(fp, "# Theme colors (black red green yellow blue magenta cyan white)\n");
+                            fprintf(fp, "# Theme colors (black red green yellow blue magenta cyan "
+                                        "white)\n");
                             fprintf(fp, "# theme.prompt=cyan\n");
                             fprintf(fp, "# theme.error=bold red\n\n");
                             fprintf(fp, "# Environment variables\n");
@@ -3306,8 +3371,8 @@ int main(void)
                      * 2. Move cursor to top and clear screen
                      * 3. Disable raw mode so editor gets clean terminal
                      */
-                    printf("\033[r");           /* Reset scroll region */
-                    printf("\033[H\033[2J");    /* Move to top, clear screen */
+                    printf("\033[r");        /* Reset scroll region */
+                    printf("\033[H\033[2J"); /* Move to top, clear screen */
                     fflush(stdout);
                     disable_raw_mode();
 
@@ -3327,8 +3392,7 @@ int main(void)
 
                     print_output("Config editor closed. Use @reload to apply changes.", 0);
                 }
-            }
-            else if (strcmp(cmd, "reload") == 0 || strcmp(cmd, "r") == 0) {
+            } else if (strcmp(cmd, "reload") == 0 || strcmp(cmd, "r") == 0) {
                 /* @reload - reload configuration file */
                 print_output("Reloading configuration...", 0);
 
@@ -3355,13 +3419,12 @@ int main(void)
                 /* Report what was loaded */
                 char msg[256];
                 snprintf(msg, sizeof(msg), "Loaded: %d alias%s, %d snippet%s, %d workflow%s",
-                         alias_count, alias_count == 1 ? "" : "es",
-                         snippet_count, snippet_count == 1 ? "" : "s",
-                         workflow_count, workflow_count == 1 ? "" : "s");
+                         alias_count, alias_count == 1 ? "" : "es", snippet_count,
+                         snippet_count == 1 ? "" : "s", workflow_count,
+                         workflow_count == 1 ? "" : "s");
                 print_output(msg, 0);
                 last_exit = 0;
-            }
-            else {
+            } else {
                 /* Check if it's a plugin command */
                 PluginCommand* pcmd = find_plugin_command(cmd);
                 if (pcmd) {
@@ -3371,13 +3434,13 @@ int main(void)
                     last_exit = execute_command(script_cmd);
                 } else {
                     char msg[INPUT_BUF_SIZE + 64];
-                    snprintf(msg, sizeof(msg), "%sUnknown @ command: %s%s", theme.error, cmd, RESET);
+                    snprintf(msg, sizeof(msg), "%sUnknown @ command: %s%s", theme.error, cmd,
+                             RESET);
                     print_output(msg, 1);
                     last_exit = 1;
                 }
             }
-        }
-        else {
+        } else {
             /* Check for alias expansion on first word */
             char first_word[INPUT_BUF_SIZE];
             const char* rest = "";
@@ -3386,7 +3449,7 @@ int main(void)
                 size_t len = (size_t)(space - input);
                 strncpy(first_word, input, len);
                 first_word[len] = '\0';
-                rest = space;  /* includes the space */
+                rest = space; /* includes the space */
             } else {
                 strcpy(first_word, input);
             }
