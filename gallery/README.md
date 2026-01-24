@@ -20,16 +20,12 @@ Visual documentation dramatically improves project engagement and helps newcomer
 
 - **`tab-completion.gif`** - Tab completion in action
   - Shows: Double-tab for options, file/command completion
-  
 - **`ctrl-r-search.gif`** - Ctrl+R fuzzy history search
   - Shows: Search activation, typing filter, selecting result
-  
 - **`multi-line-input.gif`** - Multi-line input with continuation
   - Shows: Entering multi-line commands with proper continuation
-  
 - **`theme-customization.gif`** - Theme customization
   - Shows: @theme command, editing config, @reload to apply
-  
 - **`workflow-execution.gif`** - Workflow execution
   - Shows: @workflow command, listing workflows, running one
 
@@ -75,22 +71,24 @@ When creating new media assets:
 ### Recommended Tools
 
 1. **[VHS](https://github.com/charmbracelet/vhs)** - Generate terminal GIFs from code
+
    ```bash
    # Install
    brew install vhs
-   
+
    # Record with script
    vhs demo.tape
    ```
 
 2. **[asciinema](https://asciinema.org/)** - Record terminal sessions
+
    ```bash
    # Install
    pip install asciinema
-   
+
    # Record
    asciinema rec demo.cast
-   
+
    # Convert to GIF with agg
    cargo install --git https://github.com/asciinema/agg
    agg demo.cast demo.gif
@@ -139,14 +137,19 @@ If you'd like to contribute media assets:
 
 ## Status
 
-**Current Status**: Gallery structure created, awaiting media assets
+**Current Status**: Core demos available
+
+**Available Assets**:
+
+- [x] `cc-bash-demo.gif` - Basic command execution demo (~418KB)
+- [x] `cc-bash-showcase.gif` - Feature showcase (~1.8MB)
 
 **TODO**:
-- [ ] Record hero GIF
-- [ ] Record feature GIFs (5 total)
+
+- [ ] Record additional feature GIFs (tab completion, Ctrl+R search)
 - [ ] Capture screenshots (4 total)
-- [ ] Create architecture diagram
-- [ ] Optimize all assets for file size
+- [ ] Create architecture diagram image
+- [ ] Optimize showcase GIF for file size
 
 ## License
 

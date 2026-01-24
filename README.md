@@ -8,7 +8,9 @@
 [![Build Status](https://img.shields.io/badge/Build-Passing-brightgreen.svg)](https://github.com/jcaldwell-labs/smartterm-prototype/actions)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
-> **Note**: Looking for visual demos? Check out the [gallery/](gallery/) directory for screenshots and GIFs (coming soon)!
+![cc-bash demo](gallery/cc-bash-demo.gif)
+
+> See more demos in the [gallery/](gallery/) directory!
 
 ---
 
@@ -36,21 +38,21 @@ cc-bash bridges the gap between traditional shells and modern terminal experienc
 
 ### Comparison Table
 
-| Feature                  | Plain Bash | Fish/Zsh | Warp    | cc-bash |
-| ------------------------ | ---------- | -------- | ------- | ------- |
-| **Bash compatibility**   | ✅          | ⚠️        | ✅       | ✅       |
-| **Colored output**       | Manual     | Built-in | Built-in | ✅       |
-| **Status bar**           | ❌          | Plugin   | Built-in | ✅       |
-| **History search**       | Ctrl+R     | Ctrl+R   | ✅       | ✅       |
-| **Tab completion**       | ✅          | ✅        | ✅       | ✅       |
-| **Command aliases**      | ✅          | ✅        | ✅       | ✅       |
-| **Parameterized templates** | ❌       | ❌        | ❌       | ✅ (Snippets) |
-| **Multi-command workflows** | ❌       | ❌        | ❌       | ✅       |
-| **Plugin system**        | ❌          | ✅        | ✅       | ✅       |
-| **Theme customization**  | ❌          | ✅        | ✅       | ✅       |
-| **AI integration**       | ❌          | Plugin   | Built-in | ✅ (Python) |
-| **Resource usage**       | Minimal    | Low      | High    | Minimal |
-| **Open source**          | ✅          | ✅        | ❌       | ✅       |
+| Feature                     | Plain Bash | Fish/Zsh | Warp     | cc-bash       |
+| --------------------------- | ---------- | -------- | -------- | ------------- |
+| **Bash compatibility**      | ✅         | ⚠️       | ✅       | ✅            |
+| **Colored output**          | Manual     | Built-in | Built-in | ✅            |
+| **Status bar**              | ❌         | Plugin   | Built-in | ✅            |
+| **History search**          | Ctrl+R     | Ctrl+R   | ✅       | ✅            |
+| **Tab completion**          | ✅         | ✅       | ✅       | ✅            |
+| **Command aliases**         | ✅         | ✅       | ✅       | ✅            |
+| **Parameterized templates** | ❌         | ❌       | ❌       | ✅ (Snippets) |
+| **Multi-command workflows** | ❌         | ❌       | ❌       | ✅            |
+| **Plugin system**           | ❌         | ✅       | ✅       | ✅            |
+| **Theme customization**     | ❌         | ✅       | ✅       | ✅            |
+| **AI integration**          | ❌         | Plugin   | Built-in | ✅ (Python)   |
+| **Resource usage**          | Minimal    | Low      | High     | Minimal       |
+| **Open source**             | ✅         | ✅       | ❌       | ✅            |
 
 ### Use Cases
 
@@ -91,6 +93,7 @@ $ @quit                           # Exit (or Ctrl+D)
 ```
 
 **What you get**:
+
 - Every command shows in color
 - Status bar with directory, exit code, time
 - History with Ctrl+R fuzzy search
@@ -101,6 +104,7 @@ $ @quit                           # Exit (or Ctrl+D)
 ## Features at a Glance
 
 ### Core Features
+
 - ⚡ **Zero prefix** - Type bash commands directly (no `!` or `$`)
 - 🎨 **Auto-colored output** - PTY-based execution means ls, grep, etc. show colors
 - 📊 **Status bar** - Current directory, last exit code, timestamp
@@ -108,6 +112,7 @@ $ @quit                           # Exit (or Ctrl+D)
 - 📝 **Persistent history** - Saved to ~/.cc-bash-history
 
 ### Power User Features
+
 - 🔗 **Aliases** - Shortcuts like `alias gs='git status'`
 - 📋 **Snippets** - Templates with params: `snippet find='find . -name "$1"'`
 - 🔄 **Workflows** - Multi-command sequences: `workflow build='make clean && make'`
@@ -115,6 +120,7 @@ $ @quit                           # Exit (or Ctrl+D)
 - 🎨 **Themes** - Customize all colors via config
 
 ### Developer Experience
+
 - 💬 **Comments** - `# notes` displayed but not executed
 - ⌨️ **Full line editing** - Left/right arrows, delete, backspace
 - 📑 **Tab completion** - Files, directories, commands
@@ -123,91 +129,25 @@ $ @quit                           # Exit (or Ctrl+D)
 <details>
 <summary><b>Expand for detailed feature comparison</b></summary>
 
-| Feature                  | Plain Bash | Fish/Zsh | Warp    | cc-bash |
-| ------------------------ | ---------- | -------- | ------- | ------- |
-| **Bash compatibility**   | ✅          | ⚠️        | ✅       | ✅       |
-| **Colored output**       | Manual     | Built-in | Built-in | ✅       |
-| **Status bar**           | ❌          | Plugin   | Built-in | ✅       |
-| **History search**       | Ctrl+R     | Ctrl+R   | ✅       | ✅       |
-| **Tab completion**       | ✅          | ✅        | ✅       | ✅       |
-| **Command aliases**      | ✅          | ✅        | ✅       | ✅       |
-| **Parameterized templates** | ❌       | ❌        | ❌       | ✅ (Snippets) |
-| **Multi-command workflows** | ❌       | ❌        | ❌       | ✅       |
-| **Plugin system**        | ❌          | ✅        | ✅       | ✅       |
-| **Theme customization**  | ❌          | ✅        | ✅       | ✅       |
-| **AI integration**       | ❌          | Plugin   | Built-in | ✅ (Python) |
-| **Resource usage**       | Minimal    | Low      | High    | Minimal |
-| **Open source**          | ✅          | ✅        | ❌       | ✅       |
+| Feature                     | Plain Bash | Fish/Zsh | Warp     | cc-bash       |
+| --------------------------- | ---------- | -------- | -------- | ------------- |
+| **Bash compatibility**      | ✅         | ⚠️       | ✅       | ✅            |
+| **Colored output**          | Manual     | Built-in | Built-in | ✅            |
+| **Status bar**              | ❌         | Plugin   | Built-in | ✅            |
+| **History search**          | Ctrl+R     | Ctrl+R   | ✅       | ✅            |
+| **Tab completion**          | ✅         | ✅       | ✅       | ✅            |
+| **Command aliases**         | ✅         | ✅       | ✅       | ✅            |
+| **Parameterized templates** | ❌         | ❌       | ❌       | ✅ (Snippets) |
+| **Multi-command workflows** | ❌         | ❌       | ❌       | ✅            |
+| **Plugin system**           | ❌         | ✅       | ✅       | ✅            |
+| **Theme customization**     | ❌         | ✅       | ✅       | ✅            |
+| **AI integration**          | ❌         | Plugin   | Built-in | ✅ (Python)   |
+| **Resource usage**          | Minimal    | Low      | High     | Minimal       |
+| **Open source**             | ✅         | ✅       | ❌       | ✅            |
 
 </details>
 
 ---
-
-## Installation
-
-```bash
-# Add the tap and install
-brew tap jcaldwell-labs/cc-bash
-brew install cc-bash
-
-# Copy sample config
-cp $(brew --prefix)/share/cc-bash/cc-bashrc.template ~/.cc-bashrc
-mkdir -p ~/.cc-bash/plugins
-```
-
-### Option 2: AUR (Arch Linux)
-
-```bash
-# Using yay
-yay -S cc-bash
-
-# Or using paru
-paru -S cc-bash
-
-# Setup
-cp /usr/share/cc-bash/cc-bashrc.template ~/.cc-bashrc
-mkdir -p ~/.cc-bash/plugins
-```
-
-### Option 3: Install Script
-
-```bash
-# One-command install (builds from source)
-curl -fsSL https://raw.githubusercontent.com/jcaldwell-labs/smartterm-prototype/master/install.sh | bash
-```
-
-### Option 4: Download Pre-built Binary
-
-Download from [GitHub Releases](https://github.com/jcaldwell-labs/smartterm-prototype/releases):
-
-```bash
-# Linux x86_64
-curl -fsSL https://github.com/jcaldwell-labs/smartterm-prototype/releases/latest/download/cc-bash-linux-x86_64 -o cc-bash
-chmod +x cc-bash
-sudo mv cc-bash /usr/local/bin/
-
-# Create config
-mkdir -p ~/.cc-bash/plugins
-curl -fsSL https://raw.githubusercontent.com/jcaldwell-labs/smartterm-prototype/master/cc-bashrc.template -o ~/.cc-bashrc
-```
-
-### Option 5: Build from Source
-
-```bash
-# Install dependencies (Ubuntu/Debian)
-sudo apt-get install build-essential
-
-# Clone and build
-git clone https://github.com/jcaldwell-labs/smartterm-prototype.git
-cd smartterm-prototype
-make
-
-# Install system-wide
-sudo make install
-
-# Or run locally
-./cc-bash
-```
 
 ## Installation
 
@@ -337,6 +277,7 @@ workflow gitcheck='git status; git diff --stat'
 ```
 
 Usage:
+
 - `@workflow` - List all workflows
 - `@workflow build` - Run the build workflow
 - `@workflow build --dry-run` - Preview without executing
@@ -475,21 +416,21 @@ Asking Claude for fix...
 <details>
 <summary><b>@ Commands reference</b></summary>
 
-| Command                        | Shortcut | Description                                     |
-| ------------------------------ | -------- | ----------------------------------------------- |
-| `@help`                        | `@h`     | Show help                                       |
-| `@clear`                       | `@c`     | Clear screen                                    |
-| `@quit`                        | `@q`     | Exit cc-bash                                    |
-| `@edit`                        | `@e`     | Edit config file (~/.cc-bashrc) in $EDITOR      |
-| `@reload`                      | `@r`     | Reload configuration                            |
-| `@alias`                       | -        | List aliases (* = session only)                 |
-| `@alias name=cmd`              | -        | Add session alias                               |
-| `@alias save`                  | -        | Save session aliases to config file             |
-| `@snippet [name args...]`      | -        | List snippets or run one with arguments         |
-| `@workflow [name] [--dry-run]` | -        | List workflows, run one, or preview             |
-| `@theme`                       | -        | Display current theme colors                    |
-| `@hooks`                       | -        | List registered event hooks                     |
-| `@plugins`                     | -        | List loaded plugins                             |
+| Command                        | Shortcut | Description                                |
+| ------------------------------ | -------- | ------------------------------------------ |
+| `@help`                        | `@h`     | Show help                                  |
+| `@clear`                       | `@c`     | Clear screen                               |
+| `@quit`                        | `@q`     | Exit cc-bash                               |
+| `@edit`                        | `@e`     | Edit config file (~/.cc-bashrc) in $EDITOR |
+| `@reload`                      | `@r`     | Reload configuration                       |
+| `@alias`                       | -        | List aliases (\* = session only)           |
+| `@alias name=cmd`              | -        | Add session alias                          |
+| `@alias save`                  | -        | Save session aliases to config file        |
+| `@snippet [name args...]`      | -        | List snippets or run one with arguments    |
+| `@workflow [name] [--dry-run]` | -        | List workflows, run one, or preview        |
+| `@theme`                       | -        | Display current theme colors               |
+| `@hooks`                       | -        | List registered event hooks                |
+| `@plugins`                     | -        | List loaded plugins                        |
 
 </details>
 
@@ -588,6 +529,7 @@ See GitHub issue #14 for the repurposing discussion.
 We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 **Quick links**:
+
 - [Good First Issues](https://github.com/jcaldwell-labs/smartterm-prototype/labels/good%20first%20issue) - Great for newcomers
 - [GitHub Discussions](https://github.com/jcaldwell-labs/smartterm-prototype/discussions) - Questions and ideas
 - [Code of Conduct](CODE_OF_CONDUCT.md) - Community standards
@@ -613,6 +555,7 @@ MIT License - see [LICENSE](LICENSE) for details.
 ## Support
 
 Need help? Check out:
+
 - [SUPPORT.md](SUPPORT.md) - Common issues and solutions
 - [GitHub Issues](https://github.com/jcaldwell-labs/smartterm-prototype/issues) - Bug reports and feature requests
 - [GitHub Discussions](https://github.com/jcaldwell-labs/smartterm-prototype/discussions) - Questions and community
