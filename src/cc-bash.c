@@ -201,6 +201,46 @@ static int search_match_indices[MAX_HISTORY]; /* Indices of matching history ent
 static int search_match_count = 0;            /* Number of matches */
 static int search_match_pos = 0;              /* Current position in matches (0 = most recent) */
 
+/* ============================================================================
+ * Terminal Query Parser (Issue #32)
+ * ============================================================================
+ * State machine for detecting terminal queries in PTY output.
+ * Programs send queries like OSC 10/11 (colors) and CSI 6n (cursor position)
+ * and wait for responses. Without responses, programs like glow hang.
+ *
+ * Supported queries:
+ *   OSC 10 ; ? BEL  -> Foreground color query  -> OSC 10 ; rgb:d0d0/d0d0/d0d0 BEL
+ *   OSC 11 ; ? BEL  -> Background color query  -> OSC 11 ; rgb:1e1e/1e1e/1e1e BEL
+ *   CSI 6 n         -> Cursor position query   -> CSI 1 ; 1 R
+ */
+
+typedef enum {
+    PARSE_NORMAL, /* Normal text, looking for ESC */
+    PARSE_ESC,    /* Saw ESC, waiting for [ or ] */
+    PARSE_CSI,    /* Saw ESC [, accumulating CSI sequence */
+    PARSE_OSC     /* Saw ESC ], accumulating OSC sequence */
+} ParseState;
+
+typedef enum {
+    QUERY_NONE,  /* Not a query or sequence incomplete */
+    QUERY_OSC10, /* Foreground color query */
+    QUERY_OSC11, /* Background color query */
+    QUERY_DSR6   /* Device Status Report (cursor position) */
+} QueryType;
+
+typedef struct {
+    ParseState state;
+    char seq_buf[64]; /* Buffer for sequence parameters */
+    int seq_len;
+    int osc_code;      /* OSC code number (10, 11, etc.) */
+    char esc_buf[128]; /* Buffer for entire escape sequence (for replay) */
+    int esc_len;
+} EscapeParser;
+
+/* Default colors for query responses (dark theme) */
+#define DEFAULT_FG_RGB "rgb:d0d0/d0d0/d0d0"
+#define DEFAULT_BG_RGB "rgb:1e1e/1e1e/1e1e"
+
 /* Output buffer for scrollback */
 typedef struct {
     char* text;
@@ -1568,6 +1608,245 @@ static void print_output(const char* text, int is_stderr)
 }
 
 /* ============================================================================
+ * Terminal Query Parser Functions (Issue #32)
+ * ============================================================================
+ * Functions for parsing escape sequences and detecting terminal queries.
+ */
+
+/* Initialize parser state */
+static void parser_init(EscapeParser* p)
+{
+    p->state = PARSE_NORMAL;
+    p->seq_len = 0;
+    p->osc_code = 0;
+    p->esc_len = 0;
+}
+
+/* Generate response string for a detected query */
+static const char* query_response(QueryType query)
+{
+    switch (query) {
+    case QUERY_OSC10:
+        return "\033]10;" DEFAULT_FG_RGB "\007";
+    case QUERY_OSC11:
+        return "\033]11;" DEFAULT_BG_RGB "\007";
+    case QUERY_DSR6:
+        return "\033[1;1R"; /* Report cursor at row 1, col 1 */
+    case QUERY_NONE:
+    default:
+        return NULL;
+    }
+}
+
+/* Feed one character to the parser, returns detected query type.
+ * Call this for each character read from PTY. When a query is detected,
+ * the function returns the query type; otherwise returns QUERY_NONE.
+ * The parser maintains state across calls to handle sequences split
+ * across read() boundaries.
+ *
+ * The parser buffers escape sequences in esc_buf. After parser_feed returns:
+ * - If query != QUERY_NONE: the sequence was a query (should be filtered)
+ * - If state returned to NORMAL and esc_len > 0: non-query sequence completed,
+ *   replay esc_buf to output, then clear esc_len
+ * - If state != NORMAL: still accumulating, don't output the character
+ */
+static QueryType parser_feed(EscapeParser* p, char c)
+{
+    switch (p->state) {
+    case PARSE_NORMAL:
+        if (c == '\033') { /* ESC */
+            p->state = PARSE_ESC;
+            p->seq_len = 0;
+            p->osc_code = 0;
+            p->esc_len = 0;
+            /* Buffer the ESC (bounds check for defensive programming) */
+            if (p->esc_len < (int)sizeof(p->esc_buf) - 1) {
+                p->esc_buf[p->esc_len++] = c;
+            }
+        }
+        return QUERY_NONE;
+
+    case PARSE_ESC:
+        /* Buffer this char */
+        if (p->esc_len < (int)sizeof(p->esc_buf) - 1) {
+            p->esc_buf[p->esc_len++] = c;
+        }
+
+        if (c == '[') {
+            /* CSI sequence: ESC [ */
+            p->state = PARSE_CSI;
+            p->seq_len = 0;
+        } else if (c == ']') {
+            /* OSC sequence: ESC ] */
+            p->state = PARSE_OSC;
+            p->seq_len = 0;
+            p->osc_code = 0;
+        } else {
+            /* Unknown escape, return to normal - replay buffered chars */
+            p->state = PARSE_NORMAL;
+            /* esc_buf contains chars to replay (handled by caller) */
+        }
+        return QUERY_NONE;
+
+    case PARSE_CSI:
+        /* Buffer this char */
+        if (p->esc_len < (int)sizeof(p->esc_buf) - 1) {
+            p->esc_buf[p->esc_len++] = c;
+        }
+
+        /* CSI sequences: ESC [ <params> <final byte>
+         * Final bytes are in range 0x40-0x7E (@-~)
+         * We're looking for "6n" (DSR - cursor position query)
+         */
+        if (p->seq_len < (int)sizeof(p->seq_buf) - 1) {
+            p->seq_buf[p->seq_len++] = c;
+            p->seq_buf[p->seq_len] = '\0';
+        }
+
+        if (c >= 0x40 && c <= 0x7E) {
+            /* Final byte - sequence complete */
+            p->state = PARSE_NORMAL;
+
+            /* Check for DSR 6 (cursor position query): CSI 6 n */
+            if (strcmp(p->seq_buf, "6n") == 0) {
+                p->esc_len = 0; /* Discard - it's a query */
+                return QUERY_DSR6;
+            }
+            /* Non-query CSI: esc_buf has chars to replay */
+        }
+        return QUERY_NONE;
+
+    case PARSE_OSC:
+        /* Buffer this char (will be discarded later if it's a query) */
+        if (p->esc_len < (int)sizeof(p->esc_buf) - 1) {
+            p->esc_buf[p->esc_len++] = c;
+        }
+
+        /* OSC sequences: ESC ] <code> ; <data> BEL (or ST)
+         * BEL = 0x07, ST = ESC \
+         * We're looking for "10;?" and "11;?" (color queries)
+         */
+        if (c == '\007') { /* BEL - sequence terminator */
+            p->state = PARSE_NORMAL;
+
+            /* Check if this was a color query (ends with ;?) */
+            if (p->seq_len >= 1 && p->seq_buf[p->seq_len - 1] == '?') {
+                if (p->osc_code == 10) {
+                    p->esc_len = 0; /* Discard query */
+                    return QUERY_OSC10;
+                } else if (p->osc_code == 11) {
+                    p->esc_len = 0; /* Discard query */
+                    return QUERY_OSC11;
+                }
+            }
+            /* Non-query OSC: esc_buf has chars to replay */
+            return QUERY_NONE;
+        }
+
+        /* Parse OSC code number from first chars before semicolon */
+        if (c == ';' && p->osc_code == 0) {
+            p->seq_buf[p->seq_len] = '\0';
+            p->osc_code = atoi(p->seq_buf);
+            p->seq_len = 0; /* Reset to collect data after ; */
+        } else if (p->seq_len < (int)sizeof(p->seq_buf) - 1) {
+            p->seq_buf[p->seq_len++] = c;
+        }
+
+        /* Handle ESC as possible start of ST (ESC \) or new sequence.
+         * ST termination (ESC \) is less common than BEL; most programs use BEL.
+         * When ESC is encountered, treat it as end of OSC sequence.
+         * The ESC was already buffered above, so the entire sequence including
+         * the ESC will be replayed to output (non-query OSC passes through). */
+        if (c == '\033') {
+            /* Return to NORMAL so caller replays the buffered OSC sequence.
+             * The ESC is part of esc_buf and will pass through to the terminal. */
+            p->state = PARSE_NORMAL;
+            /* Don't clear esc_buf - it contains the OSC to replay */
+        }
+        return QUERY_NONE;
+    }
+
+    return QUERY_NONE;
+}
+
+/* Send terminal query response to PTY master with error handling */
+static void send_query_response(int master_fd, const char* response)
+{
+    if (!response)
+        return;
+
+    const char* p = response;
+    size_t remaining = strlen(response);
+
+    while (remaining > 0) {
+        ssize_t written = write(master_fd, p, remaining);
+        if (written < 0) {
+            if (errno == EINTR) {
+                continue; /* Retry on interrupt */
+            }
+            /* Silent failure - child may have closed PTY, which is expected */
+            break;
+        } else if (written == 0) {
+            break; /* No progress, stop */
+        }
+        p += written;
+        remaining -= (size_t)written;
+    }
+}
+
+/* Process a single character from PTY output.
+ * Handles terminal query detection/response, escape sequence buffering,
+ * and line accumulation for display.
+ */
+static void process_pty_char(char c, EscapeParser* parser, int master_fd, char* line_buf,
+                             int* line_pos, int line_buf_size)
+{
+    ParseState state_before = parser->state;
+    QueryType query = parser_feed(parser, c);
+
+    if (query != QUERY_NONE) {
+        /* Query detected - send response, sequence already discarded */
+        send_query_response(master_fd, query_response(query));
+        return;
+    }
+
+    /* If we're still in an escape sequence, wait for it to complete */
+    if (parser->state != PARSE_NORMAL) {
+        return;
+    }
+
+    /* Sequence complete or normal char - check for buffered escape seq */
+    if (state_before != PARSE_NORMAL && parser->esc_len > 0) {
+        /* Non-query escape sequence completed - replay buffered chars */
+        for (int j = 0; j < parser->esc_len; j++) {
+            char ec = parser->esc_buf[j];
+            if (ec == '\n' || ec == '\r') {
+                if (*line_pos > 0) {
+                    line_buf[*line_pos] = '\0';
+                    print_output(line_buf, 0);
+                    *line_pos = 0;
+                }
+            } else if (*line_pos < line_buf_size - 1) {
+                line_buf[(*line_pos)++] = ec;
+            }
+        }
+        parser->esc_len = 0;
+        return; /* current char was already in esc_buf */
+    }
+
+    /* Normal character - add to line buffer */
+    if (c == '\n' || c == '\r') {
+        if (*line_pos > 0) {
+            line_buf[*line_pos] = '\0';
+            print_output(line_buf, 0);
+            *line_pos = 0;
+        }
+    } else if (*line_pos < line_buf_size - 1) {
+        line_buf[(*line_pos)++] = c;
+    }
+}
+
+/* ============================================================================
  * Command Execution
  * ============================================================================
  * Functions for executing shell commands and handling builtins (cd, clear).
@@ -1636,6 +1915,10 @@ static int execute_command(const char* cmd)
     int line_pos = 0;
     ssize_t n;
 
+    /* Issue #32 - Terminal query parser for responding to color/cursor queries */
+    EscapeParser escape_parser;
+    parser_init(&escape_parser);
+
     /* Set master fd to non-blocking for better responsiveness */
     int flags = fcntl(master_fd, F_GETFL, 0);
     fcntl(master_fd, F_SETFL, flags | O_NONBLOCK);
@@ -1657,19 +1940,11 @@ static int execute_command(const char* cmd)
         if (n > 0) {
             buf[n] = '\0';
 
-            /* Process output character by character to handle lines */
+            /* Process output character by character to handle lines.
+             * Issue #32: Also detects terminal queries and sends responses. */
             for (ssize_t i = 0; i < n; i++) {
-                char c = buf[i];
-
-                if (c == '\n' || c == '\r') {
-                    if (line_pos > 0) {
-                        line_buf[line_pos] = '\0';
-                        print_output(line_buf, 0);
-                        line_pos = 0;
-                    }
-                } else if (line_pos < (int)sizeof(line_buf) - 1) {
-                    line_buf[line_pos++] = c;
-                }
+                process_pty_char(buf[i], &escape_parser, master_fd, line_buf, &line_pos,
+                                 (int)sizeof(line_buf));
             }
         } else if (n < 0 && errno != EAGAIN && errno != EINTR) {
             /* Error reading from PTY */
@@ -1696,16 +1971,8 @@ static int execute_command(const char* cmd)
         buf[n] = '\0';
         line_pos = 0;
         for (ssize_t i = 0; i < n; i++) {
-            char c = buf[i];
-            if (c == '\n' || c == '\r') {
-                if (line_pos > 0) {
-                    line_buf[line_pos] = '\0';
-                    print_output(line_buf, 0);
-                    line_pos = 0;
-                }
-            } else if (line_pos < (int)sizeof(line_buf) - 1) {
-                line_buf[line_pos++] = c;
-            }
+            process_pty_char(buf[i], &escape_parser, master_fd, line_buf, &line_pos,
+                             (int)sizeof(line_buf));
         }
         if (line_pos > 0) {
             line_buf[line_pos] = '\0';
