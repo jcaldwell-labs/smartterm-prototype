@@ -1,0 +1,167 @@
+# cc-bash Architecture: Three-Region Layout
+
+## Visual Layout
+
+```
+┌──────────────────────────────────────────────────────────────────────┐
+│                                                                      │
+│                        OUTPUT AREA (Scrolling)                       │
+│                                                                      │
+│  $ ls -la                                                            │
+│  total 24                                                            │
+│  drwxr-xr-x 3 user user 4096 Jan  7 .                               │
+│  drwxr-xr-x 8 user user 4096 Jan  7 ..                              │
+│  -rw-r--r-- 1 user user 1234 Jan  7 main.c                          │
+│  -rw-r--r-- 1 user user  567 Jan  7 Makefile                        │
+│                                                                      │
+│  $ echo "Hello, World!"                                              │
+│  Hello, World!                                                       │
+│                                                                      │
+│  $ grep -r "TODO" .                                                  │
+│  ./main.c:15:  // TODO: Implement feature                           │
+│  ./utils.c:42: // TODO: Add error handling                          │
+│                                                                      │
+│                                                                      │
+├──────────────────────────────────────────────────────────────────────┤
+│ $ _                                                                  │  ← PROMPT AREA (Fixed)
+├──────────────────────────────────────────────────────────────────────┤
+│  ~/projects/myapp                              [exit: 0] 14:30:00   │  ← STATUS BAR (Fixed)
+│ ──────────────────────────────────────────────────────────────────── │
+└──────────────────────────────────────────────────────────────────────┘
+```
+
+## Region Details
+
+### 1. Output Area (Top Region - Scrolling)
+
+**Purpose**: Display command output and history
+
+**Characteristics**:
+- Scrolls up as new content is added
+- Shows command echo (in cyan)
+- Shows stdout (in white/default)
+- Shows stderr (in red)
+- Comments/notes (in yellow)
+- Supports ANSI colors from commands (ls, grep, etc.)
+
+**Size**: Variable, fills available terminal space
+
+**Navigation**:
+- Automatically scrolls with new output
+- Manual scroll: PgUp/PgDn (future feature)
+
+### 2. Prompt Area (Middle Region - Fixed)
+
+**Purpose**: Command input and editing
+
+**Characteristics**:
+- Single line for input
+- Shows prompt: `$ `
+- Cursor visible and editable
+- Supports line editing (Left/Right arrows, Backspace, Delete)
+- Tab completion for commands and files
+- History navigation (Up/Down arrows)
+
+**Size**: Fixed height (1-2 lines)
+
+**Special Prefixes**:
+- `#` - Comment/note (displayed, not executed)
+- `@` - Internal command (help, clear, quit, etc.)
+- No prefix - Bash command (default)
+
+### 3. Status Bar (Bottom Region - Fixed)
+
+**Purpose**: Show current context and last command status
+
+**Characteristics**:
+- Reverse video (inverse colors) for visibility
+- Left side: Current working directory (abbreviated if long)
+- Right side: Last command exit code and current time
+
+**Format**:
+```
+ ~/path/to/directory                            [exit: N] HH:MM:SS
+────────────────────────────────────────────────────────────────────
+```
+
+**Size**: Fixed height (2 lines)
+
+## Data Flow
+
+```
+User Input → Prompt Area → Command Parser
+                                ↓
+                    ┌───────────┴────────────┐
+                    ↓                        ↓
+              @ Command                  Bash Command
+              (internal)                 (execute)
+                    ↓                        ↓
+              Update state           PTY execution
+                    ↓                        ↓
+                    └────────────────────────┘
+                                ↓
+                    Render to Output Area
+                                ↓
+                    Update Status Bar
+```
+
+## Implementation Details
+
+### Terminal Control
+
+**ANSI Escape Codes** (not ncurses):
+- Cursor positioning: `\033[row;colH`
+- Clear screen: `\033[2J`
+- Colors: `\033[3Xm` (foreground), `\033[4Xm` (background)
+- Reverse video: `\033[7m`
+
+### Raw Terminal Mode
+
+**termios configuration**:
+- Non-canonical mode (character-by-character input)
+- No echo (we control output)
+- Custom line editing
+- Enables special key handling (Ctrl+R, Tab, arrows)
+
+### PTY-Based Execution
+
+**forkpty() for command execution**:
+- Child process gets a pseudo-terminal
+- Commands see isatty() = true
+- Automatic color support from ls, grep, etc.
+- Proper signal handling (Ctrl+C)
+
+## Why This Design?
+
+### Alternative: ncurses + readline
+
+**Attempted in POC**, but:
+- ncurses must suspend during readline input
+- Output area disappears while typing
+- Visible flicker on suspend/resume
+- More complex to manage
+
+### Current Approach: ANSI + Raw Terminal
+
+**Benefits**:
+- Output always visible
+- Simpler code (no library suspend/resume)
+- More portable (just ANSI codes)
+- Full control over input handling
+- Better user experience
+
+## Key Features Enabled
+
+1. **Colored Output**: PTY ensures commands output colors
+2. **Command History**: Custom implementation with persistence
+3. **Tab Completion**: Custom implementation for commands and files
+4. **Ctrl+R Search**: Fuzzy search through history
+5. **Status Context**: Always visible current state
+6. **Scrollback**: Full command history in output area
+
+## Performance Considerations
+
+- Output buffer size: Configurable (default: 10,000 lines)
+- Efficient string handling: Minimize allocations
+- PTY I/O: Non-blocking reads to prevent hangs
+- Rendering: Only update changed regions (future optimization)
