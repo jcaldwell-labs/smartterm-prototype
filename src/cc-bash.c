@@ -2814,7 +2814,6 @@ int main(void)
         char* input = read_input();
 
         if (!input) {
-            running = 0;
             break;
         }
 
@@ -2911,7 +2910,7 @@ int main(void)
                                 last_exit = 1;
                             } else {
                                 /* Add newline before aliases section if file not empty */
-                                fseek(fp, 0, SEEK_END);
+                                /* In append mode, file position is already at end */
                                 if (ftell(fp) > 0) {
                                     fprintf(fp, "\n# Session aliases saved at runtime\n");
                                 }
