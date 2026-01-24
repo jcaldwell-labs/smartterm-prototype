@@ -110,7 +110,6 @@ smartterm-prototype/
 ├── CONTRIBUTING.md        # Contribution guidelines
 ├── CHANGELOG.md           # Version history
 ├── SECURITY.md            # Security policy
-├── VISION.md              # Project vision
 └── llms.txt               # LLM context file
 ```
 

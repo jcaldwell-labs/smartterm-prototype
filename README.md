@@ -556,7 +556,7 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 Need help? Check out:
 
-- [SUPPORT.md](SUPPORT.md) - Common issues and solutions
+- [docs/SUPPORT.md](docs/SUPPORT.md) - Common issues and solutions
 - [GitHub Issues](https://github.com/jcaldwell-labs/smartterm-prototype/issues) - Bug reports and feature requests
 - [GitHub Discussions](https://github.com/jcaldwell-labs/smartterm-prototype/discussions) - Questions and community
 
