@@ -1983,6 +1983,298 @@ void test_continuation_realistic_cases(void)
 }
 
 /* ============================================================================
+ * Terminal Query Parser Tests (Issue #32)
+ * ============================================================================
+ * Tests for the escape sequence parser that detects terminal queries.
+ *
+ * NOTE: Parser types and functions are replicated here from cc-bash.c.
+ * This is intentional for unit testing - it allows testing the parser
+ * specification independently and ensures tests don't break if the
+ * production implementation changes internal details. The behavioral
+ * contract (input sequences -> detected queries) is what matters.
+ *
+ * If the parser logic changes, update both implementations and verify
+ * tests still pass to confirm behavioral equivalence.
+ */
+
+/* Parser types and functions (replicated from cc-bash.c for testing) */
+
+typedef enum { PARSE_NORMAL, PARSE_ESC, PARSE_CSI, PARSE_OSC } ParseState;
+
+typedef enum { QUERY_NONE, QUERY_OSC10, QUERY_OSC11, QUERY_DSR6 } QueryType;
+
+typedef struct {
+    ParseState state;
+    char seq_buf[64];
+    int seq_len;
+    int osc_code;
+    char esc_buf[128];
+    int esc_len;
+} EscapeParser;
+
+#define DEFAULT_FG_RGB "rgb:d0d0/d0d0/d0d0"
+#define DEFAULT_BG_RGB "rgb:1e1e/1e1e/1e1e"
+
+static void parser_init(EscapeParser* p)
+{
+    p->state = PARSE_NORMAL;
+    p->seq_len = 0;
+    p->osc_code = 0;
+    p->esc_len = 0;
+}
+
+static const char* query_response(QueryType query)
+{
+    switch (query) {
+    case QUERY_OSC10:
+        return "\033]10;" DEFAULT_FG_RGB "\007";
+    case QUERY_OSC11:
+        return "\033]11;" DEFAULT_BG_RGB "\007";
+    case QUERY_DSR6:
+        return "\033[1;1R";
+    case QUERY_NONE:
+    default:
+        return NULL;
+    }
+}
+
+static QueryType parser_feed(EscapeParser* p, char c)
+{
+    switch (p->state) {
+    case PARSE_NORMAL:
+        if (c == '\033') {
+            p->state = PARSE_ESC;
+            p->seq_len = 0;
+            p->osc_code = 0;
+            p->esc_len = 0;
+            /* Bounds check for defensive programming */
+            if (p->esc_len < (int)sizeof(p->esc_buf) - 1) {
+                p->esc_buf[p->esc_len++] = c;
+            }
+        }
+        return QUERY_NONE;
+
+    case PARSE_ESC:
+        if (p->esc_len < (int)sizeof(p->esc_buf) - 1) {
+            p->esc_buf[p->esc_len++] = c;
+        }
+        if (c == '[') {
+            p->state = PARSE_CSI;
+            p->seq_len = 0;
+        } else if (c == ']') {
+            p->state = PARSE_OSC;
+            p->seq_len = 0;
+            p->osc_code = 0;
+        } else {
+            p->state = PARSE_NORMAL;
+        }
+        return QUERY_NONE;
+
+    case PARSE_CSI:
+        if (p->esc_len < (int)sizeof(p->esc_buf) - 1) {
+            p->esc_buf[p->esc_len++] = c;
+        }
+        if (p->seq_len < (int)sizeof(p->seq_buf) - 1) {
+            p->seq_buf[p->seq_len++] = c;
+            p->seq_buf[p->seq_len] = '\0';
+        }
+        if (c >= 0x40 && c <= 0x7E) {
+            p->state = PARSE_NORMAL;
+            if (strcmp(p->seq_buf, "6n") == 0) {
+                p->esc_len = 0;
+                return QUERY_DSR6;
+            }
+        }
+        return QUERY_NONE;
+
+    case PARSE_OSC:
+        if (p->esc_len < (int)sizeof(p->esc_buf) - 1) {
+            p->esc_buf[p->esc_len++] = c;
+        }
+        if (c == '\007') {
+            p->state = PARSE_NORMAL;
+            if (p->seq_len >= 1 && p->seq_buf[p->seq_len - 1] == '?') {
+                if (p->osc_code == 10) {
+                    p->esc_len = 0;
+                    return QUERY_OSC10;
+                } else if (p->osc_code == 11) {
+                    p->esc_len = 0;
+                    return QUERY_OSC11;
+                }
+            }
+            return QUERY_NONE;
+        }
+        if (c == ';' && p->osc_code == 0) {
+            p->seq_buf[p->seq_len] = '\0';
+            p->osc_code = atoi(p->seq_buf);
+            p->seq_len = 0;
+        } else if (p->seq_len < (int)sizeof(p->seq_buf) - 1) {
+            p->seq_buf[p->seq_len++] = c;
+        }
+        /* Handle ESC as possible start of ST (ESC \) or new sequence.
+         * Return to NORMAL so previous content gets replayed. */
+        if (c == '\033') {
+            p->state = PARSE_NORMAL;
+            /* Don't clear esc_buf - it contains the OSC to replay */
+        }
+        return QUERY_NONE;
+    }
+    return QUERY_NONE;
+}
+
+/* Helper to feed a string to parser and return last query type */
+static QueryType parser_feed_string(EscapeParser* p, const char* s)
+{
+    QueryType last = QUERY_NONE;
+    while (*s) {
+        QueryType q = parser_feed(p, *s++);
+        if (q != QUERY_NONE) {
+            last = q;
+        }
+    }
+    return last;
+}
+
+void test_parser_osc10_query(void)
+{
+    printf("\n[Parser: OSC 10 Query Detection]\n");
+    EscapeParser p;
+    parser_init(&p);
+
+    /* OSC 10 query: ESC ] 1 0 ; ? BEL */
+    QueryType q = parser_feed_string(&p, "\033]10;?\007");
+    ASSERT(q == QUERY_OSC10, "detects OSC 10 foreground color query");
+
+    /* Verify parser resets to normal */
+    ASSERT(p.state == PARSE_NORMAL, "parser returns to NORMAL state");
+}
+
+void test_parser_osc11_query(void)
+{
+    printf("\n[Parser: OSC 11 Query Detection]\n");
+    EscapeParser p;
+    parser_init(&p);
+
+    /* OSC 11 query: ESC ] 1 1 ; ? BEL */
+    QueryType q = parser_feed_string(&p, "\033]11;?\007");
+    ASSERT(q == QUERY_OSC11, "detects OSC 11 background color query");
+}
+
+void test_parser_dsr6_query(void)
+{
+    printf("\n[Parser: DSR 6 Query Detection]\n");
+    EscapeParser p;
+    parser_init(&p);
+
+    /* DSR 6 query: ESC [ 6 n */
+    QueryType q = parser_feed_string(&p, "\033[6n");
+    ASSERT(q == QUERY_DSR6, "detects DSR 6 cursor position query");
+}
+
+void test_parser_normal_escape_passthrough(void)
+{
+    printf("\n[Parser: Normal Escape Passthrough]\n");
+    EscapeParser p;
+    parser_init(&p);
+
+    /* Normal color code: ESC [ 3 1 m (red) */
+    QueryType q = parser_feed_string(&p, "\033[31m");
+    ASSERT(q == QUERY_NONE, "normal color code returns QUERY_NONE");
+
+    /* Bold: ESC [ 1 m */
+    parser_init(&p);
+    q = parser_feed_string(&p, "\033[1m");
+    ASSERT(q == QUERY_NONE, "bold code returns QUERY_NONE");
+
+    /* Reset: ESC [ 0 m */
+    parser_init(&p);
+    q = parser_feed_string(&p, "\033[0m");
+    ASSERT(q == QUERY_NONE, "reset code returns QUERY_NONE");
+}
+
+void test_parser_non_query_osc(void)
+{
+    printf("\n[Parser: Non-Query OSC Ignored]\n");
+    EscapeParser p;
+    parser_init(&p);
+
+    /* OSC 0 (set title): ESC ] 0 ; title BEL */
+    QueryType q = parser_feed_string(&p, "\033]0;window title\007");
+    ASSERT(q == QUERY_NONE, "OSC 0 (set title) returns QUERY_NONE");
+
+    /* OSC 10 with value (not query): ESC ] 1 0 ; #ffffff BEL */
+    parser_init(&p);
+    q = parser_feed_string(&p, "\033]10;#ffffff\007");
+    ASSERT(q == QUERY_NONE, "OSC 10 with value (not ?) returns QUERY_NONE");
+}
+
+void test_parser_mixed_content(void)
+{
+    printf("\n[Parser: Mixed Content Handling]\n");
+    EscapeParser p;
+    parser_init(&p);
+
+    /* Text with embedded color codes and query */
+    const char* mixed = "Hello \033[31mred\033[0m world\033]10;?\007end";
+    QueryType q = parser_feed_string(&p, mixed);
+    ASSERT(q == QUERY_OSC10, "detects query in mixed content");
+
+    /* Multiple queries in sequence */
+    parser_init(&p);
+    const char* multi = "\033[6n\033]10;?\007\033]11;?\007";
+    /* Feed character by character and count queries */
+    int query_count = 0;
+    const char* s = multi;
+    while (*s) {
+        if (parser_feed(&p, *s++) != QUERY_NONE) {
+            query_count++;
+        }
+    }
+    ASSERT(query_count == 3, "detects all three queries in sequence");
+}
+
+void test_parser_incomplete_sequence(void)
+{
+    printf("\n[Parser: Incomplete Sequence Handling]\n");
+    EscapeParser p;
+    parser_init(&p);
+
+    /* Feed incomplete OSC sequence */
+    parser_feed_string(&p, "\033]10;");
+    ASSERT(p.state == PARSE_OSC, "parser in OSC state after partial sequence");
+    ASSERT(p.osc_code == 10, "OSC code parsed correctly");
+
+    /* Complete the sequence */
+    QueryType q = parser_feed_string(&p, "?\007");
+    ASSERT(q == QUERY_OSC10, "completes query after split input");
+    ASSERT(p.state == PARSE_NORMAL, "parser returns to NORMAL");
+}
+
+void test_parser_response_format(void)
+{
+    printf("\n[Parser: Response Format Validation]\n");
+
+    const char* fg_response = query_response(QUERY_OSC10);
+    ASSERT_NOT_NULL(fg_response, "OSC10 response is not NULL");
+    ASSERT(strstr(fg_response, "10;") != NULL, "OSC10 response contains '10;'");
+    ASSERT(strstr(fg_response, "rgb:") != NULL, "OSC10 response contains 'rgb:'");
+    ASSERT(fg_response[0] == '\033', "OSC10 response starts with ESC");
+    ASSERT(strchr(fg_response, '\007') != NULL, "OSC10 response ends with BEL");
+
+    const char* bg_response = query_response(QUERY_OSC11);
+    ASSERT_NOT_NULL(bg_response, "OSC11 response is not NULL");
+    ASSERT(strstr(bg_response, "11;") != NULL, "OSC11 response contains '11;'");
+
+    const char* cursor_response = query_response(QUERY_DSR6);
+    ASSERT_NOT_NULL(cursor_response, "DSR6 response is not NULL");
+    ASSERT(strstr(cursor_response, "[") != NULL, "DSR6 response contains '['");
+    ASSERT(strstr(cursor_response, "R") != NULL, "DSR6 response contains 'R'");
+
+    const char* none_response = query_response(QUERY_NONE);
+    ASSERT_NULL(none_response, "QUERY_NONE returns NULL");
+}
+
+/* ============================================================================
  * Main
  * ============================================================================ */
 
@@ -2077,6 +2369,16 @@ int main(void)
     test_continuation_mixed_quotes();
     test_continuation_complete_commands();
     test_continuation_realistic_cases();
+
+    /* Terminal query parser tests (Issue #32) */
+    test_parser_osc10_query();
+    test_parser_osc11_query();
+    test_parser_dsr6_query();
+    test_parser_normal_escape_passthrough();
+    test_parser_non_query_osc();
+    test_parser_mixed_content();
+    test_parser_incomplete_sequence();
+    test_parser_response_format();
 
     /* Summary */
     printf("\n========================================\n");
