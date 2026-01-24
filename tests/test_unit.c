@@ -9,19 +9,21 @@
  */
 
 #define _POSIX_C_SOURCE 200809L
-#define _GNU_SOURCE  /* for strcasestr */
+#define _GNU_SOURCE /* for strcasestr */
 
+#include <ctype.h>
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <limits.h>
-#include <ctype.h>
 
 /* Fallback strcasestr for platforms without GNU extensions (e.g., macOS) */
 #if defined(__APPLE__) || (!defined(__GLIBC__) && !defined(strcasestr))
-static char* my_strcasestr(const char* haystack, const char* needle) {
-    if (!*needle) return (char*)haystack;
+static char* my_strcasestr(const char* haystack, const char* needle)
+{
+    if (!*needle)
+        return (char*)haystack;
     for (const char* p = haystack; *p; p++) {
         const char* h = p;
         const char* n = needle;
@@ -29,7 +31,8 @@ static char* my_strcasestr(const char* haystack, const char* needle) {
             h++;
             n++;
         }
-        if (!*n) return (char*)p;
+        if (!*n)
+            return (char*)p;
     }
     return NULL;
 }
@@ -41,16 +44,17 @@ static int tests_run = 0;
 static int tests_passed = 0;
 static int tests_failed = 0;
 
-#define ASSERT(cond, msg) do { \
-    tests_run++; \
-    if (cond) { \
-        tests_passed++; \
-        printf("  \033[32mPASS\033[0m: %s\n", msg); \
-    } else { \
-        tests_failed++; \
-        printf("  \033[31mFAIL\033[0m: %s\n", msg); \
-    } \
-} while(0)
+#define ASSERT(cond, msg)                                                                          \
+    do {                                                                                           \
+        tests_run++;                                                                               \
+        if (cond) {                                                                                \
+            tests_passed++;                                                                        \
+            printf("  \033[32mPASS\033[0m: %s\n", msg);                                            \
+        } else {                                                                                   \
+            tests_failed++;                                                                        \
+            printf("  \033[31mFAIL\033[0m: %s\n", msg);                                            \
+        }                                                                                          \
+    } while (0)
 
 /* Note: ASSERT_STR_EQ assumes both strings are valid (not NULL).
  * For pointer strings that might be NULL, check with ASSERT_NOT_NULL first.
@@ -80,15 +84,13 @@ typedef struct {
     char scroll[32];
 } Theme;
 
-static Theme theme = {
-    .prompt = "",
-    .error = "\033[31m",
-    .comment = "\033[33m",
-    .dim = "\033[2m",
-    .header = "\033[36m",
-    .status = "\033[1m",
-    .scroll = "\033[36m"
-};
+static Theme theme = {.prompt = "",
+                      .error = "\033[31m",
+                      .comment = "\033[33m",
+                      .dim = "\033[2m",
+                      .header = "\033[36m",
+                      .status = "\033[1m",
+                      .scroll = "\033[36m"};
 
 /* Reset theme to defaults */
 static void reset_theme(void)
@@ -172,7 +174,7 @@ static void set_theme_color(const char* field, const char* value)
 typedef struct {
     char* name;
     char* command;
-    int from_session;  /* 1 if added via @alias (not from config), 0 if from config */
+    int from_session; /* 1 if added via @alias (not from config), 0 if from config */
 } Alias;
 
 static Alias aliases[MAX_ALIASES];
@@ -181,7 +183,8 @@ static int alias_count = 0;
 /* Add an alias - from_session: 1 if from @alias command, 0 if from config file */
 static void add_alias(const char* name, const char* command, int from_session)
 {
-    if (alias_count >= MAX_ALIASES) return;
+    if (alias_count >= MAX_ALIASES)
+        return;
 
     /* Check for existing alias with same name and replace */
     for (int i = 0; i < alias_count; i++) {
@@ -266,7 +269,8 @@ static int hook_count = 0;
 /* Register a hook */
 static int register_hook(EventType type, EventHandler handler, void* user_data)
 {
-    if (hook_count >= MAX_HOOKS) return -1;
+    if (hook_count >= MAX_HOOKS)
+        return -1;
 
     hooks[hook_count].type = type;
     hooks[hook_count].handler = handler;
@@ -297,56 +301,48 @@ static void emit_event(const Event* event)
 /* Helper: Create and emit a simple event */
 static void emit_simple_event(EventType type)
 {
-    Event event = {
-        .type = type,
-        .command = NULL,
-        .expanded = NULL,
-        .exit_code = 0,
-        .old_cwd = NULL,
-        .new_cwd = NULL
-    };
+    Event event = {.type = type,
+                   .command = NULL,
+                   .expanded = NULL,
+                   .exit_code = 0,
+                   .old_cwd = NULL,
+                   .new_cwd = NULL};
     emit_event(&event);
 }
 
 /* Helper: Emit command event */
 static void emit_command_event(EventType type, const char* command, int exit_code)
 {
-    Event event = {
-        .type = type,
-        .command = command,
-        .expanded = NULL,
-        .exit_code = exit_code,
-        .old_cwd = NULL,
-        .new_cwd = NULL
-    };
+    Event event = {.type = type,
+                   .command = command,
+                   .expanded = NULL,
+                   .exit_code = exit_code,
+                   .old_cwd = NULL,
+                   .new_cwd = NULL};
     emit_event(&event);
 }
 
 /* Helper: Emit CD event */
 static void emit_cd_event(const char* old_dir, const char* new_dir)
 {
-    Event event = {
-        .type = EVENT_CD,
-        .command = NULL,
-        .expanded = NULL,
-        .exit_code = 0,
-        .old_cwd = old_dir,
-        .new_cwd = new_dir
-    };
+    Event event = {.type = EVENT_CD,
+                   .command = NULL,
+                   .expanded = NULL,
+                   .exit_code = 0,
+                   .old_cwd = old_dir,
+                   .new_cwd = new_dir};
     emit_event(&event);
 }
 
 /* Helper: Emit expand event */
 static void emit_expand_event(EventType type, const char* original, const char* expanded)
 {
-    Event event = {
-        .type = type,
-        .command = original,
-        .expanded = expanded,
-        .exit_code = 0,
-        .old_cwd = NULL,
-        .new_cwd = NULL
-    };
+    Event event = {.type = type,
+                   .command = original,
+                   .expanded = expanded,
+                   .exit_code = 0,
+                   .old_cwd = NULL,
+                   .new_cwd = NULL};
     emit_event(&event);
 }
 
@@ -354,14 +350,22 @@ static void emit_expand_event(EventType type, const char* original, const char* 
 static const char* event_type_name(EventType type)
 {
     switch (type) {
-        case EVENT_STARTUP:        return "STARTUP";
-        case EVENT_SHUTDOWN:       return "SHUTDOWN";
-        case EVENT_PRE_COMMAND:    return "PRE_COMMAND";
-        case EVENT_POST_COMMAND:   return "POST_COMMAND";
-        case EVENT_CD:             return "CD";
-        case EVENT_ALIAS_EXPAND:   return "ALIAS_EXPAND";
-        case EVENT_SNIPPET_EXPAND: return "SNIPPET_EXPAND";
-        default:                   return "UNKNOWN";
+    case EVENT_STARTUP:
+        return "STARTUP";
+    case EVENT_SHUTDOWN:
+        return "SHUTDOWN";
+    case EVENT_PRE_COMMAND:
+        return "PRE_COMMAND";
+    case EVENT_POST_COMMAND:
+        return "POST_COMMAND";
+    case EVENT_CD:
+        return "CD";
+    case EVENT_ALIAS_EXPAND:
+        return "ALIAS_EXPAND";
+    case EVENT_SNIPPET_EXPAND:
+        return "SNIPPET_EXPAND";
+    default:
+        return "UNKNOWN";
     }
 }
 
@@ -377,7 +381,8 @@ static int snippet_count = 0;
 /* Add a snippet */
 static void add_snippet(const char* name, const char* template)
 {
-    if (snippet_count >= MAX_SNIPPETS) return;
+    if (snippet_count >= MAX_SNIPPETS)
+        return;
 
     for (int i = 0; i < snippet_count; i++) {
         if (strcmp(snippets[i].name, name) == 0) {
@@ -407,7 +412,8 @@ static const char* get_snippet(const char* name)
 static char* expand_snippet(const char* template, char** args, int arg_count)
 {
     char* result = malloc(INPUT_BUF_SIZE);
-    if (!result) return NULL;
+    if (!result)
+        return NULL;
 
     char* out = result;
     const char* in = template;
@@ -465,7 +471,8 @@ static int workflow_count = 0;
 /* Add a workflow - matches cc-bash.c add_workflow */
 static void add_workflow(const char* name, const char* commands)
 {
-    if (workflow_count >= MAX_WORKFLOWS) return;
+    if (workflow_count >= MAX_WORKFLOWS)
+        return;
 
     int idx = -1;
     for (int i = 0; i < workflow_count; i++) {
@@ -487,17 +494,20 @@ static void add_workflow(const char* name, const char* commands)
     workflows[idx].stop_on_error = 1;
 
     char* cmd_copy = strdup(commands);
-    if (!cmd_copy) return;
+    if (!cmd_copy)
+        return;
 
     if (strstr(cmd_copy, "&&")) {
         workflows[idx].stop_on_error = 1;
         char* saveptr;
         char* step = strtok_r(cmd_copy, "&", &saveptr);
         while (step && workflows[idx].step_count < MAX_WORKFLOW_STEPS) {
-            while (*step == '&' || *step == ' ') step++;
+            while (*step == '&' || *step == ' ')
+                step++;
             if (*step) {
                 char* end = step + strlen(step) - 1;
-                while (end > step && *end == ' ') *end-- = '\0';
+                while (end > step && *end == ' ')
+                    *end-- = '\0';
                 if (*step) {
                     workflows[idx].steps[workflows[idx].step_count++] = strdup(step);
                 }
@@ -509,10 +519,12 @@ static void add_workflow(const char* name, const char* commands)
         char* saveptr;
         char* step = strtok_r(cmd_copy, ";", &saveptr);
         while (step && workflows[idx].step_count < MAX_WORKFLOW_STEPS) {
-            while (*step == ' ') step++;
+            while (*step == ' ')
+                step++;
             if (*step) {
                 char* end = step + strlen(step) - 1;
-                while (end > step && *end == ' ') *end-- = '\0';
+                while (end > step && *end == ' ')
+                    *end-- = '\0';
                 if (*step) {
                     workflows[idx].steps[workflows[idx].step_count++] = strdup(step);
                 }
@@ -555,13 +567,16 @@ static void parse_config_line(char* line)
 
     /* Skip empty lines and comments */
     char* p = line;
-    while (*p == ' ' || *p == '\t') p++;
-    if (*p == '\0' || *p == '#') return;
+    while (*p == ' ' || *p == '\t')
+        p++;
+    if (*p == '\0' || *p == '#')
+        return;
 
     /* Handle 'alias name=command' */
     if (strncmp(p, "alias ", 6) == 0) {
         p += 6;
-        while (*p == ' ') p++;
+        while (*p == ' ')
+            p++;
 
         char* eq = strchr(p, '=');
         if (eq) {
@@ -571,14 +586,13 @@ static void parse_config_line(char* line)
 
             /* Strip quotes from command */
             size_t cmd_len = strlen(cmd);
-            if (cmd_len >= 2 &&
-                ((cmd[0] == '\'' && cmd[cmd_len-1] == '\'') ||
-                 (cmd[0] == '"' && cmd[cmd_len-1] == '"'))) {
-                cmd[cmd_len-1] = '\0';
+            if (cmd_len >= 2 && ((cmd[0] == '\'' && cmd[cmd_len - 1] == '\'') ||
+                                 (cmd[0] == '"' && cmd[cmd_len - 1] == '"'))) {
+                cmd[cmd_len - 1] = '\0';
                 cmd++;
             }
 
-            add_alias(name, cmd, 0);  /* from config file */
+            add_alias(name, cmd, 0); /* from config file */
         }
     }
 }
@@ -627,7 +641,7 @@ static int fuzzy_score(const char* query, const char* text)
         return 0;
     }
 
-    int score = 100;  /* Base score for substring match */
+    int score = 100; /* Base score for substring match */
     int match_pos = match - text;
 
     /* Bonus for match at start */
@@ -678,8 +692,10 @@ static void update_search_matches(const char* query)
     for (int i = history_count - 1; i >= 0; i--) {
         int base_score = fuzzy_score(query, history[i]);
         if (base_score > 0) {
-            int recency_bonus = 50 - ((history_count - 1 - i) * 50 / (history_count > 1 ? history_count - 1 : 1));
-            if (recency_bonus < 0) recency_bonus = 0;
+            int recency_bonus =
+                50 - ((history_count - 1 - i) * 50 / (history_count > 1 ? history_count - 1 : 1));
+            if (recency_bonus < 0)
+                recency_bonus = 0;
 
             scored[scored_count].index = i;
             scored[scored_count].score = base_score + recency_bonus;
@@ -709,7 +725,8 @@ static void update_search_matches(const char* query)
  */
 static int needs_continuation(const char* input)
 {
-    if (!input || !*input) return 0;
+    if (!input || !*input)
+        return 0;
 
     int len = strlen(input);
 
@@ -740,7 +757,7 @@ static int needs_continuation(const char* input)
 
         /* Skip escaped characters in double quotes */
         if (in_double && c == '\\' && i + 1 < len) {
-            i++;  /* Skip next character */
+            i++; /* Skip next character */
             continue;
         }
 
@@ -756,9 +773,12 @@ static int needs_continuation(const char* input)
     }
 
     /* Odd number of quotes means unclosed */
-    if (single_quotes % 2 == 1) return 1;
-    if (double_quotes % 2 == 1) return 1;
-    if (backticks % 2 == 1) return 1;
+    if (single_quotes % 2 == 1)
+        return 1;
+    if (double_quotes % 2 == 1)
+        return 1;
+    if (backticks % 2 == 1)
+        return 1;
 
     return 0;
 }
@@ -1063,7 +1083,8 @@ void test_history_multiline_roundtrip(void)
     ASSERT(history_count == 3, "3 entries read from file");
     ASSERT_STR_EQ(history[0], "ls -la", "single-line command correct");
     ASSERT_STR_EQ(history[1], "echo \"hello\nworld\"", "multi-line string command correct");
-    ASSERT_STR_EQ(history[2], "docker run \\\n  -v /host:/container \\\n  nginx", "multi-line continuation command correct");
+    ASSERT_STR_EQ(history[2], "docker run \\\n  -v /host:/container \\\n  nginx",
+                  "multi-line continuation command correct");
 
     /* Verify newlines are embedded correctly */
     ASSERT(strchr(history[1], '\n') != NULL, "embedded newline in history[1]");
@@ -1260,7 +1281,8 @@ void test_snippet_basic(void)
 
     add_snippet("deploy", "git push origin $1");
     ASSERT(snippet_count == 1, "snippet_count is 1 after adding one snippet");
-    ASSERT_STR_EQ(get_snippet("deploy"), "git push origin $1", "get_snippet returns correct template");
+    ASSERT_STR_EQ(get_snippet("deploy"), "git push origin $1",
+                  "get_snippet returns correct template");
     ASSERT_NULL(get_snippet("nonexistent"), "get_snippet returns NULL for unknown snippet");
 
     free_snippets();
@@ -1274,7 +1296,8 @@ void test_snippet_replace(void)
     add_snippet("logs", "docker logs $1");
     add_snippet("logs", "docker logs -f --tail $1 $2");
     ASSERT(snippet_count == 1, "snippet_count stays 1 after replacing");
-    ASSERT_STR_EQ(get_snippet("logs"), "docker logs -f --tail $1 $2", "snippet template is updated");
+    ASSERT_STR_EQ(get_snippet("logs"), "docker logs -f --tail $1 $2",
+                  "snippet template is updated");
 
     free_snippets();
 }
@@ -1317,7 +1340,8 @@ void test_snippet_expand_multiple_args(void)
     char* result = expand_snippet("docker logs -f --tail $1 $2", args, 2);
 
     ASSERT_NOT_NULL(result, "expand_snippet returns non-NULL");
-    ASSERT_STR_EQ(result, "docker logs -f --tail 100 my-container", "multiple args expanded correctly");
+    ASSERT_STR_EQ(result, "docker logs -f --tail 100 my-container",
+                  "multiple args expanded correctly");
 
     free(result);
 }
@@ -1422,8 +1446,10 @@ static char captured_new_cwd[PATH_MAX] = "";
 static void cd_capture_handler(const Event* event, void* user_data)
 {
     (void)user_data;
-    if (event->old_cwd) strncpy(captured_old_cwd, event->old_cwd, PATH_MAX - 1);
-    if (event->new_cwd) strncpy(captured_new_cwd, event->new_cwd, PATH_MAX - 1);
+    if (event->old_cwd)
+        strncpy(captured_old_cwd, event->old_cwd, PATH_MAX - 1);
+    if (event->new_cwd)
+        strncpy(captured_new_cwd, event->new_cwd, PATH_MAX - 1);
 }
 
 /* Variables and handler for expand event capture */
@@ -1433,8 +1459,10 @@ static char captured_expanded[256] = "";
 static void expand_capture_handler(const Event* event, void* user_data)
 {
     (void)user_data;
-    if (event->command) strncpy(captured_original, event->command, 255);
-    if (event->expanded) strncpy(captured_expanded, event->expanded, 255);
+    if (event->command)
+        strncpy(captured_original, event->command, 255);
+    if (event->expanded)
+        strncpy(captured_expanded, event->expanded, 255);
 }
 
 void test_event_register_hook(void)
@@ -1632,7 +1660,7 @@ void test_workflow_basic(void)
     ASSERT_NOT_NULL(get_workflow("build"), "get_workflow returns workflow");
     ASSERT_NULL(get_workflow("nonexistent"), "get_workflow returns NULL for unknown");
 
-    Workflow* wf = get_workflow("build");
+    const Workflow* wf = get_workflow("build");
     ASSERT(wf->step_count == 2, "workflow has 2 steps");
     ASSERT(wf->stop_on_error == 1, "workflow stops on error (&&)");
 
@@ -1645,7 +1673,7 @@ void test_workflow_and_separator(void)
     free_workflows();
 
     add_workflow("test", "step1 && step2 && step3");
-    Workflow* wf = get_workflow("test");
+    const Workflow* wf = get_workflow("test");
 
     ASSERT_NOT_NULL(wf, "workflow exists");
     ASSERT(wf->step_count == 3, "workflow has 3 steps");
@@ -1663,7 +1691,7 @@ void test_workflow_semicolon_separator(void)
     free_workflows();
 
     add_workflow("check", "git status; git diff");
-    Workflow* wf = get_workflow("check");
+    const Workflow* wf = get_workflow("check");
 
     ASSERT_NOT_NULL(wf, "workflow exists");
     ASSERT(wf->step_count == 2, "workflow has 2 steps");
@@ -1683,7 +1711,7 @@ void test_workflow_replace(void)
     add_workflow("build", "make clean && make && make test");
 
     ASSERT(workflow_count == 1, "workflow_count stays 1 after replacing");
-    Workflow* wf = get_workflow("build");
+    const Workflow* wf = get_workflow("build");
     ASSERT(wf->step_count == 3, "workflow now has 3 steps");
 
     free_workflows();
@@ -1712,7 +1740,7 @@ void test_workflow_whitespace_handling(void)
     free_workflows();
 
     add_workflow("spacy", "  cmd1  &&  cmd2  ");
-    Workflow* wf = get_workflow("spacy");
+    const Workflow* wf = get_workflow("spacy");
 
     ASSERT_NOT_NULL(wf, "workflow exists");
     ASSERT(wf->step_count == 2, "workflow has 2 steps");
@@ -1728,7 +1756,7 @@ void test_workflow_complex_commands(void)
     free_workflows();
 
     add_workflow("complex", "ls -la /tmp && grep -r 'pattern' .");
-    Workflow* wf = get_workflow("complex");
+    const Workflow* wf = get_workflow("complex");
 
     ASSERT_NOT_NULL(wf, "workflow exists");
     ASSERT(wf->step_count == 2, "workflow has 2 steps");
@@ -1778,7 +1806,7 @@ void test_fuzzy_score_word_boundary(void)
 {
     printf("\n[Fuzzy Score: Word Boundary Bonus]\n");
 
-    int boundary_score = fuzzy_score("status", "git status");  /* after space */
+    int boundary_score = fuzzy_score("status", "git status"); /* after space */
     int inline_score = fuzzy_score("status", "gitstatus");    /* inline */
 
     ASSERT(boundary_score > inline_score, "word boundary match ranks higher");
@@ -1797,7 +1825,7 @@ void test_search_matches_basic(void)
     update_search_matches("git");
     ASSERT(search_match_count == 2, "finds 2 git matches");
     ASSERT(strcmp(history[search_match_indices[0]], "git diff") == 0 ||
-           strcmp(history[search_match_indices[0]], "git status") == 0,
+               strcmp(history[search_match_indices[0]], "git status") == 0,
            "first match is a git command");
 
     update_search_matches("xyz");
@@ -1812,15 +1840,14 @@ void test_search_matches_recency(void)
     free_history();
 
     /* Add same command twice with other commands in between */
-    add_history("ls -la");     /* oldest */
+    add_history("ls -la"); /* oldest */
     add_history("make clean");
-    add_history("ls -lh");     /* newest ls */
+    add_history("ls -lh"); /* newest ls */
 
     update_search_matches("ls");
     ASSERT(search_match_count == 2, "finds 2 ls matches");
     /* Most recent should be first due to recency bonus */
-    ASSERT(strcmp(history[search_match_indices[0]], "ls -lh") == 0,
-           "most recent match first");
+    ASSERT(strcmp(history[search_match_indices[0]], "ls -lh") == 0, "most recent match first");
 
     free_history();
 }
@@ -1876,7 +1903,8 @@ void test_continuation_unclosed_single_quote(void)
     ASSERT(needs_continuation("echo 'hello") == 1, "unclosed single quote needs continuation");
     ASSERT(needs_continuation("'") == 1, "single quote alone needs continuation");
     ASSERT(needs_continuation("echo 'hello'") == 0, "closed single quote is complete");
-    ASSERT(needs_continuation("echo 'hello' 'world") == 1, "second unclosed quote needs continuation");
+    ASSERT(needs_continuation("echo 'hello' 'world") == 1,
+           "second unclosed quote needs continuation");
 }
 
 void test_continuation_unclosed_double_quote(void)
@@ -1885,7 +1913,8 @@ void test_continuation_unclosed_double_quote(void)
     ASSERT(needs_continuation("echo \"hello") == 1, "unclosed double quote needs continuation");
     ASSERT(needs_continuation("\"") == 1, "double quote alone needs continuation");
     ASSERT(needs_continuation("echo \"hello\"") == 0, "closed double quote is complete");
-    ASSERT(needs_continuation("echo \"hello\" \"world") == 1, "second unclosed quote needs continuation");
+    ASSERT(needs_continuation("echo \"hello\" \"world") == 1,
+           "second unclosed quote needs continuation");
 }
 
 void test_continuation_unclosed_backtick(void)
@@ -1894,25 +1923,33 @@ void test_continuation_unclosed_backtick(void)
     ASSERT(needs_continuation("echo `date") == 1, "unclosed backtick needs continuation");
     ASSERT(needs_continuation("`") == 1, "backtick alone needs continuation");
     ASSERT(needs_continuation("echo `date`") == 0, "closed backtick is complete");
-    ASSERT(needs_continuation("echo `date` `time") == 1, "second unclosed backtick needs continuation");
+    ASSERT(needs_continuation("echo `date` `time") == 1,
+           "second unclosed backtick needs continuation");
 }
 
 void test_continuation_escaped_quotes(void)
 {
     printf("\n[Continuation: Escaped Quotes]\n");
-    ASSERT(needs_continuation("echo \"hello\\\"world\"") == 0, "escaped double quote inside double quotes is complete");
+    ASSERT(needs_continuation("echo \"hello\\\"world\"") == 0,
+           "escaped double quote inside double quotes is complete");
     ASSERT(needs_continuation("echo \"hello\\\"") == 1, "escaped quote doesn't close the string");
-    ASSERT(needs_continuation("echo 'hello\"world'") == 0, "double quote inside single quotes doesn't count");
-    ASSERT(needs_continuation("echo \"hello'world\"") == 0, "single quote inside double quotes doesn't count");
+    ASSERT(needs_continuation("echo 'hello\"world'") == 0,
+           "double quote inside single quotes doesn't count");
+    ASSERT(needs_continuation("echo \"hello'world\"") == 0,
+           "single quote inside double quotes doesn't count");
 }
 
 void test_continuation_mixed_quotes(void)
 {
     printf("\n[Continuation: Mixed Quote Types]\n");
-    ASSERT(needs_continuation("echo \"it's fine\"") == 0, "single quote inside double quotes is complete");
-    ASSERT(needs_continuation("echo 'say \"hello\"'") == 0, "double quotes inside single quotes is complete");
-    ASSERT(needs_continuation("echo \"'open") == 1, "unclosed double with single inside needs continuation");
-    ASSERT(needs_continuation("git commit -m 'fix: issue #25'") == 0, "typical commit message is complete");
+    ASSERT(needs_continuation("echo \"it's fine\"") == 0,
+           "single quote inside double quotes is complete");
+    ASSERT(needs_continuation("echo 'say \"hello\"'") == 0,
+           "double quotes inside single quotes is complete");
+    ASSERT(needs_continuation("echo \"'open") == 1,
+           "unclosed double with single inside needs continuation");
+    ASSERT(needs_continuation("git commit -m 'fix: issue #25'") == 0,
+           "typical commit message is complete");
 }
 
 void test_continuation_complete_commands(void)
@@ -1929,15 +1966,20 @@ void test_continuation_realistic_cases(void)
 {
     printf("\n[Continuation: Realistic Multi-line Cases]\n");
     /* Simulating what happens after user presses enter with trailing backslash */
-    ASSERT(needs_continuation("docker run \\") == 1, "docker command with backslash needs continuation");
-    ASSERT(needs_continuation("curl -X POST \\") == 1, "curl command with backslash needs continuation");
+    ASSERT(needs_continuation("docker run \\") == 1,
+           "docker command with backslash needs continuation");
+    ASSERT(needs_continuation("curl -X POST \\") == 1,
+           "curl command with backslash needs continuation");
 
     /* Long string that user might paste */
-    ASSERT(needs_continuation("echo \"This is a long message that") == 1, "incomplete string paste needs continuation");
+    ASSERT(needs_continuation("echo \"This is a long message that") == 1,
+           "incomplete string paste needs continuation");
 
     /* JSON-like content */
-    ASSERT(needs_continuation("echo '{\"key\":") == 1, "unclosed brace in single quotes needs continuation");
-    ASSERT(needs_continuation("echo '{\"key\": \"value\"}'") == 0, "complete JSON in quotes is complete");
+    ASSERT(needs_continuation("echo '{\"key\":") == 1,
+           "unclosed brace in single quotes needs continuation");
+    ASSERT(needs_continuation("echo '{\"key\": \"value\"}'") == 0,
+           "complete JSON in quotes is complete");
 }
 
 /* ============================================================================

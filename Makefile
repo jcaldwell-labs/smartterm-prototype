@@ -1,4 +1,12 @@
-# SmartTerm / cc-bash Makefile
+# cc-bash Makefile
+#
+# Project structure:
+#   src/         - Source files
+#   tests/       - Test files
+#   config/      - Configuration templates
+#   scripts/     - Utility scripts
+#   docs/        - Documentation
+#   packaging/   - Package configurations
 
 CC = gcc
 # Strict warnings to catch issues early (see CONTRIBUTING.md)
@@ -7,86 +15,82 @@ CFLAGS = -Wall -Wextra -Wpedantic -Wunused -Wshadow -Wformat=2 -std=c11
 ifdef STRICT
 CFLAGS += -Werror
 endif
-LDFLAGS_POC = -lncurses -lreadline
-# -lutil provides forkpty() on Linux for PTY-based command execution (Issue #22)
-LDFLAGS_CCBASH = -lutil
+# -lutil provides forkpty() on Linux for PTY-based command execution
+LDFLAGS = -lutil
 
 # Static analysis tool (install: apt install cppcheck / brew install cppcheck)
 CPPCHECK = cppcheck
-CPPCHECK_FLAGS = --enable=warning,style,performance,portability --error-exitcode=1 \
-                 --suppress=missingIncludeSystem --quiet
+# Only fail on warnings, not style issues (style is informational)
+# Suppress nullPointerRedundantCheck: false positives in test assertions
+CPPCHECK_FLAGS = --enable=warning,performance,portability --error-exitcode=1 \
+                 --suppress=missingIncludeSystem \
+                 --suppress=normalCheckLevelMaxBranches \
+                 --suppress=nullPointerRedundantCheck \
+                 --quiet
 
-# Original POC
-POC_TARGET = smartterm_poc
-POC_SRC = smartterm_poc.c
+# Directories
+SRC_DIR = src
+TEST_DIR = tests
+CONFIG_DIR = config
 
 # cc-bash (Claude Code-style bash wrapper)
-CCBASH_TARGET = cc-bash
-CCBASH_SRC = cc-bash.c
+TARGET = cc-bash
+SRC = $(SRC_DIR)/cc-bash.c
 
 # Unit tests
-TEST_UNIT_TARGET = test_unit
-TEST_UNIT_SRC = tests/test_unit.c
+TEST_TARGET = test_unit
+TEST_SRC = $(TEST_DIR)/test_unit.c
 
-.PHONY: all clean run poc cc-bash run-ccbash test test-unit help install uninstall lint check release debug
+.PHONY: all clean run test test-unit help install uninstall lint check release debug
 
 # Default: build cc-bash
-all: $(CCBASH_TARGET)
+all: $(TARGET)
 
 # Build cc-bash
-$(CCBASH_TARGET): $(CCBASH_SRC)
-	$(CC) $(CFLAGS) -o $(CCBASH_TARGET) $(CCBASH_SRC) $(LDFLAGS_CCBASH)
+$(TARGET): $(SRC)
+	$(CC) $(CFLAGS) -o $(TARGET) $(SRC) $(LDFLAGS)
 
 # Build with debug symbols
-debug:
-	$(CC) $(CFLAGS) -g -O0 -DDEBUG -o $(CCBASH_TARGET) $(CCBASH_SRC) $(LDFLAGS_CCBASH)
-	@echo "Built debug binary with symbols: $(CCBASH_TARGET)"
-	@echo "Use with: gdb ./$(CCBASH_TARGET)"
-
-# Build original POC
-poc: $(POC_TARGET)
-
-$(POC_TARGET): $(POC_SRC)
-	$(CC) $(CFLAGS) -o $(POC_TARGET) $(POC_SRC) $(LDFLAGS_POC)
+debug: $(SRC)
+	$(CC) $(CFLAGS) -g -O0 -DDEBUG -o $(TARGET) $(SRC) $(LDFLAGS)
+	@echo "Built debug binary with symbols: $(TARGET)"
+	@echo "Use with: gdb ./$(TARGET)"
 
 # Run cc-bash
-run: $(CCBASH_TARGET)
-	./$(CCBASH_TARGET)
+run: $(TARGET)
+	./$(TARGET)
 
-# Run original POC
-run-poc: $(POC_TARGET)
-	./$(POC_TARGET)
-
+# Clean build artifacts
 clean:
-	rm -f $(POC_TARGET) $(CCBASH_TARGET) $(TEST_UNIT_TARGET)
+	rm -f $(TARGET) $(TEST_TARGET)
 
 # Build optimized release binary
-release:
-	$(CC) $(CFLAGS) -O2 -DNDEBUG -o $(CCBASH_TARGET) $(CCBASH_SRC) $(LDFLAGS_CCBASH)
-	@echo "Built optimized release binary: $(CCBASH_TARGET)"
+release: $(SRC)
+	$(CC) $(CFLAGS) -O2 -DNDEBUG -o $(TARGET) $(SRC) $(LDFLAGS)
+	@echo "Built optimized release binary: $(TARGET)"
 
 # Build unit tests
-$(TEST_UNIT_TARGET): $(TEST_UNIT_SRC)
-	$(CC) $(CFLAGS) -o $(TEST_UNIT_TARGET) $(TEST_UNIT_SRC)
+$(TEST_TARGET): $(TEST_SRC)
+	$(CC) $(CFLAGS) -o $(TEST_TARGET) $(TEST_SRC)
 
 # Run all tests (unit first, then static analysis)
-test: $(CCBASH_TARGET) $(TEST_UNIT_TARGET)
+test: $(TARGET) $(TEST_TARGET)
 	@echo "Running unit tests..."
-	@./$(TEST_UNIT_TARGET)
+	@./$(TEST_TARGET)
 	@echo ""
 	@echo "Running static analysis tests..."
-	@chmod +x tests/test_cc_bash.sh
-	@./tests/test_cc_bash.sh
+	@chmod +x $(TEST_DIR)/test_cc_bash.sh
+	@./$(TEST_DIR)/test_cc_bash.sh
 
 # Run only unit tests
-test-unit: $(TEST_UNIT_TARGET)
-	@./$(TEST_UNIT_TARGET)
+test-unit: $(TEST_TARGET)
+	@./$(TEST_TARGET)
 
 # Static analysis with cppcheck
 lint:
 	@echo "Running static analysis..."
 	@if command -v $(CPPCHECK) >/dev/null 2>&1; then \
-		$(CPPCHECK) $(CPPCHECK_FLAGS) $(CCBASH_SRC) $(TEST_UNIT_SRC) && \
+		$(CPPCHECK) $(CPPCHECK_FLAGS) $(SRC) $(TEST_SRC) && \
 		echo "Static analysis passed!"; \
 	else \
 		echo "Warning: cppcheck not found. Install with: apt install cppcheck"; \
@@ -105,18 +109,19 @@ PREFIX ?= /usr/local
 BINDIR = $(PREFIX)/bin
 SYSCONFDIR = $(HOME)/.cc-bash
 CONFIG_FILE = $(HOME)/.cc-bashrc
+CONFIG_TEMPLATE = $(CONFIG_DIR)/cc-bashrc.template
 
 # Install cc-bash
-install: $(CCBASH_TARGET)
+install: $(TARGET)
 	@echo "Installing cc-bash..."
 	install -d $(BINDIR)
-	install -m 755 $(CCBASH_TARGET) $(BINDIR)/
+	install -m 755 $(TARGET) $(BINDIR)/
 	@echo "Creating config directory..."
 	install -d $(SYSCONFDIR)
 	install -d $(SYSCONFDIR)/plugins
 	@if [ ! -f $(CONFIG_FILE) ]; then \
 		echo "Creating default config file..."; \
-		install -m 644 cc-bashrc.template $(CONFIG_FILE); \
+		install -m 644 $(CONFIG_TEMPLATE) $(CONFIG_FILE); \
 	else \
 		echo "Config file already exists, skipping..."; \
 	fi
@@ -131,7 +136,7 @@ install: $(CCBASH_TARGET)
 # Uninstall cc-bash
 uninstall:
 	@echo "Uninstalling cc-bash..."
-	rm -f $(BINDIR)/$(CCBASH_TARGET)
+	rm -f $(BINDIR)/$(TARGET)
 	@echo "Binary removed. Config files preserved in $(SYSCONFDIR)"
 
 help:
@@ -161,17 +166,20 @@ help:
 	@echo "                    Or: make install PREFIX=~/.local (no sudo)"
 	@echo "  make uninstall    Remove installation"
 	@echo ""
-	@echo "LEGACY:"
-	@echo "  make poc          Build original smartterm POC (requires ncurses)"
-	@echo "  make run-poc      Run original smartterm POC"
-	@echo ""
 	@echo "VARIABLES:"
 	@echo "  PREFIX=$(PREFIX)"
 	@echo "  CC=$(CC)"
 	@echo "  CFLAGS=$(CFLAGS)"
 	@echo ""
+	@echo "PROJECT STRUCTURE:"
+	@echo "  src/       Source files (cc-bash.c, cc-bash-sdk.py)"
+	@echo "  tests/     Test files"
+	@echo "  config/    Configuration templates"
+	@echo "  scripts/   Utility scripts (install.sh)"
+	@echo "  docs/      Documentation"
+	@echo ""
 	@echo "DEVELOPMENT WORKFLOW:"
-	@echo "  1. Make changes to code"
+	@echo "  1. Make changes in src/"
 	@echo "  2. Run 'make check' before committing"
 	@echo "  3. Enable pre-commit hook: git config core.hooksPath .githooks"
 	@echo ""

@@ -17,33 +17,33 @@ cc-bash          # Start cc-bash
 
 ## Keyboard Shortcuts
 
-| Key          | Action                        |
-| ------------ | ----------------------------- |
-| `Ctrl+R`     | Fuzzy history search          |
-| `Ctrl+C`     | Cancel input                  |
-| `Ctrl+D`     | Exit cc-bash                  |
-| `Up/Down`    | Navigate history              |
-| `Left/Right` | Move cursor                   |
-| `Tab`        | Command/file completion       |
-| `Esc`        | Cancel search                 |
+| Key          | Action                  |
+| ------------ | ----------------------- |
+| `Ctrl+R`     | Fuzzy history search    |
+| `Ctrl+C`     | Cancel input            |
+| `Ctrl+D`     | Exit cc-bash            |
+| `Up/Down`    | Navigate history        |
+| `Left/Right` | Move cursor             |
+| `Tab`        | Command/file completion |
+| `Esc`        | Cancel search           |
 
 ## @ Commands
 
-| Command                | Action                          |
-| ---------------------- | ------------------------------- |
-| `@help` / `@h`         | Show help                       |
-| `@clear` / `@c`        | Clear screen                    |
-| `@quit` / `@q`         | Exit cc-bash                    |
-| `@edit` / `@e`         | Edit config in $EDITOR          |
-| `@reload` / `@r`       | Reload config                   |
-| `@alias`               | List aliases                    |
-| `@alias name=cmd`      | Add session alias               |
-| `@alias save`          | Save session aliases to config  |
-| `@snippet [name ...]`  | List/run snippets               |
-| `@workflow [name]`     | List/run workflows              |
-| `@theme`               | Show current theme              |
-| `@hooks`               | List plugin hooks               |
-| `@plugins`             | List loaded plugins             |
+| Command               | Action                         |
+| --------------------- | ------------------------------ |
+| `@help` / `@h`        | Show help                      |
+| `@clear` / `@c`       | Clear screen                   |
+| `@quit` / `@q`        | Exit cc-bash                   |
+| `@edit` / `@e`        | Edit config in $EDITOR         |
+| `@reload` / `@r`      | Reload config                  |
+| `@alias`              | List aliases                   |
+| `@alias name=cmd`     | Add session alias              |
+| `@alias save`         | Save session aliases to config |
+| `@snippet [name ...]` | List/run snippets              |
+| `@workflow [name]`    | List/run workflows             |
+| `@theme`              | Show current theme             |
+| `@hooks`              | List plugin hooks              |
+| `@plugins`            | List loaded plugins            |
 
 ## Configuration (~/.cc-bashrc)
 
@@ -138,7 +138,7 @@ make help         # Show all targets
 - `make help` - Build system help
 - [README.md](../README.md) - Full documentation
 - [docs/CONFIGURATION.md](../docs/CONFIGURATION.md) - Configuration guide
-- [SUPPORT.md](../SUPPORT.md) - Troubleshooting
+- [SUPPORT.md](SUPPORT.md) - Troubleshooting
 - [GitHub Issues](https://github.com/jcaldwell-labs/smartterm-prototype/issues)
 
 ## Quick Tips

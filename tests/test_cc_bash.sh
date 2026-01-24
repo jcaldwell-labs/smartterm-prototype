@@ -27,6 +27,7 @@ TESTS_FAILED=0
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 CCBASH_BIN="$PROJECT_DIR/cc-bash"
+CCBASH_SRC="$PROJECT_DIR/src/cc-bash.c"
 
 #
 # Test helper functions
@@ -106,7 +107,7 @@ test_echo_command() {
     # Since cc-bash requires a TTY, we test the underlying shell execution
     # by checking that the command parsing logic exists
 
-    if grep -q 'execl("/bin/sh"' "$PROJECT_DIR/cc-bash.c"; then
+    if grep -q 'execl("/bin/sh"' "$CCBASH_SRC"; then
         # Verify shell execution mechanism is present
         pass "Command execution via /bin/sh is implemented"
     else
@@ -121,7 +122,7 @@ test_pwd_command() {
     run_test "pwd functionality is present"
 
     # Since pwd is executed through the shell, verify the cwd tracking
-    if grep -q 'getcwd(cwd' "$PROJECT_DIR/cc-bash.c"; then
+    if grep -q 'getcwd(cwd' "$CCBASH_SRC"; then
         pass "Current working directory tracking is implemented"
     else
         fail "getcwd() call not found"
@@ -135,8 +136,8 @@ test_cd_command() {
     run_test "cd command is handled specially"
 
     # Verify cd is handled as a builtin (not passed to shell)
-    if grep -q 'handle_cd' "$PROJECT_DIR/cc-bash.c"; then
-        if grep -q 'chdir(path)' "$PROJECT_DIR/cc-bash.c"; then
+    if grep -q 'handle_cd' "$CCBASH_SRC"; then
+        if grep -q 'chdir(path)' "$CCBASH_SRC"; then
             pass "cd is implemented as a builtin command"
         else
             fail "chdir() call not found in cd handler"
@@ -153,8 +154,8 @@ test_exit_command() {
     run_test "exit and quit commands work"
 
     # Check for exit/quit handling
-    if grep -q 'strcmp(input, "exit")' "$PROJECT_DIR/cc-bash.c" && \
-       grep -q 'strcmp(input, "quit")' "$PROJECT_DIR/cc-bash.c"; then
+    if grep -q 'strcmp(input, "exit")' "$CCBASH_SRC" && \
+       grep -q 'strcmp(input, "quit")' "$CCBASH_SRC"; then
         pass "Both exit and quit commands are handled"
     else
         fail "exit/quit handling not found"
@@ -168,7 +169,7 @@ test_comment_handling() {
     run_test "Comments with # prefix are handled"
 
     # Check for # prefix handling
-    if grep -q "input\[0\] == '#'" "$PROJECT_DIR/cc-bash.c"; then
+    if grep -q "input\[0\] == '#'" "$CCBASH_SRC"; then
         pass "Comment prefix (#) is handled"
     else
         fail "Comment handling not found"
@@ -184,11 +185,11 @@ test_terminal_state() {
     local has_enable=false
     local has_disable=false
 
-    if grep -q 'enable_raw_mode' "$PROJECT_DIR/cc-bash.c"; then
+    if grep -q 'enable_raw_mode' "$CCBASH_SRC"; then
         has_enable=true
     fi
 
-    if grep -q 'disable_raw_mode' "$PROJECT_DIR/cc-bash.c"; then
+    if grep -q 'disable_raw_mode' "$CCBASH_SRC"; then
         has_disable=true
     fi
 
@@ -205,8 +206,8 @@ test_terminal_state() {
 test_history() {
     run_test "Command history is implemented"
 
-    if grep -q 'add_history' "$PROJECT_DIR/cc-bash.c" && \
-       grep -q 'history\[' "$PROJECT_DIR/cc-bash.c"; then
+    if grep -q 'add_history' "$CCBASH_SRC" && \
+       grep -q 'history\[' "$CCBASH_SRC"; then
         pass "Command history is implemented"
     else
         fail "History functionality not found"
@@ -220,7 +221,7 @@ test_scroll_region() {
     run_test "Scroll region is managed"
 
     # Check for ANSI scroll region escape sequence
-    if grep -q '\\033\[.*r' "$PROJECT_DIR/cc-bash.c"; then
+    if grep -q '\\033\[.*r' "$CCBASH_SRC"; then
         pass "Scroll region escape sequences are used"
     else
         fail "Scroll region handling not found"
@@ -233,8 +234,8 @@ test_scroll_region() {
 test_signal_handling() {
     run_test "Window resize signal is handled"
 
-    if grep -q 'SIGWINCH' "$PROJECT_DIR/cc-bash.c" && \
-       grep -q 'handle_sigwinch' "$PROJECT_DIR/cc-bash.c"; then
+    if grep -q 'SIGWINCH' "$CCBASH_SRC" && \
+       grep -q 'handle_sigwinch' "$CCBASH_SRC"; then
         pass "SIGWINCH handler is implemented"
     else
         fail "Window resize handling not found"
@@ -248,7 +249,7 @@ test_memory_cleanup() {
     run_test "Memory is freed on exit"
 
     # Check that history is freed
-    if grep -q 'free(history\[' "$PROJECT_DIR/cc-bash.c"; then
+    if grep -q 'free(history\[' "$CCBASH_SRC"; then
         pass "History memory is freed on exit"
     else
         fail "Memory cleanup for history not found"

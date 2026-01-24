@@ -9,8 +9,19 @@ Welcome to the SmartTerm documentation! This directory contains guides, tutorial
 ### Getting Started
 
 - **[Main README](../README.md)** - Project overview, installation, and quick start
-- **[API Reference](SMARTTERM-API.md)** - Complete function documentation
+- **[Configuration Guide](CONFIGURATION.md)** - Aliases, snippets, workflows, themes, plugins
+- **[Quick Reference](QUICKREF.md)** - One-page cheat sheet
 - **[Architecture](ARCHITECTURE.md)** - Design decisions and internals
+
+### Project Info
+
+- **[VISION.md](VISION.md)** - Project vision and roadmap
+- **[SUPPORT.md](SUPPORT.md)** - Getting help and common issues
+- **[CLAUDE.md](CLAUDE.md)** - AI assistant guide (for maintainers)
+
+### Legacy Library (SmartTerm v1.0)
+
+- **[API Reference](SMARTTERM-API.md)** - Complete function documentation
 
 ### User Guides
 
@@ -46,13 +57,13 @@ Welcome to the SmartTerm documentation! This directory contains guides, tutorial
 
 ### Building Something Specific?
 
-| Goal | Start Here |
-|------|------------|
-| Interactive REPL | [examples/repl.c](../examples/repl.c) |
-| Log monitoring | [examples/log_viewer.c](../examples/log_viewer.c) |
-| Chat interface | [examples/chat_client.c](../examples/chat_client.c) |
-| Custom colors | [API Reference - Themes](SMARTTERM-API.md#themes) |
-| Export output | [API Reference - Export](SMARTTERM-API.md#export) |
+| Goal             | Start Here                                          |
+| ---------------- | --------------------------------------------------- |
+| Interactive REPL | [examples/repl.c](../examples/repl.c)               |
+| Log monitoring   | [examples/log_viewer.c](../examples/log_viewer.c)   |
+| Chat interface   | [examples/chat_client.c](../examples/chat_client.c) |
+| Custom colors    | [API Reference - Themes](SMARTTERM-API.md#themes)   |
+| Export output    | [API Reference - Export](SMARTTERM-API.md#export)   |
 
 ### Looking for Reference?
 

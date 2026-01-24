@@ -8,10 +8,10 @@ Thank you for using cc-bash! This document provides guidance on how to get help 
 
 Before seeking help, please check our documentation:
 
-- **[README.md](README.md)** - Main documentation, installation, and usage
-- **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** - Technical architecture details
-- **[CONTRIBUTING.md](CONTRIBUTING.md)** - Development setup and contributing guide
-- **[CHANGELOG.md](CHANGELOG.md)** - Version history and release notes
+- **[README.md](../README.md)** - Main documentation, installation, and usage
+- **[ARCHITECTURE.md](ARCHITECTURE.md)** - Technical architecture details
+- **[CONTRIBUTING.md](../CONTRIBUTING.md)** - Development setup and contributing guide
+- **[CHANGELOG.md](../CHANGELOG.md)** - Version history and release notes
 
 ### GitHub Issues
 
@@ -39,6 +39,7 @@ For general questions, ideas, and community discussion:
 **Issue**: `command not found: cc-bash` after installation
 
 **Solution**: Ensure the installation directory is in your PATH:
+
 ```bash
 # For system install
 echo $PATH | grep "/usr/local/bin"
@@ -50,6 +51,7 @@ echo $PATH | grep "$HOME/.local/bin"
 **Issue**: Build fails with `undefined reference to forkpty`
 
 **Solution**: Ensure you have the required dependencies:
+
 ```bash
 # Ubuntu/Debian
 sudo apt-get install build-essential
@@ -62,6 +64,7 @@ sudo apt-get install build-essential
 **Issue**: Colors not showing in output
 
 **Solution**: Check your terminal supports ANSI colors:
+
 ```bash
 echo $TERM  # Should be xterm-256color or similar
 tput colors # Should show 8 or 256
@@ -70,6 +73,7 @@ tput colors # Should show 8 or 256
 **Issue**: Command history not persisting
 
 **Solution**: Check if `~/.cc-bash-history` is writable:
+
 ```bash
 ls -la ~/.cc-bash-history
 # Should show -rw-r--r-- permissions
@@ -80,6 +84,7 @@ ls -la ~/.cc-bash-history
 **Issue**: Aliases/snippets not loading
 
 **Solution**: Check your config file syntax:
+
 ```bash
 # Edit config
 @edit

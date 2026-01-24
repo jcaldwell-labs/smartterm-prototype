@@ -40,11 +40,13 @@ This runs static analysis and all tests, catching issues before they reach code 
 New to the project? Look for issues labeled [`good first issue`](https://github.com/jcaldwell-labs/smartterm-prototype/labels/good%20first%20issue).
 
 These issues are:
+
 - **Well-defined**: Clear acceptance criteria
 - **Self-contained**: Don't require deep codebase knowledge
 - **Mentored**: Maintainers will help guide you
 
 **Great starting points**:
+
 - Documentation improvements
 - Adding tests for existing functionality
 - Bug fixes with clear reproduction steps
@@ -61,6 +63,7 @@ This project adheres to the [Contributor Covenant Code of Conduct](CODE_OF_CONDU
 By participating, you are expected to uphold this code. Please report unacceptable behavior by opening an issue or contacting the project maintainers.
 
 **Key principles**:
+
 - Be respectful and professional
 - Focus on technical merit
 - Provide constructive feedback
@@ -346,6 +349,7 @@ make check
 ### Understanding Test Output
 
 **Unit Tests** (`make test-unit`):
+
 ```
 Running unit tests...
 [PASS] test_parse_alias
@@ -356,6 +360,7 @@ Tests: 193 passed, 0 failed
 ```
 
 **Static Analysis** (`make lint`):
+
 ```
 Running static analysis...
 Checking cc-bash.c...
@@ -410,10 +415,10 @@ Add tests to `tests/test_unit.c`:
 void test_my_feature(void) {
     // Arrange
     char *input = "test input";
-    
+
     // Act
     int result = my_function(input);
-    
+
     // Assert
     ASSERT_EQ(result, expected_value);
 }
@@ -560,11 +565,13 @@ We welcome questions! Here's where to ask depending on your needs:
 ### GitHub Issues
 
 Use [GitHub Issues](https://github.com/jcaldwell-labs/smartterm-prototype/issues) for:
+
 - **Bug reports** - Something isn't working
 - **Feature requests** - Ideas for new functionality
 - **Technical problems** - Build failures, installation issues
 
 **Before opening an issue**:
+
 1. Search existing issues to avoid duplicates
 2. Use the appropriate issue template
 3. Provide clear reproduction steps for bugs
@@ -572,12 +579,14 @@ Use [GitHub Issues](https://github.com/jcaldwell-labs/smartterm-prototype/issues
 ### GitHub Discussions
 
 Use [GitHub Discussions](https://github.com/jcaldwell-labs/smartterm-prototype/discussions) for:
+
 - **How-to questions** - "How do I configure X?"
 - **General discussion** - Ideas, use cases, feedback
 - **Show and tell** - Share your cool cc-bash setup
 - **Q&A** - Questions about architecture, design decisions
 
 Discussions are better for:
+
 - Open-ended questions
 - Ideas that aren't fully formed yet
 - Community conversation
@@ -586,14 +595,16 @@ Discussions are better for:
 ### Documentation
 
 Before asking, check:
+
 - **[README.md](README.md)** - Usage, installation, features
-- **[SUPPORT.md](SUPPORT.md)** - Common issues and solutions
+- **[docs/SUPPORT.md](docs/SUPPORT.md)** - Common issues and solutions
 - **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** - Technical design
-- **[CLAUDE.md](CLAUDE.md)** - AI assistant guide (for maintainers)
+- **[docs/CLAUDE.md](docs/CLAUDE.md)** - AI assistant guide (for maintainers)
 
 ### Response Times
 
 This is a community-driven project with volunteer maintainers:
+
 - **Critical bugs**: Aim for 48 hours
 - **General issues**: Usually within 1 week
 - **Discussions**: Varies by topic
@@ -603,6 +614,7 @@ Please be patient and respectful. If you don't get a response, bump the thread a
 ### Direct Contact
 
 For private matters (security issues, code of conduct violations), contact the maintainers via:
+
 - Email: Open an issue and we'll provide contact info
 - Or create a private security advisory on GitHub
 

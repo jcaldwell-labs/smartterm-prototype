@@ -16,7 +16,7 @@ class CcBash < Formula
     bin.install "cc-bash"
 
     # Install sample config
-    (share/"cc-bash").install "cc-bashrc.template"
+    (share/"cc-bash").install "config/cc-bashrc.template"
   end
 
   def post_install

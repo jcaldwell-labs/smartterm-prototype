@@ -1,5 +1,4 @@
 # Compiled binaries
-smartterm_poc
 cc-bash
 test_unit
 *.o
@@ -35,6 +34,7 @@ core
 
 # Test outputs
 test_output/
+demo_output/
 *.log
 
 # Python
