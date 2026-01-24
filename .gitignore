@@ -1,13 +1,17 @@
 # Compiled binaries
 smartterm_poc
+cc-bash
+test_unit
 *.o
 *.a
 *.so
+*.dylib
 
 # Build artifacts
 build/
 obj/
 bin/
+dist/
 
 # Editor files
 *.swp
@@ -15,17 +19,58 @@ bin/
 *~
 .vscode/
 .idea/
+*.sublime-*
+.editorconfig.bak
 
 # OS files
 .DS_Store
 Thumbs.db
+*.tmp
 
 # Debug files
 *.dSYM/
 vgcore.*
 core
+*.core
 
 # Test outputs
 test_output/
 *.log
-cc-bash
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+ENV/
+env/
+.venv
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Package managers
+node_modules/
+.npm
+
+# Coverage
+*.gcov
+*.gcda
+*.gcno
+coverage/
+htmlcov/
+
+# Temporary files
+*.bak
+*.tmp
+tmp/
+.temp/
+
+# macOS
+.AppleDouble
+.LSOverride
+
+# IDE
+*.code-workspace
+

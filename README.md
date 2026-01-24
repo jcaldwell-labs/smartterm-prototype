@@ -297,6 +297,8 @@ $ @quit
 
 cc-bash is configured via `~/.cc-bashrc`. Edit with `@edit` and apply with `@reload`.
 
+**Quick examples below** - See [docs/CONFIGURATION.md](docs/CONFIGURATION.md) for complete guide.
+
 <details>
 <summary><b>Aliases - Command shortcuts</b></summary>
 
