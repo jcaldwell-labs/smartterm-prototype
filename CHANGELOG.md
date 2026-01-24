@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-01-24
+
+### Changed
+
+- **Project reorganization** following GNU/C best practices (#28, #31)
+  - Source files moved to `src/` directory
+  - Configuration templates moved to `config/`
+  - Scripts moved to `scripts/`
+  - Packaging files moved to `packaging/`
+  - Documentation files (CLAUDE.md, SUPPORT.md, VISION.md) moved to `docs/`
+- Updated CI workflow for new project structure
+- Improved cppcheck configuration with targeted suppressions
+
+### Removed
+
+- **Legacy smartterm library** (~4,500 lines removed)
+  - `lib/smartterm/` - modular library implementation
+  - `include/smartterm.h` - library public API
+  - `examples/` - library example programs
+  - `Makefile.lib` - library build system
+  - `smartterm_poc.c` - original ncurses POC
+  - `llms.txt` - LLM context file
+  - `demo_output/` - demo output samples
+
+### Fixed
+
+- cppcheck warnings: redundant fseek on append-mode file, unused variable
+
 ## [1.2.1] - 2026-01-24
 
 ### Added
