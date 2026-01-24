@@ -4,7 +4,63 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![C Standard](https://img.shields.io/badge/C-C11-blue.svg)](https://en.cppreference.com/w/c/11)
+[![Platform](https://img.shields.io/badge/Platform-Linux%20%7C%20macOS-lightgrey.svg)](https://github.com/jcaldwell-labs/smartterm-prototype)
+[![Build Status](https://img.shields.io/badge/Build-Passing-brightgreen.svg)](https://github.com/jcaldwell-labs/smartterm-prototype/actions)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
+
+![cc-bash demo](gallery/cc-bash-demo.gif)
+
+> See more demos in the [gallery/](gallery/) directory!
+
+---
+
+## Quick Links
+
+- [Installation](#installation) - Get started in under 1 minute
+- [Features](#features) - What can cc-bash do?
+- [Configuration](#configuration) - Customize your experience
+- [Why cc-bash?](#why-cc-bash) - What makes it different?
+- [Contributing](CONTRIBUTING.md) - Help improve cc-bash
+
+---
+
+## Why cc-bash?
+
+cc-bash bridges the gap between traditional shells and modern terminal experiences.
+
+### Key Benefits
+
+✅ **No learning curve** - It's just bash, with better UX  
+✅ **Enhanced visibility** - Colored output, clear status bar, persistent history  
+✅ **Extensible** - Aliases, snippets, workflows, plugins, themes  
+✅ **Lightweight** - Pure C, minimal dependencies (~3300 LOC)  
+✅ **AI-ready** - Python version with Claude SDK integration
+
+### Comparison Table
+
+| Feature                     | Plain Bash | Fish/Zsh | Warp     | cc-bash       |
+| --------------------------- | ---------- | -------- | -------- | ------------- |
+| **Bash compatibility**      | ✅         | ⚠️       | ✅       | ✅            |
+| **Colored output**          | Manual     | Built-in | Built-in | ✅            |
+| **Status bar**              | ❌         | Plugin   | Built-in | ✅            |
+| **History search**          | Ctrl+R     | Ctrl+R   | ✅       | ✅            |
+| **Tab completion**          | ✅         | ✅       | ✅       | ✅            |
+| **Command aliases**         | ✅         | ✅       | ✅       | ✅            |
+| **Parameterized templates** | ❌         | ❌       | ❌       | ✅ (Snippets) |
+| **Multi-command workflows** | ❌         | ❌       | ❌       | ✅            |
+| **Plugin system**           | ❌         | ✅       | ✅       | ✅            |
+| **Theme customization**     | ❌         | ✅       | ✅       | ✅            |
+| **AI integration**          | ❌         | Plugin   | Built-in | ✅ (Python)   |
+| **Resource usage**          | Minimal    | Low      | High     | Minimal       |
+| **Open source**             | ✅         | ✅       | ❌       | ✅            |
+
+### Use Cases
+
+- **Development workflows** - Combine build, test, deploy commands into workflows
+- **System administration** - Create snippets for common tasks with parameters
+- **Learning** - Comments (#) let you annotate your command history
+- **AI pair programming** - Use Python version with Claude for command suggestions
+- **Server management** - Lightweight, runs over SSH with minimal dependencies
 
 ---
 
@@ -12,40 +68,111 @@
 
 | Version          | Language | AI Integration   | Dependencies                           |
 | ---------------- | -------- | ---------------- | -------------------------------------- |
-| `cc-bash`        | C        | No               | libreadline                            |
+| `cc-bash`        | C        | No               | None (pure POSIX)                      |
 | `cc-bash-sdk.py` | Python   | Yes (Claude SDK) | claude-agent-sdk, prompt_toolkit, rich |
+
+**Most users want the C version** - it's fast, lightweight, and works everywhere.
 
 ---
 
-## Overview
+## Quick Demo (30 seconds)
 
-cc-bash provides a Claude Code-inspired interface for interactive bash use:
+```bash
+# Install and run
+git clone https://github.com/jcaldwell-labs/smartterm-prototype.git
+cd smartterm-prototype && make && ./cc-bash
 
-- Commands execute in bash by default (no `!` prefix needed)
-- Colored output: commands (cyan), stdout (white), stderr (red)
-- Status bar showing current directory, exit code, and time
-- Command history with persistence (~/.cc-bash-history)
-- Tab completion for commands and file paths
-- **Aliases** - command shortcuts (`alias ll='ls -la'`)
-- **Snippets** - parameterized templates (`snippet greet='echo Hello, $1!'`)
-- **Workflows** - multi-step command sequences (`workflow build='make && make test'`)
-- **Plugins** - extensible via shell-script hooks
-- **Themes** - customizable colors
-- Notes with `#` prefix (displayed, not executed)
-- Internal commands with `@` prefix
+# Try it out
+$ ls -la                          # Commands in cyan, output in white
+$ grep -r "TODO" .                # Colored grep output (automatic!)
+$ # This is a note                # Comments in yellow (not executed)
+$ @help                           # Internal commands with @
+$ @alias ll='ls -la'              # Create shortcuts
+$ ll                              # Use your alias
+$ @quit                           # Exit (or Ctrl+D)
+```
+
+**What you get**:
+
+- Every command shows in color
+- Status bar with directory, exit code, time
+- History with Ctrl+R fuzzy search
+- Tab completion for files and commands
+
+---
+
+## Features at a Glance
+
+### Core Features
+
+- ⚡ **Zero prefix** - Type bash commands directly (no `!` or `$`)
+- 🎨 **Auto-colored output** - PTY-based execution means ls, grep, etc. show colors
+- 📊 **Status bar** - Current directory, last exit code, timestamp
+- 🔍 **Ctrl+R search** - Fuzzy search through command history
+- 📝 **Persistent history** - Saved to ~/.cc-bash-history
+
+### Power User Features
+
+- 🔗 **Aliases** - Shortcuts like `alias gs='git status'`
+- 📋 **Snippets** - Templates with params: `snippet find='find . -name "$1"'`
+- 🔄 **Workflows** - Multi-command sequences: `workflow build='make clean && make'`
+- 🔌 **Plugins** - Shell script hooks for custom behavior
+- 🎨 **Themes** - Customize all colors via config
+
+### Developer Experience
+
+- 💬 **Comments** - `# notes` displayed but not executed
+- ⌨️ **Full line editing** - Left/right arrows, delete, backspace
+- 📑 **Tab completion** - Files, directories, commands
+- 🚀 **Minimal deps** - Pure C, no ncurses or readline needed
+
+<details>
+<summary><b>Expand for detailed feature comparison</b></summary>
+
+| Feature                     | Plain Bash | Fish/Zsh | Warp     | cc-bash       |
+| --------------------------- | ---------- | -------- | -------- | ------------- |
+| **Bash compatibility**      | ✅         | ⚠️       | ✅       | ✅            |
+| **Colored output**          | Manual     | Built-in | Built-in | ✅            |
+| **Status bar**              | ❌         | Plugin   | Built-in | ✅            |
+| **History search**          | Ctrl+R     | Ctrl+R   | ✅       | ✅            |
+| **Tab completion**          | ✅         | ✅       | ✅       | ✅            |
+| **Command aliases**         | ✅         | ✅       | ✅       | ✅            |
+| **Parameterized templates** | ❌         | ❌       | ❌       | ✅ (Snippets) |
+| **Multi-command workflows** | ❌         | ❌       | ❌       | ✅            |
+| **Plugin system**           | ❌         | ✅       | ✅       | ✅            |
+| **Theme customization**     | ❌         | ✅       | ✅       | ✅            |
+| **AI integration**          | ❌         | Plugin   | Built-in | ✅ (Python)   |
+| **Resource usage**          | Minimal    | Low      | High     | Minimal       |
+| **Open source**             | ✅         | ✅       | ❌       | ✅            |
+
+</details>
 
 ---
 
 ## Installation
 
+### Quick Install (Recommended)
+
+```bash
+# Build from source (< 1 minute)
+git clone https://github.com/jcaldwell-labs/smartterm-prototype.git
+cd smartterm-prototype
+make
+sudo make install
+
+# Or install locally (no sudo)
+make install PREFIX=$HOME/.local
+export PATH="$HOME/.local/bin:$PATH"
+```
+
+<details>
+<summary><b>Alternative installation methods</b></summary>
+
 ### Option 1: Homebrew (macOS/Linux)
 
 ```bash
-# Add the tap and install
 brew tap jcaldwell-labs/cc-bash
 brew install cc-bash
-
-# Copy sample config
 cp $(brew --prefix)/share/cc-bash/cc-bashrc.template ~/.cc-bashrc
 mkdir -p ~/.cc-bash/plugins
 ```
@@ -53,13 +180,9 @@ mkdir -p ~/.cc-bash/plugins
 ### Option 2: AUR (Arch Linux)
 
 ```bash
-# Using yay
 yay -S cc-bash
+# or: paru -S cc-bash
 
-# Or using paru
-paru -S cc-bash
-
-# Setup
 cp /usr/share/cc-bash/cc-bashrc.template ~/.cc-bashrc
 mkdir -p ~/.cc-bash/plugins
 ```
@@ -67,13 +190,10 @@ mkdir -p ~/.cc-bash/plugins
 ### Option 3: Install Script
 
 ```bash
-# One-command install (builds from source)
 curl -fsSL https://raw.githubusercontent.com/jcaldwell-labs/smartterm-prototype/master/install.sh | bash
 ```
 
-### Option 4: Download Pre-built Binary
-
-Download from [GitHub Releases](https://github.com/jcaldwell-labs/smartterm-prototype/releases):
+### Option 4: Pre-built Binary
 
 ```bash
 # Linux x86_64
@@ -81,208 +201,46 @@ curl -fsSL https://github.com/jcaldwell-labs/smartterm-prototype/releases/latest
 chmod +x cc-bash
 sudo mv cc-bash /usr/local/bin/
 
-# Create config
+# Setup config
 mkdir -p ~/.cc-bash/plugins
 curl -fsSL https://raw.githubusercontent.com/jcaldwell-labs/smartterm-prototype/master/cc-bashrc.template -o ~/.cc-bashrc
 ```
 
-### Option 5: Build from Source
-
-```bash
-# Install dependencies (Ubuntu/Debian)
-sudo apt-get install build-essential
-
-# Clone and build
-git clone https://github.com/jcaldwell-labs/smartterm-prototype.git
-cd smartterm-prototype
-make
-
-# Install system-wide
-sudo make install
-
-# Or run locally
-./cc-bash
-```
-
-### Option 6: Local User Install (no sudo)
-
-```bash
-# Install to ~/.local/bin
-make
-make install PREFIX=$HOME/.local
-
-# Add to PATH (add to ~/.bashrc)
-export PATH="$HOME/.local/bin:$PATH"
-```
+</details>
 
 ---
 
-## Quick Start (Python + AI Version)
+## Quick Start
 
 ```bash
-# Create virtual environment
-python3 -m venv venv
-source venv/bin/activate
+# Run cc-bash
+cc-bash
 
-# Install dependencies
-pip install -r requirements.txt
-
-# Run
-python cc-bash-sdk.py
-```
-
-### AI Commands
-
-The Python version includes Claude AI integration:
-
-| Command              | Description                                  |
-| -------------------- | -------------------------------------------- |
-| `@ask <question>`    | Ask Claude anything                          |
-| `@explain`           | Have Claude explain the last command output  |
-| `@fix`               | Have Claude suggest a fix for the last error |
-| `@cmd <description>` | Generate a command from natural language     |
-
-### Example AI Session
-
-```
-› ls -la
+# Try basic commands
 $ ls -la
-total 24
-drwxr-xr-x 3 user user 4096 Dec 30 .
--rw-r--r-- 1 user user 1234 Dec 30 main.c
+$ pwd
+$ echo "Hello, cc-bash!"
 
-› @explain
-Asking Claude to explain...
-╭─ Explanation ─────────────────────────────────────────╮
-│ The `ls -la` command lists all files including       │
-│ hidden ones, showing permissions, owner, size...     │
-╰───────────────────────────────────────────────────────╯
+# Try a note (displayed, not executed)
+$ # This is my first note
 
-› @cmd find files larger than 100MB
-Generating command...
-Suggested: find . -size +100M -type f
-
-› some-command --wrong-flag
-error: unknown flag --wrong-flag
-
-› @fix
-Asking Claude for fix...
-╭─ Suggested Fix ───────────────────────────────────────╮
-│ The flag --wrong-flag doesn't exist. Try using...    │
-╰───────────────────────────────────────────────────────╯
-```
-
----
-
-## Usage (C Version)
-
-```
-cc-bash: Claude Code-style bash wrapper
-Type @help for help, @quit or exit to quit
-
- ~/projects/myapp                                    [exit: 0] 14:30:00
-────────────────────────────────────────────────────────────────────────
-$ ls -la
-$ ls -la
-total 24
-drwxr-xr-x 3 user user 4096 Dec 30 14:30 .
--rw-r--r-- 1 user user 1234 Dec 30 14:30 main.c
-
- ~/projects/myapp                                    [exit: 0] 14:30:05
-────────────────────────────────────────────────────────────────────────
-$ # This is a note - it won't execute
-# This is a note - it won't execute
-
+# Get help
 $ @help
-cc-bash: Claude Code-style bash wrapper
 
-Commands are executed in bash by default.
-
-Special prefixes:
-  # comment  - Add a note (yellow, not executed)
-  @clear     - Clear screen
-  @help      - Show this help
-  @quit      - Exit cc-bash
-
-Built-in commands:
-  cd [path]  - Change directory
-  exit       - Exit cc-bash
+# Exit
+$ @quit
 ```
-
----
-
-## Features
-
-### Command Execution
-
-- All input executes as bash commands by default
-- **Full color support** - PTY-based execution means `ls`, `grep`, `bat` show colors automatically
-- stdout displayed in white/default color
-- stderr displayed in red
-- Exit codes shown in status bar
-
-### Status Bar
-
-- Current working directory (truncated if long)
-- Last command exit code
-- Current time
-- Reverse video for visibility
-
-### Special Prefixes
-
-| Prefix | Action                                           |
-| ------ | ------------------------------------------------ |
-| `#`    | Note/comment - displayed in yellow, not executed |
-| `@`    | Internal command (help, clear, quit)             |
-
-### Keyboard Shortcuts
-
-| Key          | Action                                              |
-| ------------ | --------------------------------------------------- |
-| `Ctrl+R`     | Fuzzy history search (type to search, Enter to use) |
-| `Ctrl+C`     | Cancel current input or search                      |
-| `Ctrl+D`     | Exit cc-bash                                        |
-| `Up/Down`    | Navigate command history                            |
-| `Left/Right` | Move cursor in input                                |
-| `Tab`        | Complete command/file (double-Tab for options)      |
-| `PgUp/PgDn`  | Scroll output buffer                                |
-| `Esc`        | Cancel search mode                                  |
-
-### Built-in Commands
-
-| Command     | Action                                    |
-| ----------- | ----------------------------------------- |
-| `cd [path]` | Change directory (supports `~` expansion) |
-| `exit`      | Exit cc-bash                              |
-| `quit`      | Exit cc-bash                              |
-
-### Internal @ Commands
-
-| Command                        | Action                                     |
-| ------------------------------ | ------------------------------------------ |
-| `@help` / `@h`                 | Show help                                  |
-| `@clear` / `@c`                | Clear screen                               |
-| `@quit` / `@q`                 | Exit cc-bash                               |
-| `@edit` / `@e`                 | Edit config file (~/.cc-bashrc) in $EDITOR |
-| `@reload` / `@r`               | Reload config (aliases, snippets, etc.)    |
-| `@alias`                       | List aliases (\* = session only)           |
-| `@alias name=cmd`              | Add session alias                          |
-| `@alias save`                  | Save session aliases to config file        |
-| `@snippet [name args...]`      | List snippets or run one with arguments    |
-| `@workflow [name] [--dry-run]` | List workflows, run one, or preview        |
-| `@theme`                       | Display current theme colors               |
-| `@hooks`                       | List registered event hooks                |
-| `@plugins`                     | List loaded plugins                        |
 
 ---
 
 ## Configuration
 
-cc-bash uses `~/.cc-bashrc` for configuration. Create it manually or copy from `cc-bashrc.template`.
+cc-bash is configured via `~/.cc-bashrc`. Edit with `@edit` and apply with `@reload`.
 
-You can edit the config file directly with `@edit`, then apply changes with `@reload`.
+**Quick examples below** - See [docs/CONFIGURATION.md](docs/CONFIGURATION.md) for complete guide.
 
-### Aliases
+<details>
+<summary><b>Aliases - Command shortcuts</b></summary>
 
 ```bash
 # Define command shortcuts
@@ -293,10 +251,13 @@ alias gd='git diff'
 
 Usage: Type `ll` and it expands to `ls -la`
 
-### Snippets
+</details>
+
+<details>
+<summary><b>Snippets - Parameterized templates</b></summary>
 
 ```bash
-# Define parameterized templates ($1, $2, etc.)
+# Define templates with $1, $2, etc. placeholders
 snippet find-name='find . -name "$1"'
 snippet grep-r='grep -r "$1" .'
 snippet mkdir-cd='mkdir -p $1 && cd $1'
@@ -304,27 +265,30 @@ snippet mkdir-cd='mkdir -p $1 && cd $1'
 
 Usage: `@snippet find-name "*.c"` → `find . -name "*.c"`
 
-### Workflows
+</details>
+
+<details>
+<summary><b>Workflows - Multi-step sequences</b></summary>
 
 ```bash
-# Multi-step command sequences
+# Combine commands with && (stop on error) or ; (continue)
 workflow build='make clean && make && make test'
 workflow gitcheck='git status; git diff --stat'
 ```
 
-- Use `&&` to stop on first error
-- Use `;` to continue regardless of errors
-
 Usage:
 
-- `@workflow` - list all workflows
-- `@workflow build` - run the build workflow
-- `@workflow build --dry-run` - preview without executing
+- `@workflow` - List all workflows
+- `@workflow build` - Run the build workflow
+- `@workflow build --dry-run` - Preview without executing
 
-### Themes
+</details>
+
+<details>
+<summary><b>Themes - Customize colors</b></summary>
 
 ```bash
-# Customize colors (black, red, green, yellow, blue, magenta, cyan, white)
+# Colors: black, red, green, yellow, blue, magenta, cyan, white
 # Modifiers: bold, dim
 theme.prompt=bold cyan
 theme.error=bold red
@@ -335,20 +299,10 @@ theme.status=bold
 theme.scroll=dim
 ```
 
-### Environment Variables
+</details>
 
-```bash
-export EDITOR=vim
-export PAGER=less
-```
-
----
-
-## Plugins
-
-Plugins extend cc-bash with custom hooks, commands, aliases, and workflows.
-
-### Plugin Location
+<details>
+<summary><b>Plugins - Extend functionality</b></summary>
 
 ```
 ~/.cc-bash/plugins/<plugin-name>/
@@ -385,15 +339,104 @@ hook.post_command=hooks/on_post_command.sh
 
 ### Example Hook Script
 
-```bash
-#!/bin/sh
-# hooks/on_cd.sh - Log directory changes
-echo "[$(date)] cd: $CCBASH_OLD_CWD -> $CCBASH_NEW_CWD" >> ~/.cc-bash/cd.log
-```
+See [full plugin documentation](docs/ARCHITECTURE.md) for details.
+
+</details>
 
 ---
 
-## Building
+## Python + AI Version
+
+For AI-powered assistance, use the Python version with Claude SDK integration.
+
+<details>
+<summary><b>Click to expand: Python setup and AI commands</b></summary>
+
+### Quick Start
+
+```bash
+# Create virtual environment
+python3 -m venv venv
+source venv/bin/activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Run
+python cc-bash-sdk.py
+```
+
+### AI Commands
+
+| Command              | Description                                  |
+| -------------------- | -------------------------------------------- |
+| `@ask <question>`    | Ask Claude anything                          |
+| `@explain`           | Have Claude explain the last command output  |
+| `@fix`               | Have Claude suggest a fix for the last error |
+| `@cmd <description>` | Generate a command from natural language     |
+
+### Example Session
+
+```
+› @cmd find files larger than 100MB
+Generating command...
+Suggested: find . -size +100M -type f
+
+› some-command --wrong-flag
+error: unknown flag --wrong-flag
+
+› @fix
+Asking Claude for fix...
+╭─ Suggested Fix ───────────────────────────────────────╮
+│ The flag --wrong-flag doesn't exist. Try using...    │
+╰───────────────────────────────────────────────────────╯
+```
+
+</details>
+
+---
+
+## Keyboard Shortcuts & Commands
+
+<details>
+<summary><b>Keyboard shortcuts</b></summary>
+
+| Key          | Action                                              |
+| ------------ | --------------------------------------------------- |
+| `Ctrl+R`     | Fuzzy history search (type to search, Enter to use) |
+| `Ctrl+C`     | Cancel current input or search                      |
+| `Ctrl+D`     | Exit cc-bash                                        |
+| `Up/Down`    | Navigate command history                            |
+| `Left/Right` | Move cursor in input                                |
+| `Tab`        | Complete command/file (double-Tab for options)      |
+| `Esc`        | Cancel search mode                                  |
+
+</details>
+
+<details>
+<summary><b>@ Commands reference</b></summary>
+
+| Command                        | Shortcut | Description                                |
+| ------------------------------ | -------- | ------------------------------------------ |
+| `@help`                        | `@h`     | Show help                                  |
+| `@clear`                       | `@c`     | Clear screen                               |
+| `@quit`                        | `@q`     | Exit cc-bash                               |
+| `@edit`                        | `@e`     | Edit config file (~/.cc-bashrc) in $EDITOR |
+| `@reload`                      | `@r`     | Reload configuration                       |
+| `@alias`                       | -        | List aliases (\* = session only)           |
+| `@alias name=cmd`              | -        | Add session alias                          |
+| `@alias save`                  | -        | Save session aliases to config file        |
+| `@snippet [name args...]`      | -        | List snippets or run one with arguments    |
+| `@workflow [name] [--dry-run]` | -        | List workflows, run one, or preview        |
+| `@theme`                       | -        | Display current theme colors               |
+| `@hooks`                       | -        | List registered event hooks                |
+| `@plugins`                     | -        | List loaded plugins                        |
+
+</details>
+
+---
+
+## Building from Source
 
 ```bash
 # Build cc-bash (default)
@@ -402,10 +445,13 @@ make
 # Build and run
 make run
 
+# Build with debug symbols
+make debug
+
 # Clean
 make clean
 
-# Show help
+# Show all targets
 make help
 ```
 
@@ -478,9 +524,41 @@ See GitHub issue #14 for the repurposing discussion.
 
 ---
 
+## Contributing
+
+We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+
+**Quick links**:
+
+- [Good First Issues](https://github.com/jcaldwell-labs/smartterm-prototype/labels/good%20first%20issue) - Great for newcomers
+- [GitHub Discussions](https://github.com/jcaldwell-labs/smartterm-prototype/discussions) - Questions and ideas
+- [Code of Conduct](CODE_OF_CONDUCT.md) - Community standards
+
+### Contributors
+
+Thank you to everyone who has contributed to cc-bash!
+
+<!-- ALL-CONTRIBUTORS-LIST:START -->
+<!-- This section will be updated by all-contributors bot -->
+<!-- ALL-CONTRIBUTORS-LIST:END -->
+
+Want to see your name here? Check out our [contribution guide](CONTRIBUTING.md)!
+
+---
+
 ## License
 
 MIT License - see [LICENSE](LICENSE) for details.
+
+---
+
+## Support
+
+Need help? Check out:
+
+- [SUPPORT.md](SUPPORT.md) - Common issues and solutions
+- [GitHub Issues](https://github.com/jcaldwell-labs/smartterm-prototype/issues) - Bug reports and feature requests
+- [GitHub Discussions](https://github.com/jcaldwell-labs/smartterm-prototype/discussions) - Questions and community
 
 ---
 

@@ -5,14 +5,17 @@ Thank you for your interest in contributing to cc-bash! This document provides g
 ## Table of Contents
 
 - [Quick Start: Quality Workflow](#quick-start-quality-workflow)
+- [Good First Issues](#good-first-issues)
 - [Code of Conduct](#code-of-conduct)
 - [Getting Started](#getting-started)
 - [Development Setup](#development-setup)
+- [Running Tests Locally](#running-tests-locally)
 - [Quality Checks](#quality-checks)
 - [Coding Standards](#coding-standards)
 - [Testing](#testing)
 - [Submitting Changes](#submitting-changes)
 - [Issue Guidelines](#issue-guidelines)
+- [Where to Ask Questions](#where-to-ask-questions)
 
 ---
 
@@ -32,10 +35,32 @@ This runs static analysis and all tests, catching issues before they reach code 
 
 ---
 
+## Good First Issues
+
+New to the project? Look for issues labeled [`good first issue`](https://github.com/jcaldwell-labs/smartterm-prototype/labels/good%20first%20issue).
+
+These issues are:
+- **Well-defined**: Clear acceptance criteria
+- **Self-contained**: Don't require deep codebase knowledge
+- **Mentored**: Maintainers will help guide you
+
+**Great starting points**:
+- Documentation improvements
+- Adding tests for existing functionality
+- Bug fixes with clear reproduction steps
+- Small feature additions
+
+**Not sure where to start?** Comment on an issue asking for guidance, or check out [GitHub Discussions](https://github.com/jcaldwell-labs/smartterm-prototype/discussions) for ideas.
+
+---
+
 ## Code of Conduct
 
-This project follows standard open source collaboration practices:
+This project adheres to the [Contributor Covenant Code of Conduct](CODE_OF_CONDUCT.md).
 
+By participating, you are expected to uphold this code. Please report unacceptable behavior by opening an issue or contacting the project maintainers.
+
+**Key principles**:
 - Be respectful and professional
 - Focus on technical merit
 - Provide constructive feedback
@@ -47,23 +72,30 @@ This project follows standard open source collaboration practices:
 
 ### Prerequisites
 
+**Prerequisites**:
+
 - C compiler (gcc or clang)
-- ncurses development library
-- readline development library
 - Make build system
 - Git
+- cppcheck (for static analysis, optional but recommended)
 
 **Ubuntu/Debian:**
 
 ```bash
-sudo apt-get install build-essential libncurses-dev libreadline-dev git
+sudo apt-get install build-essential git cppcheck
 ```
 
 **macOS:**
 
 ```bash
-brew install ncurses readline make
+# Install Xcode Command Line Tools (includes gcc, make, git)
+xcode-select --install
+
+# Install cppcheck
+brew install cppcheck
 ```
+
+**Note**: cc-bash has minimal dependencies - no ncurses or readline required! It uses raw terminal mode and ANSI escape codes.
 
 ### Fork and Clone
 
@@ -81,6 +113,30 @@ brew install ncurses readline make
 ---
 
 ## Development Setup
+
+### Quick Start (5 minutes to running tests)
+
+```bash
+# 1. Clone and enter directory
+git clone https://github.com/YOUR_USERNAME/smartterm-prototype.git
+cd smartterm-prototype
+
+# 2. Build cc-bash
+make
+
+# 3. Run cc-bash
+./cc-bash
+
+# 4. Exit with Ctrl+D or @quit
+
+# 5. Run tests
+make test
+
+# 6. Run quality checks
+make check
+```
+
+**You're ready to contribute!**
 
 ### Building cc-bash
 
@@ -267,6 +323,111 @@ clang-format -i path/to/file.c
 
 ---
 
+## Running Tests Locally
+
+cc-bash has comprehensive test coverage with unit tests and static analysis.
+
+### Quick Test Commands
+
+```bash
+# Run all tests (recommended before committing)
+make test
+
+# Run only unit tests (fast feedback)
+make test-unit
+
+# Run only static analysis
+make lint
+
+# Run full quality check (lint + test)
+make check
+```
+
+### Understanding Test Output
+
+**Unit Tests** (`make test-unit`):
+```
+Running unit tests...
+[PASS] test_parse_alias
+[PASS] test_parse_snippet
+[FAIL] test_fuzzy_search - Expected 3, got 2
+...
+Tests: 193 passed, 0 failed
+```
+
+**Static Analysis** (`make lint`):
+```
+Running static analysis...
+Checking cc-bash.c...
+Static analysis passed!
+```
+
+### Test Organization
+
+- **`tests/test_unit.c`** - Unit tests (193 tests)
+  - Configuration parsing
+  - Alias/snippet expansion
+  - History management
+  - String utilities
+
+- **`tests/test_cc_bash.sh`** - Integration tests
+  - Static analysis with cppcheck
+  - Build verification
+  - Compiler warning checks
+
+### Running Specific Tests
+
+To run specific unit tests, modify `test_unit.c` temporarily:
+
+```c
+// Comment out tests you don't want to run
+// RUN_TEST(test_parse_alias);
+RUN_TEST(test_fuzzy_search);  // Only this one runs
+// RUN_TEST(test_parse_snippet);
+```
+
+### Debugging Test Failures
+
+```bash
+# Build with debug symbols
+make debug
+
+# Run under gdb
+gdb ./test_unit
+(gdb) run
+(gdb) backtrace
+
+# Or use valgrind to check for memory issues
+valgrind --leak-check=full ./test_unit
+```
+
+### Writing New Tests
+
+Add tests to `tests/test_unit.c`:
+
+```c
+// Test function
+void test_my_feature(void) {
+    // Arrange
+    char *input = "test input";
+    
+    // Act
+    int result = my_function(input);
+    
+    // Assert
+    ASSERT_EQ(result, expected_value);
+}
+
+// Register test in main()
+int main(void) {
+    // ... other tests ...
+    RUN_TEST(test_my_feature);
+    // ...
+}
+```
+
+---
+
 ## Testing
 
 ### Running Tests
@@ -383,11 +544,67 @@ Fixes #42
 - [ ] Code follows project style guidelines
 - [ ] Code has been formatted with clang-format
 - [ ] Tests added for new functionality
-- [ ] All tests pass
+- [ ] All tests pass (`make test`)
 - [ ] Documentation updated
 - [ ] Commit messages are clear and descriptive
 - [ ] No compiler warnings
 - [ ] Memory safety verified (valgrind clean)
+- [ ] Ran `make check` before committing
+
+---
+
+## Where to Ask Questions
+
+We welcome questions! Here's where to ask depending on your needs:
+
+### GitHub Issues
+
+Use [GitHub Issues](https://github.com/jcaldwell-labs/smartterm-prototype/issues) for:
+- **Bug reports** - Something isn't working
+- **Feature requests** - Ideas for new functionality
+- **Technical problems** - Build failures, installation issues
+
+**Before opening an issue**:
+1. Search existing issues to avoid duplicates
+2. Use the appropriate issue template
+3. Provide clear reproduction steps for bugs
+
+### GitHub Discussions
+
+Use [GitHub Discussions](https://github.com/jcaldwell-labs/smartterm-prototype/discussions) for:
+- **How-to questions** - "How do I configure X?"
+- **General discussion** - Ideas, use cases, feedback
+- **Show and tell** - Share your cool cc-bash setup
+- **Q&A** - Questions about architecture, design decisions
+
+Discussions are better for:
+- Open-ended questions
+- Ideas that aren't fully formed yet
+- Community conversation
+- Getting to know other users
+
+### Documentation
+
+Before asking, check:
+- **[README.md](README.md)** - Usage, installation, features
+- **[SUPPORT.md](SUPPORT.md)** - Common issues and solutions
+- **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** - Technical design
+- **[CLAUDE.md](CLAUDE.md)** - AI assistant guide (for maintainers)
+
+### Response Times
+
+This is a community-driven project with volunteer maintainers:
+- **Critical bugs**: Aim for 48 hours
+- **General issues**: Usually within 1 week
+- **Discussions**: Varies by topic
+
+Please be patient and respectful. If you don't get a response, bump the thread after a week.
+
+### Direct Contact
+
+For private matters (security issues, code of conduct violations), contact the maintainers via:
+- Email: Open an issue and we'll provide contact info
+- Or create a private security advisory on GitHub
 
 ---
 

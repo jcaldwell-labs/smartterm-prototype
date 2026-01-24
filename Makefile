@@ -28,7 +28,7 @@ CCBASH_SRC = cc-bash.c
 TEST_UNIT_TARGET = test_unit
 TEST_UNIT_SRC = tests/test_unit.c
 
-.PHONY: all clean run poc cc-bash run-ccbash test test-unit help install uninstall lint check release
+.PHONY: all clean run poc cc-bash run-ccbash test test-unit help install uninstall lint check release debug
 
 # Default: build cc-bash
 all: $(CCBASH_TARGET)
@@ -36,6 +36,12 @@ all: $(CCBASH_TARGET)
 # Build cc-bash
 $(CCBASH_TARGET): $(CCBASH_SRC)
 	$(CC) $(CFLAGS) -o $(CCBASH_TARGET) $(CCBASH_SRC) $(LDFLAGS_CCBASH)
+
+# Build with debug symbols
+debug:
+	$(CC) $(CFLAGS) -g -O0 -DDEBUG -o $(CCBASH_TARGET) $(CCBASH_SRC) $(LDFLAGS_CCBASH)
+	@echo "Built debug binary with symbols: $(CCBASH_TARGET)"
+	@echo "Use with: gdb ./$(CCBASH_TARGET)"
 
 # Build original POC
 poc: $(POC_TARGET)
@@ -129,28 +135,45 @@ uninstall:
 	@echo "Binary removed. Config files preserved in $(SYSCONFDIR)"
 
 help:
-	@echo "cc-bash: Claude Code-style bash wrapper"
+	@echo "═══════════════════════════════════════════════════════════════"
+	@echo "  cc-bash: Claude Code-style Bash Wrapper"
+	@echo "═══════════════════════════════════════════════════════════════"
 	@echo ""
-	@echo "Build Targets:"
-	@echo "  all       - Build cc-bash (default)"
-	@echo "  run       - Build and run cc-bash"
-	@echo "  clean     - Remove binaries"
+	@echo "BUILD:"
+	@echo "  make              Build cc-bash binary (default)"
+	@echo "  make all          Same as 'make'"
+	@echo "  make debug        Build with debug symbols (-g -O0)"
+	@echo "  make run          Build and run cc-bash"
+	@echo "  make release      Build optimized release binary (-O2)"
+	@echo "  make clean        Remove build artifacts"
 	@echo ""
-	@echo "Quality Targets:"
-	@echo "  check     - Run all quality checks (lint + test) [USE BEFORE COMMIT]"
-	@echo "  lint      - Run static analysis (cppcheck)"
-	@echo "  test      - Run full test suite (unit + static)"
-	@echo "  test-unit - Run unit tests only"
+	@echo "TESTING:"
+	@echo "  make test         Run all tests (unit + static analysis)"
+	@echo "  make test-unit    Run unit tests only"
+	@echo "  make lint         Run static analysis (cppcheck)"
 	@echo ""
-	@echo "Install Targets:"
-	@echo "  install   - Install to $(PREFIX)/bin (use sudo)"
-	@echo "  uninstall - Remove from $(PREFIX)/bin"
+	@echo "QUALITY:"
+	@echo "  make check        Full quality check (lint + test) ⭐ USE BEFORE COMMIT"
+	@echo "  make STRICT=1     Build with -Werror (warnings as errors)"
 	@echo ""
-	@echo "Legacy Targets:"
-	@echo "  poc       - Build original smartterm POC"
-	@echo "  run-poc   - Run original smartterm POC"
+	@echo "INSTALL:"
+	@echo "  make install      Install to /usr/local/bin (requires sudo)"
+	@echo "                    Or: make install PREFIX=~/.local (no sudo)"
+	@echo "  make uninstall    Remove installation"
 	@echo ""
-	@echo "Development workflow:"
-	@echo "  1. Make changes"
+	@echo "LEGACY:"
+	@echo "  make poc          Build original smartterm POC (requires ncurses)"
+	@echo "  make run-poc      Run original smartterm POC"
+	@echo ""
+	@echo "VARIABLES:"
+	@echo "  PREFIX=$(PREFIX)"
+	@echo "  CC=$(CC)"
+	@echo "  CFLAGS=$(CFLAGS)"
+	@echo ""
+	@echo "DEVELOPMENT WORKFLOW:"
+	@echo "  1. Make changes to code"
 	@echo "  2. Run 'make check' before committing"
-	@echo "  3. Or use git hooks: .githooks/pre-commit"
+	@echo "  3. Enable pre-commit hook: git config core.hooksPath .githooks"
+	@echo ""
+	@echo "See CONTRIBUTING.md for detailed guidelines"
+	@echo "═══════════════════════════════════════════════════════════════"
