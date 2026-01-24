@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.1] - 2026-01-24
+
+### Added
+
+- Multi-line input support with continuation detection (#25, #27)
+  - `needs_continuation()` detects trailing `\`, unclosed quotes (`'`, `"`, `` ` ``)
+  - Continuation prompt (`"> "`) shown when more input needed
+  - History load/save handles embedded newlines via `\x00` escaping
+- Quality check workflow for development
+  - `make lint` for cppcheck static analysis
+  - `make check` runs lint + all tests
+  - `make STRICT=1` for `-Werror` builds
+  - Pre-commit hook (`.githooks/pre-commit`) blocks commits on failures
+- 39 new unit tests for continuation detection (240 total tests)
+- Automated release workflow via GitHub Actions
+
+### Fixed
+
+- macOS compatibility: Added `strcasestr` fallback for non-glibc systems
+- Package sha256 checksums for v1.2.0 binaries
+
+### Changed
+
+- Stricter compiler warnings: `-Wpedantic -Wunused -Wshadow -Wformat=2`
+
 ## [1.2.0] - 2026-01-08
 
 ### Added
