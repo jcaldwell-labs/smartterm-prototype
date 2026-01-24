@@ -1660,7 +1660,7 @@ void test_workflow_basic(void)
     ASSERT_NOT_NULL(get_workflow("build"), "get_workflow returns workflow");
     ASSERT_NULL(get_workflow("nonexistent"), "get_workflow returns NULL for unknown");
 
-    Workflow* wf = get_workflow("build");
+    const Workflow* wf = get_workflow("build");
     ASSERT(wf->step_count == 2, "workflow has 2 steps");
     ASSERT(wf->stop_on_error == 1, "workflow stops on error (&&)");
 
@@ -1673,7 +1673,7 @@ void test_workflow_and_separator(void)
     free_workflows();
 
     add_workflow("test", "step1 && step2 && step3");
-    Workflow* wf = get_workflow("test");
+    const Workflow* wf = get_workflow("test");
 
     ASSERT_NOT_NULL(wf, "workflow exists");
     ASSERT(wf->step_count == 3, "workflow has 3 steps");
@@ -1691,7 +1691,7 @@ void test_workflow_semicolon_separator(void)
     free_workflows();
 
     add_workflow("check", "git status; git diff");
-    Workflow* wf = get_workflow("check");
+    const Workflow* wf = get_workflow("check");
 
     ASSERT_NOT_NULL(wf, "workflow exists");
     ASSERT(wf->step_count == 2, "workflow has 2 steps");
@@ -1711,7 +1711,7 @@ void test_workflow_replace(void)
     add_workflow("build", "make clean && make && make test");
 
     ASSERT(workflow_count == 1, "workflow_count stays 1 after replacing");
-    Workflow* wf = get_workflow("build");
+    const Workflow* wf = get_workflow("build");
     ASSERT(wf->step_count == 3, "workflow now has 3 steps");
 
     free_workflows();
@@ -1740,7 +1740,7 @@ void test_workflow_whitespace_handling(void)
     free_workflows();
 
     add_workflow("spacy", "  cmd1  &&  cmd2  ");
-    Workflow* wf = get_workflow("spacy");
+    const Workflow* wf = get_workflow("spacy");
 
     ASSERT_NOT_NULL(wf, "workflow exists");
     ASSERT(wf->step_count == 2, "workflow has 2 steps");
@@ -1756,7 +1756,7 @@ void test_workflow_complex_commands(void)
     free_workflows();
 
     add_workflow("complex", "ls -la /tmp && grep -r 'pattern' .");
-    Workflow* wf = get_workflow("complex");
+    const Workflow* wf = get_workflow("complex");
 
     ASSERT_NOT_NULL(wf, "workflow exists");
     ASSERT(wf->step_count == 2, "workflow has 2 steps");
