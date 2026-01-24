@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-01-24
+
+### Added
+
+- **Terminal query detection and response** (#32, #33)
+  - Programs like `glow` no longer hang waiting for terminal capability queries
+  - Supports OSC 10/11 (foreground/background color queries) and CSI 6n (cursor position)
+  - State machine parser detects queries in PTY output and sends appropriate responses
+  - Query sequences are filtered from display; normal escape codes (colors) pass through
+  - 8 new unit tests for parser functionality
+
 ## [1.3.0] - 2026-01-24
 
 ### Changed
