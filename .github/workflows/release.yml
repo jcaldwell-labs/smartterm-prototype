@@ -21,11 +21,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libncurses-dev
-
       - name: Get version info
         id: version
         run: |
@@ -38,10 +33,10 @@ jobs:
       - name: Create release archive
         run: |
           mkdir -p release
-          cp build/release/smartterm release/ 2>/dev/null || cp smartterm release/ 2>/dev/null || true
+          cp cc-bash release/
           cp README.md CHANGELOG.md LICENSE release/ 2>/dev/null || true
-          tar -czvf smartterm-prototype-${{ steps.version.outputs.version }}-linux-amd64.tar.gz -C release .
-          sha256sum smartterm-prototype-${{ steps.version.outputs.version }}-linux-amd64.tar.gz > smartterm-prototype-${{ steps.version.outputs.version }}-linux-amd64.tar.gz.sha256
+          tar -czvf cc-bash-${{ steps.version.outputs.version }}-linux-amd64.tar.gz -C release .
+          sha256sum cc-bash-${{ steps.version.outputs.version }}-linux-amd64.tar.gz > cc-bash-${{ steps.version.outputs.version }}-linux-amd64.tar.gz.sha256
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4

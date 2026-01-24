@@ -28,7 +28,7 @@ CCBASH_SRC = cc-bash.c
 TEST_UNIT_TARGET = test_unit
 TEST_UNIT_SRC = tests/test_unit.c
 
-.PHONY: all clean run poc cc-bash run-ccbash test test-unit help install uninstall lint check
+.PHONY: all clean run poc cc-bash run-ccbash test test-unit help install uninstall lint check release
 
 # Default: build cc-bash
 all: $(CCBASH_TARGET)
@@ -53,6 +53,11 @@ run-poc: $(POC_TARGET)
 
 clean:
 	rm -f $(POC_TARGET) $(CCBASH_TARGET) $(TEST_UNIT_TARGET)
+
+# Build optimized release binary
+release:
+	$(CC) $(CFLAGS) -O2 -DNDEBUG -o $(CCBASH_TARGET) $(CCBASH_SRC) $(LDFLAGS_CCBASH)
+	@echo "Built optimized release binary: $(CCBASH_TARGET)"
 
 # Build unit tests
 $(TEST_UNIT_TARGET): $(TEST_UNIT_SRC)
