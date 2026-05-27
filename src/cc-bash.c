@@ -1717,6 +1717,13 @@ static QueryType parser_feed(EscapeParser* p, char c)
         return QUERY_NONE;
 
     case PARSE_OSC:
+         /* Handle ST terminator: ESC \ - if we see ESC, terminate OSC */
+    if (c == '\033') {
+        /* ESC marks end of OSC sequence (ST will be handled separately) */
+        p->state = PARSE_NORMAL;
+        /* Don't buffer this ESC in esc_buf - it starts a new sequence */
+        return QUERY_NONE;
+    }
         /* Buffer this char (will be discarded later if it's a query) */
         if (p->esc_len < (int)sizeof(p->esc_buf) - 1) {
             p->esc_buf[p->esc_len++] = c;
